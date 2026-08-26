@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delivery Settings · UNB Client Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy-900: #0f1730; --navy-800: #16204a;
+    --crimson: #e5484d; --crimson-dark: #d13438; --crimson-soft: #fdecec;
+    --amber: #f0a832; --paper: #faf9f6; --panel: #ffffff; --border: #eceae5;
+    --ink: #1c1f2e; --muted: #7c7f8c; --muted-2: #b0b2bc;
+    --green: #16a34a; --green-bg: #e5f6ec;
+    --blue: #3b6fe0; --blue-bg: #e9f0fd;
+    --serif: "Fraunces", Georgia, serif;
+    --sans: "Inter", -apple-system, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--sans); background: var(--paper); color: var(--ink); font-size: 14.5px; }
+  button, input, select { font-family: var(--sans); }
+  a { color: inherit; text-decoration: none; }
+  svg { display: block; }
+
+  .brand-strip { height: 4px; background: linear-gradient(90deg, var(--navy-800) 0%, var(--navy-900) 45%, var(--crimson) 100%); }
+
+  /* ---- masthead ---- */
+  .mast {
+    position: sticky; top: 0; z-index: 60;
+    display: flex; align-items: center; gap: 18px;
+    padding: 14px 28px;
+    background: #fff; border-bottom: 1px solid var(--border);
+  }
+  .mast-brand { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 20px; font-weight: 700; letter-spacing: 0.02em; }
+  .mast-brand svg { width: 26px; height: 26px; }
+  .mast-brand .portal-tag { font-family: var(--sans); font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--navy-800); background: var(--blue-bg); border-radius: 6px; padding: 3px 8px; }
+  .mast-clock { font-size: 12.5px; color: var(--muted); }
+  .mast-clock b { color: var(--ink); font-weight: 600; }
+  .spacer { flex: 1; }
+  .back-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--border); border-radius: 9px; padding: 7px 13px;
+    font-size: 12.5px; font-weight: 600; color: #4b4e5c; background: #fff;
+    transition: all 0.13s ease;
+  }
+  .back-link:hover { border-color: var(--navy-800); color: var(--navy-800); }
+  .back-link svg { width: 13px; height: 13px; stroke: currentColor; }
+  .user-chip { display: flex; align-items: center; gap: 9px; }
+  .user-av {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: linear-gradient(135deg, var(--navy-800), var(--navy-900));
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .user-meta { font-size: 12px; line-height: 1.35; }
+  .user-meta b { display: block; font-size: 12.5px; }
+  .user-meta span { color: var(--muted-2); }
+
+  /* ---- layout ---- */
+  .wrap { max-width: 880px; margin: 0 auto; padding: 30px 24px 70px; }
+  .page-head { margin-bottom: 24px; }
+  .page-title { font-family: var(--serif); font-size: 27px; font-weight: 700; }
+  .page-sub { font-size: 13.5px; color: var(--muted); margin-top: 5px; line-height: 1.6; }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 15px;
+    box-shadow: 0 1px 3px rgba(28,31,46,0.05);
+    margin-bottom: 22px; overflow: hidden;
+  }
+  .card-head { display: flex; align-items: center; gap: 11px; padding: 18px 22px 0; }
+  .card-ic {
+    width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .card-ic svg { width: 17px; height: 17px; stroke: #fff; }
+  .card-ic.navy { background: linear-gradient(135deg, var(--navy-800), var(--navy-900)); }
+  .card-ic.crimson { background: linear-gradient(135deg, var(--crimson), #b02e3a); }
+  .card-ic.amber { background: linear-gradient(135deg, var(--amber), #d18a1d); }
+  .card-ic.green { background: linear-gradient(135deg, var(--green), #0d7a38); }
+  .card-title { font-family: var(--serif); font-size: 17.5px; font-weight: 700; }
+  .card-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .card-body { padding: 18px 22px 22px; }
+
+  /* status row */
+  .status-row {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: var(--paper); border: 1px solid var(--border); border-radius: 11px;
+    padding: 13px 16px; margin-bottom: 16px;
+  }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .dot.live { box-shadow: 0 0 0 3px var(--green-bg); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 3px var(--green-bg); } 50% { box-shadow: 0 0 0 6px rgba(22,163,74,0.08); } }
+  .status-txt { font-size: 13px; }
+  .status-txt b { font-weight: 600; }
+  .status-txt span { color: var(--muted); display: block; font-size: 11.5px; margin-top: 1px; }
+
+  .btn {
+    border: none; border-radius: 9px; padding: 8px 15px;
+    font-size: 12.5px; font-weight: 600; cursor: pointer;
+    transition: background 0.13s ease;
+  }
+  .btn.navy { background: var(--navy-800); color: #fff; }
+  .btn.navy:hover { background: var(--navy-900); }
+  .btn.ghost { background: #fff; border: 1px solid var(--border); color: #4b4e5c; }
+  .btn.ghost:hover { border-color: var(--navy-800); color: var(--navy-800); }
+  .btn.crimson { background: var(--crimson); color: #fff; }
+  .btn.crimson:hover { background: var(--crimson-dark); }
+  .btn.sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+
+  /* channel rows */
+  .chan-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 13px 4px; border-bottom: 1px solid var(--border);
+  }
+  .chan-row:last-child { border-bottom: none; }
+  .chan-info { flex: 1; min-width: 0; }
+  .chan-name { font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .chan-path { font-size: 11.5px; color: var(--muted-2); font-family: ui-monospace, monospace; margin-top: 3px; }
+  .fmt-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.05em; padding: 2.5px 8px; border-radius: 6px; background: var(--blue-bg); color: var(--blue); }
+  .lock-tag { font-size: 10px; font-weight: 700; padding: 2.5px 8px; border-radius: 6px; background: #f3f1ee; color: var(--muted); }
+
+  /* switch */
+  .switch { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .sl {
+    position: absolute; inset: 0; border-radius: 999px;
+    background: #d8d5cf; cursor: pointer; transition: background 0.15s ease;
+  }
+  .switch .sl::before {
+    content: ""; position: absolute; width: 18px; height: 18px; border-radius: 50%;
+    background: #fff; top: 3px; left: 3px; transition: transform 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  }
+  .switch input:checked + .sl { background: var(--green); }
+  .switch input:checked + .sl::before { transform: translateX(18px); }
+  .switch input:disabled + .sl { background: #e8e6e1; cursor: not-allowed; }
+  .switch input:disabled + .sl::before { box-shadow: none; }
+
+  /* inputs */
+  .field { margin-bottom: 15px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-size: 12px; font-weight: 600; color: #4b4e5c; margin-bottom: 6px; }
+  .inp, .sel {
+    width: 100%; border: 1px solid var(--border); border-radius: 9px;
+    padding: 9px 13px; font-size: 13px; color: var(--ink); background: #fff;
+    outline: none; transition: border 0.13s ease;
+  }
+  .inp:focus, .sel:focus { border-color: var(--navy-800); }
+  .inp.mono { font-family: ui-monospace, monospace; font-size: 12.5px; }
+  .inp-row { display: flex; gap: 8px; }
+  .inp-row .inp { flex: 1; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* key row */
+  .key-row { display: flex; gap: 8px; align-items: center; }
+  .key-row .inp { flex: 1; }
+  .note { font-size: 11.5px; color: var(--muted-2); margin-top: 6px; line-height: 1.5; }
+
+  .check-list { display: flex; flex-direction: column; gap: 9px; margin-top: 4px; }
+  .check-item { display: flex; align-items: center; gap: 9px; font-size: 13px; }
+  .check-item input { width: 15px; height: 15px; accent-color: var(--navy-800); }
+
+  /* email chips */
+  .email-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+  .email-chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--paper); border: 1px solid var(--border); border-radius: 999px;
+    padding: 5px 7px 5px 12px; font-size: 12.5px; font-weight: 500;
+  }
+  .email-chip button {
+    width: 18px; height: 18px; border-radius: 50%; border: none;
+    background: var(--muted-2); color: #fff; font-size: 11px; line-height: 1;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .email-chip button:hover { background: var(--crimson); }
+
+  /* history table */
+  .hist-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .hist-table th {
+    text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted-2);
+    padding: 8px 10px; border-bottom: 1px solid var(--border);
+  }
+  .hist-table td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .hist-table tr:last-child td { border-bottom: none; }
+  .lic-pill { font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 6px; white-space: nowrap; }
+  .lic-pill.unb { background: var(--green-bg); color: var(--green); }
+  .lic-pill.ap { background: var(--blue-bg); color: var(--blue); }
+  .audit-note {
+    display: flex; gap: 9px; align-items: flex-start;
+    background: var(--blue-bg); border-radius: 10px; padding: 11px 14px;
+    font-size: 12px; color: #2c4f9e; line-height: 1.6; margin-top: 14px;
+  }
+  .audit-note svg { width: 15px; height: 15px; stroke: #2c4f9e; flex-shrink: 0; margin-top: 1px; }
+
+  .divider { border: none; border-top: 1px dashed var(--border); margin: 18px 0; }
+
+  /* toast */
+  #toast {
+    position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--navy-900); color: #fff; font-size: 13px; font-weight: 500;
+    padding: 11px 20px; border-radius: 11px; box-shadow: 0 10px 30px rgba(15,23,48,0.35);
+    opacity: 0; pointer-events: none; transition: all 0.25s ease; z-index: 200;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 700px) {
+    .mast-clock, .user-meta { display: none; }
+    .grid-2 { grid-template-columns: 1fr; }
+    .hist-table th:nth-child(4), .hist-table td:nth-child(4) { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="brand-strip"></div>
+
+<header class="mast">
+  <a class="mast-brand" href="client-portal.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#e5484d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+    UNB <span class="portal-tag">Client Portal</span>
+  </a>
+  <div class="mast-clock"><b id="clockTime">--:--</b> Dhaka · <span id="clockDate"></span></div>
+  <span class="spacer"></span>
+  <a class="back-link" href="client-portal.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    Back to portal
+  </a>
+  <div class="user-chip">
+    <div class="user-av">DS</div>
+    <div class="user-meta"><b>Daily Star</b><span>★ Premium</span></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="page-head">
+    <h1 class="page-title">Delivery settings</h1>
+    <p class="page-sub">Zero-touch delivery — UNB pushes the wire and licensed media straight into your systems, the moment it publishes. Configure once; no manual downloading needed.</p>
+  </div>
+
+  <!-- ============ 1. AUTO-PUSH (FTP / SFTP) ============ -->
+  <section class="card">
+    <div class="card-head">
+      <div class="card-ic navy">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <div>
+        <div class="card-title">Auto-push (FTP / SFTP)</div>
+        <div class="card-desc">New stories and media packs land in your server folders automatically</div>
+      </div>
+      <span class="spacer"></span>
+      <label class="switch"><input type="checkbox" id="pushMaster" checked><span class="sl"></span></label>
+    </div>
+    <div class="card-body">
+      <div class="status-row">
+        <span class="dot live"></span>
+        <div class="status-txt">
+          <b>Connected to sftp://ftp.dailystar.com</b>
+          <span>Last successful push: today, 9:14 AM · 0 failed in the last 7 days</span>
+        </div>
+        <span class="spacer"></span>
+        <button class="btn ghost sm" id="testBtn">Test connection</button>
+        <button class="btn ghost sm" id="credBtn">Edit credentials</button>
+      </div>
+
+      <div id="credFields" hidden style="margin-bottom:16px">
+        <div class="grid-2">
+          <div class="field"><label>SFTP host</label><input class="inp mono" value="ftp.dailystar.com"></div>
+          <div class="field"><label>Port</label><input class="inp mono" value="22"></div>
+          <div class="field"><label>Username</label><input class="inp mono" value="unb-delivery"></div>
+          <div class="field"><label>Authentication</label>
+            <select class="sel"><option>SSH key (recommended)</option><option>Password</option></select>
+          </div>
+        </div>
+        <button class="btn navy sm" id="credSave">Save credentials</button>
+        <hr class="divider">
+      </div>
+
+      <div class="chan-row">
+        <label class="switch"><input type="checkbox" checked><span class="sl"></span></label>
+        <div class="chan-info">
+          <div class="chan-name">English news wire <span class="fmt-tag">NewsML XML</span></div>
+          <div class="chan-path">→ /unb-wire/english/ &nbsp;·&nbsp; pushes instantly on publish</div>
+        </div>
+      </div>
+      <div class="chan-row">
+        <label class="switch"><input type="checkbox" checked><span class="sl"></span></label>
+        <div class="chan-info">
+          <div class="chan-name">UNB photos <span class="fmt-tag">JPEG + IPTC</span></div>
+          <div class="chan-path">→ /unb-media/photos/ &nbsp;·&nbsp; print resolution, captions embedded</div>
+        </div>
+      </div>
+      <div class="chan-row">
+        <label class="switch"><input type="checkbox" checked><span class="sl"></span></label>
+        <div class="chan-info">
+          <div class="chan-name">UNB video <span class="fmt-tag">MP4 · 1080p</span></div>
+          <div class="chan-path">→ /unb-media/video/ &nbsp;·&nbsp; proxy pushed first, full file follows</div>
+        </div>
+      </div>
+      <div class="chan-row">
+        <label class="switch"><input type="checkbox"><span class="sl"></span></label>
+        <div class="chan-info">
+          <div class="chan-name">Tigers Test series pack <span class="fmt-tag">JPEG + MP4</span></div>
+          <div class="chan-path">→ /unb-media/packs/tigers/ &nbsp;·&nbsp; included in your media pack</div>
+        </div>
+      </div>
+      <div class="chan-row">
+        <label class="switch"><input type="checkbox" disabled><span class="sl"></span></label>
+        <div class="chan-info">
+          <div class="chan-name">AP World photo pack <span class="lock-tag">🔒 Add-on not enabled</span></div>
+          <div class="chan-path">→ /ap-media/world/ &nbsp;·&nbsp; <a href="client-portal.html" style="text-decoration:underline;color:var(--amber)">request from UNB sales</a></div>
+        </div>
+      </div>
+
+      <hr class="divider">
+      <div class="grid-2">
+        <div class="field">
+          <label>Wire format</label>
+          <select class="sel" id="wireFmt">
+            <option>NewsML-G2 (XML)</option>
+            <option>NITF (XML)</option>
+            <option>JSON (UNB v1)</option>
+            <option>RSS 2.0</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Push schedule</label>
+          <select class="sel">
+            <option>Instantly on publish</option>
+            <option>Batch — every 15 minutes</option>
+            <option>Batch — hourly</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn navy" id="pushSave">Save push settings</button>
+    </div>
+  </section>
+
+  <!-- ============ 2. API ACCESS ============ -->
+  <section class="card">
+    <div class="card-head">
+      <div class="card-ic crimson">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      </div>
+      <div>
+        <div class="card-title">API access</div>
+        <div class="card-desc">Pull the wire and media library directly from your CMS</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label>Base endpoint</label>
+        <div class="key-row">
+          <input class="inp mono" id="apiEndpoint" value="https://api.unbnews.org/v1" readonly>
+          <button class="btn ghost sm" id="copyEndpoint">Copy</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>API key <span style="color:var(--muted-2);font-weight:400">— keep this secret; it authenticates your newsroom</span></label>
+        <div class="key-row">
+          <input class="inp mono" id="apiKey" value="unb_live_••••••••••••3f9a" readonly>
+          <button class="btn ghost sm" id="revealKey">Reveal</button>
+          <button class="btn ghost sm" id="copyKey">Copy</button>
+          <button class="btn crimson sm" id="regenKey">Regenerate</button>
+        </div>
+        <div class="note">Regenerating revokes the old key immediately — remember to update your CMS plugin.</div>
+      </div>
+      <hr class="divider">
+      <div class="field">
+        <label>Webhook URL <span style="color:var(--muted-2);font-weight:400">— we POST here the moment something relevant publishes</span></label>
+        <input class="inp mono" id="webhookUrl" placeholder="https://cms.dailystar.com/hooks/unb" value="https://cms.dailystar.com/hooks/unb">
+      </div>
+      <div class="field">
+        <label>Notify on</label>
+        <div class="check-list">
+          <label class="check-item"><input type="checkbox" checked> Breaking news published</label>
+          <label class="check-item"><input type="checkbox" checked> New media pack published</label>
+          <label class="check-item"><input type="checkbox" checked> Exclusive-to-you content published</label>
+          <label class="check-item"><input type="checkbox"> Embargoed asset becomes available</label>
+        </div>
+      </div>
+      <button class="btn navy" id="apiSave">Save API settings</button>
+      <div class="note" style="margin-top:10px">Full API reference: <a href="#" style="text-decoration:underline;color:var(--navy-800)">docs.unbnews.org/api</a> · CMS plugins available for WordPress, Ghost and Arc.</div>
+    </div>
+  </section>
+
+  <!-- ============ 3. ALERTS ============ -->
+  <section class="card">
+    <div class="card-head">
+      <div class="card-ic amber">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </div>
+      <div>
+        <div class="card-title">Email alerts</div>
+        <div class="card-desc">The right people hear about the right content, instantly</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label>Recipients</label>
+        <div class="email-chips" id="emailChips">
+          <span class="email-chip">newsdesk@dailystar.com<button title="Remove">✕</button></span>
+          <span class="email-chip">photo@dailystar.com<button title="Remove">✕</button></span>
+          <span class="email-chip">sports@dailystar.com<button title="Remove">✕</button></span>
+        </div>
+        <div class="inp-row">
+          <input class="inp" id="emailInput" placeholder="Add an email address…">
+          <button class="btn ghost" id="emailAdd">Add</button>
+        </div>
+      </div>
+      <hr class="divider">
+      <div class="chan-row">
+        <label class="switch"><input type="checkbox" checked><span class="sl"></span></label>
+        <div class="chan-info">
+          <div class="chan-name">Breaking news</div>
+          <div class="chan-path">Instant email, headline + brief, link to full story</div>
+        </div>
+      </div>
+      <div class="chan-row">
+        <label class="switch"><input type="checkbox" checked><span class="sl"></span></label>
+        <div class="chan-info">
+          <div class="chan-name">New media pack published</div>
+          <div class="chan-path">Thumbnails + direct ZIP link</div>
+        </div>
+      </div>
+      <div class="chan-row">
+        <label class="switch"><input type="checkbox" checked><span class="sl"></span></label>
+        <div class="chan-info">
+          <div class="chan-name">Exclusive-to-you content</div>
+          <div class="chan-path">Instant — exclusivity windows are short, don't miss them</div>
+        </div>
+      </div>
+      <div class="chan-row">
+        <label class="switch"><input type="checkbox"><span class="sl"></span></label>
+        <div class="chan-info">
+          <div class="chan-name">Saved-search alerts</div>
+          <div class="chan-path">e.g. "Bangladesh Bank", "Tigers" — instant or daily digest at 7 AM</div>
+        </div>
+      </div>
+      <button class="btn navy" id="alertSave">Save alert settings</button>
+    </div>
+  </section>
+
+  <!-- ============ 4. DOWNLOAD & LICENSE HISTORY ============ -->
+  <section class="card">
+    <div class="card-head">
+      <div class="card-ic green">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </div>
+      <div>
+        <div class="card-title">Download &amp; license history</div>
+        <div class="card-desc">Every media download is logged for your license audit trail</div>
+      </div>
+      <span class="spacer"></span>
+      <button class="btn ghost sm" id="histCsv">Export CSV</button>
+    </div>
+    <div class="card-body">
+      <table class="hist-table">
+        <thead>
+          <tr><th>Asset</th><th>License</th><th>Downloaded by</th><th>Date</th></tr>
+        </thead>
+        <tbody id="histBody">
+          <tr><td>Rizvi speaks outside Nayapaltan office (m1)</td><td><span class="lic-pill unb">UNB</span></td><td>photo@dailystar.com</td><td>Aug 24, 9:32 AM</td></tr>
+          <tr><td>Poland storm damage (m4)</td><td><span class="lic-pill ap">AP</span></td><td>photo@dailystar.com</td><td>Aug 23, 8:15 PM</td></tr>
+          <tr><td>Yunnan landslide rescue (m5)</td><td><span class="lic-pill ap">AP add-on</span></td><td>newsdesk@dailystar.com</td><td>Aug 23, 6:41 PM</td></tr>
+          <tr><td>Tigers training, Mirpur (m8)</td><td><span class="lic-pill unb">UNB · exclusive</span></td><td>sports@dailystar.com</td><td>Aug 22, 5:20 PM</td></tr>
+          <tr><td>Padma Bridge aerial footage (m10)</td><td><span class="lic-pill unb">UNB</span></td><td>video desk (FTP auto-push)</td><td>Aug 22, 11:05 AM</td></tr>
+        </tbody>
+      </table>
+      <div class="audit-note">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <span>This log is shared with UNB and AP for license compliance audits. AP-licensed images must be used within their license terms — single publication, credit mandatory, no archival beyond 30 days.</span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  // ===== clock (Dhaka) =====
+  function tick() {
+    const now = new Date();
+    document.getElementById('clockTime').textContent = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit'
+    }).format(now);
+    document.getElementById('clockDate').textContent = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Dhaka', weekday: 'short', day: 'numeric', month: 'short'
+    }).format(now);
+  }
+  tick(); setInterval(tick, 10000);
+
+  // ===== toast =====
+  let toastTimer;
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  function saveBlob(content, name, type) {
+    const blob = content instanceof Blob ? content : new Blob([content], { type });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+
+  // ===== ftp =====
+  document.getElementById('testBtn').addEventListener('click', function () {
+    this.textContent = 'Testing…';
+    setTimeout(() => { this.textContent = '✓ Connection OK'; toast('SFTP connection successful — credentials valid'); }, 900);
+    setTimeout(() => this.textContent = 'Test connection', 3500);
+  });
+  document.getElementById('credBtn').addEventListener('click', () => {
+    const f = document.getElementById('credFields');
+    f.hidden = !f.hidden;
+  });
+  document.getElementById('credSave').addEventListener('click', function () {
+    document.getElementById('credFields').hidden = true;
+    toast('✓ Credentials saved — reconnecting…');
+  });
+  document.getElementById('pushSave').addEventListener('click', () => {
+    toast('✓ Push settings saved — ' + document.getElementById('wireFmt').value);
+  });
+  document.getElementById('pushMaster').addEventListener('change', function () {
+    toast(this.checked ? '✓ Auto-push enabled' : 'Auto-push paused — you can still download manually');
+  });
+
+  // ===== api =====
+  function copyVal(id, btn) {
+    const v = document.getElementById(id).value;
+    (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).catch(() => {});
+    const old = btn.textContent;
+    btn.textContent = '✓ Copied';
+    setTimeout(() => btn.textContent = old, 1400);
+  }
+  document.getElementById('copyEndpoint').addEventListener('click', function () { copyVal('apiEndpoint', this); });
+  document.getElementById('copyKey').addEventListener('click', function () { copyVal('apiKey', this); });
+  let revealed = false;
+  document.getElementById('revealKey').addEventListener('click', function () {
+    revealed = !revealed;
+    document.getElementById('apiKey').value = revealed ? 'unb_live_9d4f21ab77c03f9a' : 'unb_live_••••••••••••3f9a';
+    this.textContent = revealed ? 'Hide' : 'Reveal';
+  });
+  document.getElementById('regenKey').addEventListener('click', function () {
+    if (this.dataset.armed) {
+      this.textContent = '✓ New key generated';
+      document.getElementById('apiKey').value = 'unb_live_••••••••••••b71c';
+      revealed = false;
+      document.getElementById('revealKey').textContent = 'Reveal';
+      toast('✓ Old key revoked — update your CMS plugin with the new key');
+      delete this.dataset.armed;
+      setTimeout(() => this.textContent = 'Regenerate', 3000);
+    } else {
+      this.dataset.armed = '1';
+      this.textContent = 'Click again to confirm';
+      setTimeout(() => { delete this.dataset.armed; this.textContent = 'Regenerate'; }, 3000);
+    }
+  });
+  document.getElementById('apiSave').addEventListener('click', () => toast('✓ API settings saved'));
+
+  // ===== alerts =====
+  function bindChipButtons() {
+    document.querySelectorAll('#emailChips .email-chip button').forEach(b => {
+      b.onclick = () => { b.closest('.email-chip').remove(); toast('Recipient removed'); };
+    });
+  }
+  bindChipButtons();
+  document.getElementById('emailAdd').addEventListener('click', () => {
+    const inp = document.getElementById('emailInput');
+    const v = inp.value.trim();
+    if (!v || !v.includes('@')) { toast('Enter a valid email address'); return; }
+    const chip = document.createElement('span');
+    chip.className = 'email-chip';
+    chip.textContent = v;
+    const btn = document.createElement('button');
+    btn.title = 'Remove'; btn.textContent = '✕';
+    chip.appendChild(btn);
+    document.getElementById('emailChips').appendChild(chip);
+    bindChipButtons();
+    inp.value = '';
+    toast('✓ ' + v + ' added to alerts');
+  });
+  document.getElementById('emailInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('emailAdd').click();
+  });
+  document.getElementById('alertSave').addEventListener('click', () => toast('✓ Alert settings saved'));
+
+  // ===== history export =====
+  document.getElementById('histCsv').addEventListener('click', function () {
+    const rows = [['Asset', 'License', 'Downloaded by', 'Date']];
+    document.querySelectorAll('#histBody tr').forEach(tr => {
+      rows.push([...tr.querySelectorAll('td')].map(td => '"' + td.textContent.trim().replace(/"/g, '""') + '"'));
+    });
+    saveBlob(rows.map(r => r.join(',')).join('\n'), 'unb-license-history.csv', 'text/csv');
+    this.textContent = '✓ Exported';
+    setTimeout(() => this.textContent = 'Export CSV', 2000);
+  });
+</script>
+</body>
+</html>

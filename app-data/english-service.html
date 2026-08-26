@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNB — English Service</title>
+<style>
+  :root {
+    --navy-900: #0f1730;
+    --navy-800: #16204a;
+    --crimson: #e5484d;
+    --crimson-dark: #d13438;
+    --crimson-soft: #fdecec;
+    --amber: #f0a832;
+    --paper: #faf9f6;
+    --panel: #ffffff;
+    --border: #eceae5;
+    --ink: #1c1f2e;
+    --muted: #7c7f8c;
+    --muted-2: #b0b2bc;
+    --green: #16a34a;
+    --green-bg: #e5f6ec;
+    --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --sans: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .brand-strip {
+    position: fixed; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--crimson) 0%, var(--amber) 45%, var(--navy-800) 100%);
+    z-index: 60;
+  }
+
+  a { text-decoration: none; color: inherit; }
+
+  /* ============ MASTHEAD ============ */
+  .masthead {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 38px 16px;
+    margin-top: 4px;
+  }
+  .mast-inner { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; gap: 22px; }
+  .mast-brand { display: flex; align-items: center; gap: 13px; }
+  .brand-mark {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: var(--crimson); color: #fff;
+    font-family: var(--serif); font-weight: 700; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 3px 10px rgba(229,72,77,0.35);
+  }
+  .mast-name { font-family: var(--serif); font-size: 27px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.05; }
+  .mast-tag { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-top: 3px; }
+  .mast-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .mast-clock {
+    font-size: 12.5px; color: var(--muted); font-weight: 500;
+    display: flex; align-items: center; gap: 8px; white-space: nowrap;
+  }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px var(--green-bg); }
+  .mast-search {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--paper); border: 1px solid var(--border); border-radius: 10px;
+    padding: 8px 13px; width: 230px;
+  }
+  .mast-search svg { width: 14px; height: 14px; stroke: var(--muted-2); flex-shrink: 0; }
+  .mast-search input { border: none; outline: none; background: transparent; font-size: 13px; font-family: var(--sans); width: 100%; color: var(--ink); }
+  .admin-chip {
+    font-size: 12px; font-weight: 600; color: var(--navy-800);
+    border: 1px solid var(--border); border-radius: 9px; padding: 8px 13px;
+    background: #fff; transition: all 0.14s ease; white-space: nowrap;
+  }
+  .admin-chip:hover { border-color: var(--navy-800); background: var(--navy-800); color: #fff; }
+
+  /* ============ CATEGORY NAV ============ */
+  .catnav {
+    position: sticky; top: 4px; z-index: 50;
+    background: rgba(255,255,255,0.95); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  .catnav-inner {
+    max-width: 1240px; margin: 0 auto;
+    display: flex; gap: 4px; overflow-x: auto; padding: 0 38px;
+    scrollbar-width: none;
+  }
+  .catnav-inner::-webkit-scrollbar { display: none; }
+  .catnav a {
+    font-size: 13px; font-weight: 500; color: #4b4e5c;
+    padding: 12px 11px; white-space: nowrap;
+    border-bottom: 2.5px solid transparent;
+    transition: color 0.13s ease, border-color 0.13s ease;
+  }
+  .catnav a:hover { color: var(--crimson-dark); }
+  .catnav a.active { color: var(--crimson-dark); font-weight: 700; border-bottom-color: var(--crimson); }
+
+  /* ============ TICKER ============ */
+  .ticker-wrap { max-width: 1240px; margin: 18px auto 0; padding: 0 38px; }
+  .ticker {
+    display: flex; align-items: center; gap: 0;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 11px;
+    overflow: hidden; box-shadow: 0 1px 3px rgba(28,31,46,0.04);
+  }
+  .ticker-label {
+    background: var(--crimson); color: #fff;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.03em;
+    padding: 11px 16px; white-space: nowrap;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .ticker-label .pulse {
+    width: 7px; height: 7px; border-radius: 50%; background: #fff;
+    animation: pulse 1.4s ease infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+  .ticker-text {
+    padding: 11px 18px; font-size: 13.5px; color: var(--ink); font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* ============ LAYOUT ============ */
+  .page { max-width: 1240px; margin: 0 auto; padding: 22px 38px 50px; }
+  .home-grid { display: grid; grid-template-columns: 1fr 330px; gap: 26px; align-items: start; }
+
+  /* ---- hero ---- */
+  .hero { position: relative; border-radius: 16px; overflow: hidden; display: block; box-shadow: 0 4px 18px rgba(15,23,48,0.10); }
+  .hero-img { aspect-ratio: 16 / 9.2; display: flex; align-items: center; justify-content: center; }
+  .hero-img svg { width: 52px; height: 52px; stroke: rgba(255,255,255,0.5); }
+  .g1 { background: linear-gradient(135deg, #3b6fe0, #16204a); }
+  .g2 { background: linear-gradient(135deg, #e5484d, #7a1f2b); }
+  .g3 { background: linear-gradient(135deg, #16a34a, #0b3d24); }
+  .g4 { background: linear-gradient(135deg, #f0a832, #8a5410); }
+  .g5 { background: linear-gradient(135deg, #7c3aed, #2e1065); }
+  .g6 { background: linear-gradient(135deg, #0ea5e9, #0c4a6e); }
+  .g7 { background: linear-gradient(135deg, #db2777, #831843); }
+  .g8 { background: linear-gradient(135deg, #64748b, #1e293b); }
+  .hero-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(transparent 40%, rgba(15,23,48,0.88));
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 26px 28px;
+  }
+  .hero-cat {
+    align-self: flex-start;
+    background: var(--crimson); color: #fff;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+    padding: 5px 11px; border-radius: 6px; margin-bottom: 13px;
+  }
+  .hero-head { font-family: var(--serif); font-size: 28px; font-weight: 600; color: #fff; line-height: 1.28; letter-spacing: -0.01em; }
+  .hero-meta { color: rgba(255,255,255,0.72); font-size: 12.5px; margin-top: 10px; display: flex; gap: 14px; }
+
+  /* ---- rail list ---- */
+  .rail { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 1px 3px rgba(28,31,46,0.04); overflow: hidden; }
+  .rail-tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .rail-tab {
+    flex: 1; text-align: center; padding: 13px 8px;
+    font-size: 13px; font-weight: 600; color: var(--muted);
+    cursor: pointer; background: var(--paper); border: none; font-family: var(--sans);
+    transition: all 0.13s ease;
+  }
+  .rail-tab.active { background: #fff; color: var(--crimson-dark); box-shadow: inset 0 -2.5px 0 var(--crimson); }
+  .rail-list { padding: 6px 0; }
+  .rail-item { display: flex; gap: 12px; padding: 11px 16px; align-items: flex-start; transition: background 0.12s ease; }
+  .rail-item:hover { background: var(--paper); }
+  .rail-item + .rail-item { border-top: 1px solid #f4f2ee; }
+  .rail-thumb {
+    width: 64px; height: 50px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .rail-thumb svg { width: 17px; height: 17px; stroke: rgba(255,255,255,0.7); }
+  .rail-head { font-size: 13.5px; font-weight: 600; line-height: 1.38; color: var(--ink); }
+  .rail-item:hover .rail-head { color: var(--crimson-dark); }
+  .rail-time { font-size: 11px; color: var(--muted-2); margin-top: 4px; }
+
+  /* ---- sections ---- */
+  .sec { margin-top: 38px; }
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; }
+  .sec-title {
+    font-family: var(--serif); font-size: 22px; font-weight: 700; letter-spacing: -0.01em;
+    padding-bottom: 8px; position: relative;
+  }
+  .sec-title::after { content: ""; position: absolute; left: 0; bottom: 0; width: 44px; height: 3px; border-radius: 2px; background: var(--crimson); }
+  .sec-more { font-size: 12.5px; font-weight: 600; color: var(--crimson); }
+  .sec-more:hover { text-decoration: underline; }
+  .card-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .story-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 13px;
+    overflow: hidden; box-shadow: 0 1px 3px rgba(28,31,46,0.04);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    display: block;
+  }
+  .story-card:hover { transform: translateY(-3px); box-shadow: 0 10px 26px rgba(15,23,48,0.10); }
+  .sc-img { aspect-ratio: 16 / 9.5; display: flex; align-items: center; justify-content: center; }
+  .sc-img svg { width: 26px; height: 26px; stroke: rgba(255,255,255,0.65); }
+  .sc-body { padding: 14px 15px 15px; }
+  .sc-cat { font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--crimson-dark); margin-bottom: 7px; }
+  .sc-head { font-family: var(--serif); font-size: 16px; font-weight: 600; line-height: 1.38; }
+  .sc-time { font-size: 11px; color: var(--muted-2); margin-top: 9px; }
+
+  /* ---- footer ---- */
+  .footer {
+    background: linear-gradient(180deg, var(--navy-800) 0%, var(--navy-900) 100%);
+    color: #aab3cf; margin-top: 54px;
+  }
+  .footer-inner {
+    max-width: 1240px; margin: 0 auto; padding: 40px 38px 30px;
+    display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+  }
+  .footer-brand { display: flex; align-items: center; gap: 12px; }
+  .footer-name { color: #fff; font-family: var(--serif); font-size: 17px; font-weight: 600; }
+  .footer-tag { font-size: 11px; color: #667099; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+  .footer-note { font-size: 12px; color: #667099; }
+
+  @media (max-width: 1000px) {
+    .home-grid { grid-template-columns: 1fr; }
+    .card-row { grid-template-columns: repeat(2, 1fr); }
+    .mast-search { display: none; }
+    .masthead, .page, .catnav-inner, .ticker-wrap { padding-left: 18px; padding-right: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="brand-strip"></div>
+
+<!-- ============ MASTHEAD ============ -->
+<header class="masthead">
+  <div class="mast-inner">
+    <a class="mast-brand" href="english-service.html">
+      <div class="brand-mark">U</div>
+      <div>
+        <div class="mast-name">UNB</div>
+        <div class="mast-tag">United News of Bangladesh</div>
+      </div>
+    </a>
+    <div class="mast-right">
+      <div class="mast-clock"><span class="live-dot"></span><span id="clockTime">Dhaka</span></div>
+      <div class="mast-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="Search news…">
+      </div>
+      <a class="admin-chip" href="index.html">← Admin panel</a>
+    </div>
+  </div>
+</header>
+
+<!-- ============ CATEGORY NAV ============ -->
+<nav class="catnav">
+  <div class="catnav-inner" id="catnav">
+    <a href="#" class="active">Bangladesh</a>
+    <a href="#">Politics</a>
+    <a href="#">Business</a>
+    <a href="#">Sports</a>
+    <a href="#">World</a>
+    <a href="#">Tech</a>
+    <a href="#">Entertainment</a>
+    <a href="#">Lifestyle</a>
+    <a href="#">Opinion</a>
+    <a href="#">Special</a>
+    <a href="#">Health</a>
+    <a href="#">Science</a>
+    <a href="#">Environment</a>
+    <a href="#">Weather</a>
+    <a href="#">UNB-AP News</a>
+    <a href="#">UNB-Xinhua News</a>
+    <a href="#">UNB-ANSA News</a>
+    <a href="#">Election</a>
+    <a href="#">News Today</a>
+    <a href="#">Archive News</a>
+  </div>
+</nav>
+
+<!-- ============ TICKER ============ -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span class="ticker-label"><span class="pulse"></span>News Updates</span>
+    <span class="ticker-text" id="tickerText">First meeting of Parliamentary Standing Committee on Foreign Ministry begins at Sangsad Bhaban</span>
+  </div>
+</div>
+
+<div class="page">
+  <div class="home-grid">
+
+    <!-- ============ HERO + SECTIONS ============ -->
+    <div>
+      <a class="hero" href="story.html">
+        <div class="hero-img g8">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+        </div>
+        <div class="hero-overlay">
+          <span class="hero-cat">Politics</span>
+          <div class="hero-head">His battleground, his fort, his home: Rizvi returns to BNP's Nayapaltan central office after elevation to top post</div>
+          <div class="hero-meta"><span>August 24, 02:06 AM</span><span>·</span><span>UNB News</span></div>
+        </div>
+      </a>
+
+      <!-- Bangladesh -->
+      <div class="sec">
+        <div class="sec-head">
+          <div class="sec-title">Bangladesh</div>
+          <a class="sec-more" href="#">View all →</a>
+        </div>
+        <div class="card-row">
+          <a class="story-card" href="story.html">
+            <div class="sc-img g1"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div class="sc-body">
+              <div class="sc-cat">Bangladesh</div>
+              <div class="sc-head">UNB's annual District Correspondents' Conference puts onus on credible journalism</div>
+              <div class="sc-time">August 22, 08:17 PM</div>
+            </div>
+          </a>
+          <a class="story-card" href="story.html">
+            <div class="sc-img g2"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div class="sc-body">
+              <div class="sc-cat">Bangladesh</div>
+              <div class="sc-head">President pays tribute to Liberation War martyrs at National Memorial in Savar</div>
+              <div class="sc-time">August 22, 11:55 AM</div>
+            </div>
+          </a>
+          <a class="story-card" href="story.html">
+            <div class="sc-img g5"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div class="sc-body">
+              <div class="sc-cat">Bangladesh</div>
+              <div class="sc-head">UNB District Correspondents' Conference-2026 begins</div>
+              <div class="sc-time">August 22, 11:19 AM</div>
+            </div>
+          </a>
+          <a class="story-card" href="story.html">
+            <div class="sc-img g3"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div class="sc-body">
+              <div class="sc-cat">Environment</div>
+              <div class="sc-head">Bishkhali riverbanks turn green as 50,000 trees reshape Bagerhat landscape</div>
+              <div class="sc-time">August 22, 11:11 AM</div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- World -->
+      <div class="sec">
+        <div class="sec-head">
+          <div class="sec-title">World</div>
+          <a class="sec-more" href="#">View all →</a>
+        </div>
+        <div class="card-row">
+          <a class="story-card" href="story.html">
+            <div class="sc-img g6"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div class="sc-body">
+              <div class="sc-cat">World</div>
+              <div class="sc-head">Thousands remain without power after strong winds hit Poland</div>
+              <div class="sc-time">August 23, 08:56 PM</div>
+            </div>
+          </a>
+          <a class="story-card" href="story.html">
+            <div class="sc-img g8"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div class="sc-body">
+              <div class="sc-cat">World</div>
+              <div class="sc-head">2 dead, 4 missing after landslides in SW China's Yunnan</div>
+              <div class="sc-time">August 23, 08:55 PM</div>
+            </div>
+          </a>
+          <a class="story-card" href="story.html">
+            <div class="sc-img g5"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div class="sc-body">
+              <div class="sc-cat">World</div>
+              <div class="sc-head">6.0-magnitude quake jolts Japan's Hokkaido: JMA</div>
+              <div class="sc-time">August 23, 08:54 PM</div>
+            </div>
+          </a>
+          <a class="story-card" href="story.html">
+            <div class="sc-img g7"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div class="sc-body">
+              <div class="sc-cat">World</div>
+              <div class="sc-head">Indian, Nepalese presidents greet Mirza Fakhrul on presidency</div>
+              <div class="sc-time">August 21, 09:41 PM</div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Business -->
+      <div class="sec">
+        <div class="sec-head">
+          <div class="sec-title">Business</div>
+          <a class="sec-more" href="#">View all →</a>
+        </div>
+        <div class="card-row">
+          <a class="story-card" href="story.html">
+            <div class="sc-img g4"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div class="sc-body">
+              <div class="sc-cat">Business</div>
+              <div class="sc-head">Bangla QR's daily transactions cross Tk 110 crore following mandatory</div>
+              <div class="sc-time">August 23, 09:39 PM</div>
+            </div>
+          </a>
+          <a class="story-card" href="story.html">
+            <div class="sc-img g1"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div class="sc-body">
+              <div class="sc-cat">Business</div>
+              <div class="sc-head">Remittance inflow keeps forex reserve steady above $20bn</div>
+              <div class="sc-time">August 23, 06:12 PM</div>
+            </div>
+          </a>
+          <a class="story-card" href="story.html">
+            <div class="sc-img g3"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div class="sc-body">
+              <div class="sc-cat">Business</div>
+              <div class="sc-head">DSEX edges higher as bank stocks lead early trade</div>
+              <div class="sc-time">August 23, 02:40 PM</div>
+            </div>
+          </a>
+          <a class="story-card" href="story.html">
+            <div class="sc-img g2"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div class="sc-body">
+              <div class="sc-cat">Business</div>
+              <div class="sc-head">Export orders for winter apparel rise 12% year-on-year</div>
+              <div class="sc-time">August 23, 11:05 AM</div>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ RIGHT RAIL ============ -->
+    <aside>
+      <div class="rail">
+        <div class="rail-tabs">
+          <button class="rail-tab active" data-tab="latest">Latest</button>
+          <button class="rail-tab" data-tab="popular">Popular</button>
+        </div>
+        <div class="rail-list" id="railLatest">
+          <a class="rail-item" href="story.html">
+            <div class="rail-thumb g4"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div><div class="rail-head">Bangla QR's daily transactions cross Tk 110 crore following mandatory</div><div class="rail-time">August 23, 09:39 PM</div></div>
+          </a>
+          <a class="rail-item" href="story.html">
+            <div class="rail-thumb g2"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div><div class="rail-head">Swapon joins as PM's political adviser</div><div class="rail-time">August 23, 09:35 PM</div></div>
+          </a>
+          <a class="rail-item" href="story.html">
+            <div class="rail-thumb g6"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div><div class="rail-head">Thousands remain without power after strong winds hit Poland</div><div class="rail-time">August 23, 08:56 PM</div></div>
+          </a>
+          <a class="rail-item" href="story.html">
+            <div class="rail-thumb g8"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div><div class="rail-head">2 dead, 4 missing after landslides in SW China's Yunnan</div><div class="rail-time">August 23, 08:55 PM</div></div>
+          </a>
+          <a class="rail-item" href="story.html">
+            <div class="rail-thumb g5"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div><div class="rail-head">6.0-magnitude quake jolts Japan's Hokkaido: JMA</div><div class="rail-time">August 23, 08:54 PM</div></div>
+          </a>
+        </div>
+        <div class="rail-list" id="railPopular" hidden>
+          <a class="rail-item" href="story.html">
+            <div class="rail-thumb g1"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div><div class="rail-head">UNB's annual District Correspondents' Conference puts onus on credible journalism</div><div class="rail-time">12.4k views</div></div>
+          </a>
+          <a class="rail-item" href="story.html">
+            <div class="rail-thumb g8"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div><div class="rail-head">His battleground, his fort, his home: Rizvi returns to BNP's Nayapaltan central office</div><div class="rail-time">9.1k views</div></div>
+          </a>
+          <a class="rail-item" href="story.html">
+            <div class="rail-thumb g3"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div><div class="rail-head">Bishkhali riverbanks turn green as 50,000 trees reshape Bagerhat landscape</div><div class="rail-time">6.8k views</div></div>
+          </a>
+          <a class="rail-item" href="story.html">
+            <div class="rail-thumb g2"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div><div class="rail-head">President pays tribute to Liberation War martyrs at National Memorial in Savar</div><div class="rail-time">5.2k views</div></div>
+          </a>
+          <a class="rail-item" href="story.html">
+            <div class="rail-thumb g7"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <div><div class="rail-head">Indian, Nepalese presidents greet Mirza Fakhrul on presidency</div><div class="rail-time">4.6k views</div></div>
+          </a>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="brand-mark">U</div>
+      <div>
+        <div class="footer-name">UNB — United News of Bangladesh</div>
+        <div class="footer-tag">English Service</div>
+      </div>
+    </div>
+    <div class="footer-note">Subscriber feed · Updated continuously · © 2026 UNB</div>
+  </div>
+</footer>
+
+<script>
+  // ===== Dhaka clock =====
+  function tickClock() {
+    const now = new Date();
+    const d = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Dhaka', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(now);
+    const t = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Dhaka', hour: 'numeric', minute: '2-digit', hour12: true }).format(now);
+    document.getElementById('clockTime').textContent = d + ' · ' + t + ' (Dhaka)';
+  }
+  tickClock();
+  setInterval(tickClock, 30000);
+
+  // ===== rotating ticker =====
+  const TICKER_ITEMS = [
+    'First meeting of Parliamentary Standing Committee on Foreign Ministry begins at Sangsad Bhaban',
+    'Bangla QR daily transactions cross Tk 110 crore after mandatory rollout',
+    'Tigers name squad for upcoming home Test series — two uncapped players included',
+    'Met office forecasts light rain over Dhaka, Chattogram divisions this evening'
+  ];
+  let tickerIdx = 0;
+  setInterval(() => {
+    tickerIdx = (tickerIdx + 1) % TICKER_ITEMS.length;
+    const el = document.getElementById('tickerText');
+    el.style.opacity = 0;
+    setTimeout(() => { el.textContent = TICKER_ITEMS[tickerIdx]; el.style.opacity = 1; }, 220);
+  }, 5000);
+  document.getElementById('tickerText').style.transition = 'opacity 0.22s ease';
+
+  // ===== rail tabs =====
+  document.querySelectorAll('.rail-tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.rail-tab').forEach(x => x.classList.toggle('active', x === t));
+    document.getElementById('railLatest').hidden = t.dataset.tab !== 'latest';
+    document.getElementById('railPopular').hidden = t.dataset.tab !== 'popular';
+  }));
+
+  // ===== category nav active state =====
+  document.querySelectorAll('#catnav a').forEach(a => a.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelectorAll('#catnav a').forEach(x => x.classList.toggle('active', x === a));
+  }));
+</script>
+
+</body>
+</html>

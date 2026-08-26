@@ -1,0 +1,2514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNB Client Portal — Daily Star</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy-900: #0f1730;
+    --navy-800: #16204a;
+    --navy-text: #aab3cf;
+    --crimson: #e5484d;
+    --crimson-dark: #d13438;
+    --crimson-soft: #fdecec;
+    --amber: #f0a832;
+    --paper: #faf9f6;
+    --panel: #ffffff;
+    --border: #eceae5;
+    --ink: #1c1f2e;
+    --muted: #7c7f8c;
+    --muted-2: #b0b2bc;
+    --green: #16a34a;
+    --green-bg: #e5f6ec;
+    --blue: #3b6fe0;
+    --blue-bg: #e9f0fd;
+    --purple: #7c3aed;
+    --purple-bg: #f1eafe;
+    --serif: "Fraunces", Georgia, "Times New Roman", serif;
+    --sans: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "cv05" 1, "cv11" 1;
+  }
+
+  .mast-name, .st-head, .story-title, .page-title { letter-spacing: -0.015em; }
+  .quota-label b, .mast-clock b, .bulk-count, .ml-count b { font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+
+  a { text-decoration: none; color: inherit; }
+
+  .brand-strip {
+    position: fixed; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--crimson) 0%, var(--amber) 45%, var(--navy-800) 100%);
+    z-index: 60;
+  }
+
+  /* ============ MASTHEAD ============ */
+  .masthead {
+    position: sticky; top: 4px; z-index: 50;
+    background: rgba(255,255,255,0.95); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 11px 34px; margin-top: 4px;
+  }
+  .mast-inner { max-width: 1280px; margin: 0 auto; display: flex; align-items: center; gap: 16px; }
+  .mast-brand { display: flex; align-items: center; gap: 11px; }
+  .brand-mark {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: var(--crimson); color: #fff;
+    font-family: var(--serif); font-weight: 700; font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 3px 10px rgba(229,72,77,0.35);
+  }
+  .mast-name { font-family: var(--serif); font-size: 20px; font-weight: 700; line-height: 1.1; }
+  .mast-name span { display: block; font-family: var(--sans); font-size: 10.5px; font-weight: 600; color: var(--muted-2); letter-spacing: 0.09em; text-transform: uppercase; margin-top: 2px; }
+  .mast-right { margin-left: auto; display: flex; align-items: center; gap: 13px; }
+  .mast-clock { font-size: 12.5px; color: var(--muted); font-weight: 500; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px var(--green-bg); }
+  .admin-chip {
+    font-size: 12px; font-weight: 600; color: var(--navy-800);
+    border: 1px solid var(--border); border-radius: 9px; padding: 8px 13px; background: #fff;
+    transition: all 0.14s ease; white-space: nowrap;
+  }
+  .admin-chip:hover { border-color: var(--navy-800); background: var(--navy-800); color: #fff; }
+
+  .user-chip {
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid var(--border); background: #fff; border-radius: 11px;
+    padding: 5px 12px 5px 6px; cursor: pointer; font-family: var(--sans);
+    transition: border 0.14s ease;
+  }
+  .user-chip:hover { border-color: var(--navy-800); }
+  .user-avatar {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: var(--navy-800); color: #fff;
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .user-meta { text-align: left; line-height: 1.25; }
+  .user-name { display: block; font-size: 13px; font-weight: 600; }
+  .user-role { display: block; font-size: 10.5px; color: var(--muted-2); }
+  .user-role b { color: var(--amber); font-weight: 700; }
+  .user-chip > svg { width: 12px; height: 12px; stroke: var(--muted-2); }
+  .user-wrap { position: relative; }
+  .drop {
+    position: absolute; right: 0; top: calc(100% + 8px); width: 230px;
+    background: #fff; border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: 0 14px 34px rgba(15,23,48,0.14);
+    padding: 6px; display: none; z-index: 60;
+  }
+  .drop.open { display: block; }
+  .drop-item {
+    display: flex; gap: 10px; align-items: center;
+    padding: 9px 11px; border-radius: 8px;
+    font-size: 13px; cursor: pointer;
+  }
+  .drop-item:hover { background: var(--paper); }
+  .drop-item svg { width: 15px; height: 15px; stroke: #4b4e5c; flex-shrink: 0; }
+  .drop-sep { height: 1px; background: var(--border); margin: 5px 8px; }
+
+  /* ============ LAYOUT ============ */
+  .page {
+    max-width: 1280px; margin: 0 auto; padding: 22px 34px 50px;
+    display: grid; grid-template-columns: 258px 1fr; gap: 24px; align-items: start;
+    transition: grid-template-columns 0.28s ease, column-gap 0.28s ease;
+  }
+
+  /* ---- collapsible rail (on-demand) ---- */
+  .page.rail-hidden { grid-template-columns: 0px 1fr; column-gap: 0; }
+  .page > aside { min-width: 0; transition: opacity 0.2s ease, transform 0.25s ease; }
+  .page.rail-hidden > aside { opacity: 0; transform: translateX(-16px); pointer-events: none; overflow: hidden; }
+  .rail-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+    border: 1px solid var(--border); background: #fff; color: #4b4e5c; cursor: pointer;
+    transition: all 0.13s ease;
+  }
+  .rail-toggle:hover { border-color: var(--navy-800); color: var(--navy-800); }
+  .rail-toggle.active { background: var(--navy-800); border-color: var(--navy-800); color: #fff; }
+  .rail-toggle svg { width: 15px; height: 15px; stroke: currentColor; }
+
+  /* ---- dropdown account summary ---- */
+  .drop-account { padding: 10px 11px 11px; }
+  .drop-tier { font-size: 12px; font-weight: 700; color: #b7791f; }
+  .drop-quota { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); margin-top: 9px; }
+  .drop-quota > span { width: 38px; flex-shrink: 0; }
+  .dq-bar { flex: 1; height: 4px; background: var(--paper); border: 1px solid var(--border); border-radius: 99px; overflow: hidden; }
+  .dq-bar span { display: block; height: 100%; background: var(--navy-800); border-radius: 99px; }
+  .dq-bar span.warm { background: var(--amber); }
+  .drop-quota b { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; font-size: 10.5px; }
+
+  /* ---- left rail ---- */
+  .rail-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 13px;
+    box-shadow: 0 1px 3px rgba(28,31,46,0.04);
+    padding: 17px; margin-bottom: 16px;
+  }
+  .rail-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted-2); margin-bottom: 13px;
+  }
+
+  .sub-tier {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: linear-gradient(135deg, var(--amber), #d18a1d); color: #fff;
+    font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 999px;
+    margin-bottom: 12px;
+  }
+  .sub-name { font-family: var(--serif); font-size: 18px; font-weight: 700; margin-bottom: 3px; }
+  .sub-renew { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  .quota { margin-bottom: 12px; }
+  .quota:last-child { margin-bottom: 0; }
+  .quota-label { display: flex; justify-content: space-between; font-size: 12px; color: #4b4e5c; margin-bottom: 6px; }
+  .quota-label b { font-weight: 700; }
+  .quota-bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+  .quota-fill { display: block; height: 100%; border-radius: 3px; background: var(--navy-800); }
+  .quota-fill.warm { background: var(--amber); }
+
+  .filter-group { margin-bottom: 15px; }
+  .filter-group:last-child { margin-bottom: 0; }
+  .filter-label { display: block; font-size: 12px; font-weight: 600; color: #4b4e5c; margin-bottom: 7px; }
+  .select-input {
+    width: 100%; padding: 9px 30px 9px 12px;
+    border: 1px solid #e3e1da; border-radius: 9px;
+    font-size: 13px; font-family: var(--sans);
+    background: #fcfbf8 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237c7f8c' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 11px center;
+    appearance: none; cursor: pointer; color: var(--ink); outline: none;
+  }
+  .select-input:focus { border-color: var(--navy-800); background-color: #fff; }
+  .check-line { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #4b4e5c; cursor: pointer; }
+  .check-line input { accent-color: var(--crimson); width: 15px; height: 15px; cursor: pointer; margin: 0; }
+  .clear-filters {
+    border: none; background: none; cursor: pointer; font-family: var(--sans);
+    font-size: 12px; font-weight: 600; color: var(--crimson); padding: 0; margin-top: 13px;
+  }
+  .clear-filters:hover { text-decoration: underline; }
+
+  .saved-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 8px 10px; border-radius: 8px; cursor: pointer;
+    font-size: 13px; color: #4b4e5c;
+  }
+  .saved-item:hover { background: var(--paper); color: var(--crimson-dark); }
+  .saved-item svg { width: 13px; height: 13px; stroke: var(--muted-2); flex-shrink: 0; }
+  .saved-item .term { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .saved-item .term span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .dl-item { display: flex; align-items: center; gap: 9px; padding: 7px 0; font-size: 12.5px; }
+  .dl-item + .dl-item { border-top: 1px solid #f4f2ee; }
+  .dl-item svg { width: 14px; height: 14px; stroke: var(--muted-2); flex-shrink: 0; }
+  .dl-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+  .dl-time { color: var(--muted-2); font-size: 11px; flex-shrink: 0; }
+
+  /* ---- feed column ---- */
+  .feed-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .feed-tabs { display: flex; gap: 4px; background: var(--panel); border: 1px solid var(--border); border-radius: 11px; padding: 4px; }
+  .feed-tab {
+    border: none; background: transparent; cursor: pointer; font-family: var(--sans);
+    font-size: 13px; font-weight: 600; color: var(--muted);
+    padding: 8px 16px; border-radius: 8px; transition: all 0.13s ease;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .feed-tab.active { background: var(--navy-800); color: #fff; box-shadow: 0 2px 6px rgba(22,32,74,0.3); }
+  .live-note { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+  .feed-top .spacer { flex: 1; }
+  .sort-wrap { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .sort-wrap .select-input { width: auto; padding: 7px 28px 7px 11px; font-size: 12.5px; background-color: #fff; }
+
+  /* ---- omnisearch ---- */
+  .omni {
+    display: flex; align-items: stretch;
+    background: var(--panel); border: 1.5px solid var(--border); border-radius: 13px;
+    overflow: hidden; margin-bottom: 13px;
+    box-shadow: 0 1px 3px rgba(28,31,46,0.04);
+    transition: border 0.15s ease;
+  }
+  .omni:focus-within { border-color: var(--navy-800); }
+  .omni-icon { display: flex; align-items: center; padding: 0 6px 0 15px; }
+  .omni-icon svg { width: 17px; height: 17px; stroke: var(--muted-2); }
+  .omni input {
+    flex: 1; border: none; outline: none; background: transparent;
+    font-size: 14.5px; font-family: var(--sans); padding: 14px 8px; color: var(--ink);
+  }
+  .omni input::placeholder { color: var(--muted-2); }
+  .omni-scope { border: none; border-left: 1px solid var(--border); background: var(--paper); padding: 0 30px 0 13px; font-size: 12.5px; font-family: var(--sans); color: #4b4e5c; cursor: pointer; outline: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237c7f8c' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; }
+  .omni kbd {
+    align-self: center; margin-right: 13px;
+    font-family: var(--sans); font-size: 11px; color: var(--muted-2);
+    border: 1px solid var(--border); border-radius: 5px; padding: 2px 8px; background: #fff;
+  }
+  .search-meta { font-size: 12.5px; color: var(--muted); margin: -4px 2px 12px; display: none; }
+  .search-meta.show { display: block; }
+  .search-meta b { color: var(--ink); }
+
+  /* ---- category chips ---- */
+  .cat-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .cat-chip {
+    border: 1px solid #e3e1da; background: #fff; border-radius: 999px;
+    font-size: 12.5px; font-weight: 500; color: #4b4e5c;
+    padding: 7px 15px; cursor: pointer; font-family: var(--sans);
+    transition: all 0.13s ease;
+  }
+  .cat-chip:hover { border-color: var(--crimson); color: var(--crimson-dark); }
+  .cat-chip.active { background: var(--crimson-soft); border-color: var(--crimson); color: var(--crimson-dark); font-weight: 700; }
+
+  /* ---- new stories pill ---- */
+  .new-pill {
+    display: none; width: 100%; margin-bottom: 14px;
+    border: 1px solid var(--blue); background: var(--blue-bg); color: var(--blue);
+    border-radius: 11px; padding: 11px 16px;
+    font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--sans);
+    text-align: center; transition: all 0.14s ease;
+  }
+  .new-pill.show { display: block; animation: fadeUp 0.3s ease; }
+  .new-pill:hover { background: var(--blue); color: #fff; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .story.fresh { animation: fresh 1.2s ease; }
+  @keyframes fresh { 0% { background: var(--blue-bg); } 100% { background: var(--panel); } }
+
+  /* ---- bulk bar ---- */
+  .bulk-bar {
+    display: none; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: var(--navy-800); color: #fff; border-radius: 12px;
+    padding: 11px 16px; margin-bottom: 14px;
+    position: sticky; top: 74px; z-index: 30;
+    box-shadow: 0 10px 26px rgba(15,23,48,0.25);
+  }
+  .bulk-bar.show { display: flex; animation: fadeUp 0.2s ease; }
+  .bulk-count { font-size: 13px; font-weight: 700; }
+  .bulk-btn {
+    border: 1px solid rgba(255,255,255,0.3); background: transparent; color: #fff;
+    border-radius: 8px; padding: 7px 13px; font-size: 12.5px; font-weight: 600;
+    cursor: pointer; font-family: var(--sans); transition: all 0.13s ease;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .bulk-btn:hover { background: rgba(255,255,255,0.12); }
+  .bulk-btn.accent { background: var(--crimson); border-color: var(--crimson); }
+  .bulk-btn.accent:hover { background: var(--crimson-dark); }
+  .bulk-clear { margin-left: auto; border: none; background: none; color: var(--navy-text); font-size: 12px; cursor: pointer; font-family: var(--sans); }
+  .bulk-clear:hover { color: #fff; text-decoration: underline; }
+
+  /* ---- story cards ---- */
+  .story {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(28,31,46,0.04);
+    padding: 18px 20px; margin-bottom: 14px;
+    display: flex; gap: 14px;
+    transition: border 0.14s ease, box-shadow 0.14s ease;
+  }
+  .story:hover { box-shadow: 0 6px 20px rgba(15,23,48,0.07); }
+  .story.selected { border-color: var(--crimson); box-shadow: 0 0 0 3px var(--crimson-soft); }
+  .st-check { padding-top: 3px; }
+  .st-check input { width: 16px; height: 16px; accent-color: var(--crimson); cursor: pointer; margin: 0; }
+  .st-main { flex: 1; min-width: 0; }
+  .st-meta { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 8px; }
+  .st-cat {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--crimson-dark); background: var(--crimson-soft);
+    padding: 3px 9px; border-radius: 6px;
+  }
+  .st-cat.world { color: var(--blue); background: var(--blue-bg); }
+  .st-cat.sports { color: var(--green); background: var(--green-bg); }
+  .st-cat.business { color: #b7791f; background: #fdf3e0; }
+  .st-cat.env { color: var(--purple); background: var(--purple-bg); }
+  .st-time { font-size: 11.5px; color: var(--muted-2); }
+  .st-badge {
+    font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 6px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .st-badge.you { background: linear-gradient(135deg, var(--amber), #d18a1d); color: #fff; }
+  .st-badge.vid { background: var(--purple-bg); color: var(--purple); }
+  .st-head {
+    font-family: var(--serif); font-size: 19px; font-weight: 700; line-height: 1.32;
+    display: block; cursor: pointer; letter-spacing: -0.005em;
+  }
+  .st-head:hover { color: var(--crimson-dark); }
+  .st-brief { font-size: 13.5px; color: var(--muted); line-height: 1.6; margin-top: 7px; }
+  .st-match {
+    margin-top: 9px; font-size: 12px; color: var(--blue); background: var(--blue-bg);
+    border-radius: 8px; padding: 7px 11px; line-height: 1.5;
+  }
+  .st-match b { font-weight: 700; }
+  .st-sub { display: flex; align-items: center; gap: 13px; flex-wrap: wrap; margin-top: 11px; }
+  .st-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .st-tag {
+    font-size: 11.5px; font-weight: 600; color: #4b4e5c;
+    border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; background: #fff;
+    cursor: pointer; transition: all 0.12s ease;
+  }
+  .st-tag:hover { border-color: var(--crimson); color: var(--crimson-dark); background: var(--crimson-soft); }
+  .st-media-note { font-size: 11.5px; color: var(--muted); display: inline-flex; align-items: center; gap: 5px; }
+  .st-media-note svg { width: 13px; height: 13px; stroke: var(--muted-2); }
+
+  .st-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 13px; padding-top: 13px; border-top: 1px solid #f4f2ee; }
+  .st-btn {
+    border: 1px solid #e3e1da; background: #fff; border-radius: 8px;
+    padding: 7px 12px; font-size: 12px; font-weight: 600; color: #4b4e5c;
+    cursor: pointer; font-family: var(--sans);
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: all 0.12s ease;
+  }
+  .st-btn:hover { border-color: var(--navy-800); color: var(--navy-800); }
+  .st-btn svg { width: 13px; height: 13px; stroke: currentColor; }
+  .st-btn.preview { border-color: var(--navy-800); color: var(--navy-800); background: #fff; }
+  .st-btn.preview:hover { background: var(--navy-800); color: #fff; }
+  .st-btn.done { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+
+  .st-body { display: none; margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 15px; }
+  .st-body.open { display: block; animation: fadeUp 0.2s ease; }
+  .st-body p { font-size: 14.5px; line-height: 1.8; color: #2b2e3c; margin-bottom: 13px; }
+  .st-signoff { font-size: 12px; color: var(--muted-2); letter-spacing: 0.04em; }
+  .caps-box {
+    margin-top: 6px; background: var(--paper); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+  }
+  .caps-title { font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted-2); margin-bottom: 8px; }
+  .cap-line { display: flex; gap: 9px; font-size: 12.5px; color: #4b4e5c; line-height: 1.55; padding: 4px 0; }
+  .cap-line svg { width: 13px; height: 13px; stroke: var(--muted-2); flex-shrink: 0; margin-top: 2px; }
+
+  /* ---- inline photo strip ---- */
+  .st-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; margin-top: 15px; }
+  .st-photo {
+    aspect-ratio: 4 / 3; border: none; border-radius: 10px; cursor: zoom-in;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; padding: 0;
+    transition: transform 0.14s ease, box-shadow 0.14s ease;
+  }
+  .st-photo:hover { transform: scale(1.04); box-shadow: 0 8px 18px rgba(15,23,48,0.22); }
+  .st-photo > svg { width: 22px; height: 22px; stroke: rgba(255,255,255,0.75); }
+  .st-photo-dur {
+    position: absolute; bottom: 7px; right: 7px;
+    background: rgba(15,23,48,0.72); color: #fff;
+    font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 5px;
+  }
+
+  /* ---- lightbox ---- */
+  .lb {
+    position: fixed; inset: 0; z-index: 120;
+    background: rgba(15,23,48,0.85); backdrop-filter: blur(4px);
+    display: none; align-items: center; justify-content: center; padding: 30px;
+  }
+  .lb.open { display: flex; }
+  .lb-stage { width: min(760px, 100%); }
+  .lb-img {
+    aspect-ratio: 3 / 2; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+  }
+  .lb-img svg { width: 52px; height: 52px; stroke: rgba(255,255,255,0.7); }
+  .lb-cap { color: #fff; font-size: 13.5px; line-height: 1.6; margin-top: 15px; }
+  .lb-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+  .lb-count { color: rgba(255,255,255,0.7); font-size: 12.5px; }
+  .lb-dl {
+    border: 1px solid rgba(255,255,255,0.35); background: transparent; color: #fff;
+    border-radius: 9px; padding: 8px 16px;
+    font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: var(--sans);
+    transition: background 0.13s ease;
+  }
+  .lb-dl:hover { background: rgba(255,255,255,0.14); }
+  .lb-close {
+    position: absolute; top: 22px; right: 24px;
+    width: 40px; height: 40px; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.3); background: transparent; color: #fff;
+    font-size: 16px; cursor: pointer; transition: background 0.13s ease;
+  }
+  .lb-close:hover { background: rgba(255,255,255,0.14); }
+  .lb-nav {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.07); color: #fff;
+    font-size: 22px; cursor: pointer; transition: background 0.13s ease;
+  }
+  .lb-nav:hover { background: rgba(255,255,255,0.18); }
+  .lb-nav.prev { left: 22px; }
+  .lb-nav.next { right: 22px; }
+  @media (max-width: 700px) { .lb-nav.prev { left: 8px; } .lb-nav.next { right: 8px; } }
+
+  /* ---- locked story ---- */
+  .story.locked { background: #fdfcf9; }
+  .lock-note {
+    margin-top: 13px; border: 1px dashed #e3c9a0; background: #fdf8ee;
+    border-radius: 11px; padding: 14px 16px;
+    display: flex; align-items: center; gap: 13px;
+  }
+  .lock-note svg { width: 19px; height: 19px; stroke: #b7791f; flex-shrink: 0; }
+  .lock-text { font-size: 13px; color: #8a6d3b; line-height: 1.55; }
+  .lock-text b { color: #6b5310; }
+  .lock-cta {
+    margin-left: auto; flex-shrink: 0;
+    border: none; background: var(--amber); color: #fff;
+    font-size: 12px; font-weight: 700; padding: 8px 14px; border-radius: 8px;
+    cursor: pointer; font-family: var(--sans); white-space: nowrap;
+  }
+  .lock-cta:hover { background: #d18a1d; }
+
+  /* ---- media packs ---- */
+  .pack-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .pack-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+    overflow: hidden; box-shadow: 0 1px 3px rgba(28,31,46,0.04);
+  }
+  .pack-thumbs { display: grid; grid-template-columns: 1fr 1fr 1fr; height: 96px; }
+  .g1 { background: linear-gradient(135deg, #3b6fe0, #16204a); }
+  .g2 { background: linear-gradient(135deg, #e5484d, #7a1f2b); }
+  .g3 { background: linear-gradient(135deg, #16a34a, #0b3d24); }
+  .g4 { background: linear-gradient(135deg, #f0a832, #8a5410); }
+  .g5 { background: linear-gradient(135deg, #7c3aed, #2e1065); }
+  .g6 { background: linear-gradient(135deg, #0ea5e9, #0c4a6e); }
+  .g7 { background: linear-gradient(135deg, #db2777, #831843); }
+  .g8 { background: linear-gradient(135deg, #64748b, #1e293b); }
+  .pack-body { padding: 15px 17px 16px; }
+  .pack-title { font-family: var(--serif); font-size: 16.5px; font-weight: 700; margin-bottom: 5px; }
+  .pack-meta { font-size: 12px; color: var(--muted); margin-bottom: 13px; }
+  .pack-foot { display: flex; align-items: center; gap: 9px; }
+  .pack-dl {
+    border: none; background: var(--navy-800); color: #fff;
+    font-size: 12.5px; font-weight: 600; padding: 9px 15px; border-radius: 9px;
+    cursor: pointer; font-family: var(--sans);
+    display: inline-flex; align-items: center; gap: 7px;
+    transition: background 0.13s ease;
+  }
+  .pack-dl:hover { background: var(--navy-900); }
+  .pack-dl svg { width: 13px; height: 13px; stroke: currentColor; }
+  .pack-included { font-size: 11.5px; color: var(--green); font-weight: 600; }
+  .pack-locked { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #8a6d3b; }
+  .pack-locked svg { width: 14px; height: 14px; stroke: #b7791f; }
+
+  .feed-empty {
+    text-align: center; color: var(--muted); font-size: 13.5px;
+    padding: 46px 20px; border: 1.5px dashed #d8d5cd; border-radius: 13px; background: #fcfbf8;
+  }
+
+  /* ---- media library ---- */
+  .ml-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 15px; }
+  .src-chips { display: flex; gap: 6px; }
+  .src-chip {
+    border: 1px solid #e3e1da; background: #fff; border-radius: 999px;
+    padding: 7px 15px; font-size: 12.5px; font-weight: 600; color: #4b4e5c;
+    cursor: pointer; font-family: var(--sans); transition: all 0.13s ease;
+  }
+  .src-chip:hover { border-color: var(--navy-800); color: var(--navy-800); }
+  .src-chip.active { background: var(--navy-800); border-color: var(--navy-800); color: #fff; }
+  .ml-search {
+    flex: 1; min-width: 200px;
+    display: flex; align-items: center; gap: 8px;
+    background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 9px 13px;
+  }
+  .ml-search svg { width: 14px; height: 14px; stroke: var(--muted-2); flex-shrink: 0; }
+  .ml-search input { border: none; outline: none; background: transparent; font-size: 13px; font-family: var(--sans); width: 100%; color: var(--ink); }
+  .ml-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 16px; }
+  .ml-card {
+    background: #fff; border: 1px solid var(--border); border-radius: 13px;
+    overflow: hidden; box-shadow: 0 1px 3px rgba(28,31,46,0.04);
+    transition: transform 0.14s ease, box-shadow 0.14s ease, border 0.14s ease;
+  }
+  .ml-card:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(15,23,48,0.09); }
+  .ml-card.selected { border-color: var(--crimson); box-shadow: 0 0 0 3px var(--crimson-soft); }
+  .ml-thumb { aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; }
+  .ml-thumb svg.big { width: 26px; height: 26px; stroke: rgba(255,255,255,0.7); }
+  .ml-src {
+    position: absolute; top: 8px; left: 8px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
+    padding: 3px 8px; border-radius: 6px; color: #fff;
+    background: rgba(15,23,48,0.72);
+  }
+  .ml-src.ap { background: rgba(59,111,224,0.92); }
+  .ml-check { position: absolute; top: 8px; right: 8px; width: 17px; height: 17px; accent-color: var(--crimson); cursor: pointer; z-index: 2; margin: 0; }
+  .ml-dur {
+    position: absolute; bottom: 8px; right: 8px;
+    background: rgba(15,23,48,0.72); color: #fff;
+    font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 5px;
+  }
+  .ml-embargo {
+    position: absolute; inset: 0;
+    background: rgba(15,23,48,0.62);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+    color: #fff; font-size: 11.5px; font-weight: 600; text-align: center; padding: 10px;
+  }
+  .ml-embargo svg { width: 18px; height: 18px; stroke: #fff; }
+  .ml-embargo .t { font-size: 10.5px; color: rgba(255,255,255,0.8); font-weight: 500; }
+  .ml-body { padding: 12px 13px 13px; }
+  .ml-cap { font-size: 12.5px; font-weight: 600; line-height: 1.45; display: block; cursor: pointer; }
+  .ml-cap:hover { color: var(--crimson-dark); }
+  .ml-meta { font-size: 11px; color: var(--muted-2); margin-top: 5px; }
+  .ml-ent { margin-top: 9px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 6px; }
+  .ml-ent.inc { background: var(--green-bg); color: var(--green); }
+  .ml-ent.addon { background: #fdf3e0; color: #b7791f; }
+  .ml-ent.lock { background: #f3f1ee; color: var(--muted); }
+  .ml-ent.ex { background: linear-gradient(135deg, var(--amber), #d18a1d); color: #fff; }
+  .ml-ent.emb { background: var(--blue-bg); color: var(--blue); }
+
+  /* ---- wire view switcher ---- */
+  .view-switch { display: flex; gap: 3px; background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
+  .view-btn {
+    border: none; background: transparent; padding: 6px 11px; border-radius: 7px;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; color: var(--muted); transition: all 0.13s ease;
+  }
+  .view-btn.active { background: var(--navy-800); color: #fff; }
+  .view-btn svg { width: 14px; height: 14px; stroke: currentColor; }
+
+  /* ---- wire table view (terminal) ---- */
+  .tw-wrap { background: #fff; border: 1px solid var(--border); border-radius: 13px; overflow: hidden; box-shadow: 0 1px 3px rgba(28,31,46,0.04); }
+  .tw-toolbar { display: flex; align-items: center; gap: 14px; padding: 10px 15px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+  .tw-toolbar b { color: var(--ink); }
+  .kbd-hint { font-size: 11px; color: var(--muted-2); }
+  .tw-density { margin-left: auto; display: flex; gap: 3px; background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
+  .tw-density button { border: none; background: transparent; font-size: 11px; font-weight: 600; color: var(--muted); padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+  .tw-density button.active { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(15,23,48,0.12); }
+  .tw-scroll { overflow-x: auto; }
+  table.tw { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tw thead th {
+    position: sticky; top: 0; background: #fbfaf7; z-index: 2;
+    text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--muted-2); padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  .tw th.sortable { cursor: pointer; user-select: none; }
+  .tw th.sortable:hover { color: var(--navy-800); }
+  .tw tbody td { padding: 11px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .tw tbody tr:last-child td { border-bottom: none; }
+  .tw-row { cursor: pointer; transition: background 0.1s ease; }
+  .tw-row:hover { background: #fbfaf7; }
+  .tw-row.selected { background: var(--blue-bg); }
+  .tw-row.tw-locked { background: #faf9f6; cursor: default; }
+  .tw-row.tw-locked .tw-head-cell { color: var(--muted); font-weight: 500; }
+  .tw-row.tw-active { box-shadow: inset 3px 0 0 var(--crimson); }
+  .tw-row.fresh { animation: twfresh 1.4s ease; }
+  @keyframes twfresh { 0% { background: var(--blue-bg); } 100% { background: transparent; } }
+  .tw-compact tbody td { padding: 6px 12px; font-size: 12.5px; }
+  .tw-check input { width: 15px; height: 15px; accent-color: var(--crimson); cursor: pointer; margin: 0; display: block; }
+  .tw-check input:disabled { cursor: not-allowed; opacity: 0.4; }
+  .tw-time { white-space: nowrap; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .tw-cat { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .tw-cat i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .tw-head-cell { font-weight: 600; line-height: 1.45; min-width: 300px; }
+  .tw-head-cell .tw-lock-ic { color: var(--muted-2); font-weight: 400; }
+  .tw-media { white-space: nowrap; color: var(--muted); font-size: 12px; display: inline-flex; gap: 10px; align-items: center; }
+  .tw-media span { display: inline-flex; align-items: center; gap: 4px; }
+  .tw-media svg { width: 13px; height: 13px; stroke: var(--muted-2); }
+  .tw-ex { color: var(--amber); font-size: 14px; text-align: center; }
+  .tw-acts { white-space: nowrap; text-align: right; }
+  .tw-act {
+    border: 1px solid var(--border); background: #fff; width: 29px; height: 29px; border-radius: 7px;
+    cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    margin-left: 5px; color: #4b4e5c; transition: all 0.12s ease; vertical-align: middle;
+  }
+  .tw-act:hover { border-color: var(--navy-800); color: var(--navy-800); }
+  .tw-act svg { width: 13px; height: 13px; stroke: currentColor; }
+  .tw-detail td { background: #fbfaf7; padding: 0; }
+  .tw-detail-box { padding: 16px 20px 18px 46px; }
+  .tw-detail-brief { font-size: 13.5px; color: #4b4e5c; line-height: 1.65; max-width: 780px; margin-bottom: 11px; }
+  .tw-detail-box .st-actions { margin-top: 12px; padding-top: 0; border-top: none; }
+  @media (max-width: 900px) { .view-switch { display: none; } }
+
+  /* ---- wire grid view (visual scan) ---- */
+  .wire-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
+  .wg-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 13px;
+    box-shadow: 0 1px 3px rgba(28,31,46,0.04);
+    padding: 14px 15px; position: relative; display: flex; flex-direction: column;
+    min-width: 0; transition: border 0.14s ease, box-shadow 0.14s ease, transform 0.14s ease;
+  }
+  .wg-card:hover { box-shadow: 0 8px 22px rgba(15,23,48,0.09); transform: translateY(-1px); }
+  .wg-card.selected { border-color: var(--crimson); box-shadow: 0 0 0 3px var(--crimson-soft); }
+  .wg-card.fresh { animation: fresh 1.2s ease; }
+  .wg-card.open { grid-column: 1 / -1; }
+  .wg-card.locked { background: #fdfcf9; }
+  .wg-check { position: absolute; top: 12px; right: 12px; z-index: 2; }
+  .wg-check input { width: 15px; height: 15px; accent-color: var(--crimson); cursor: pointer; margin: 0; }
+  .wg-thumb {
+    border: none; padding: 0; cursor: zoom-in; border-radius: 10px; margin-bottom: 12px;
+    height: 118px; display: flex; align-items: center; justify-content: center; position: relative;
+    transition: transform 0.14s ease, box-shadow 0.14s ease;
+  }
+  .wg-thumb:hover { transform: scale(1.015); box-shadow: 0 8px 18px rgba(15,23,48,0.2); }
+  .wg-thumb > svg { width: 24px; height: 24px; stroke: rgba(255,255,255,0.8); }
+  .wg-count {
+    position: absolute; right: 9px; bottom: 9px;
+    background: rgba(15,23,48,0.72); color: #fff; font-size: 10px; font-weight: 700;
+    padding: 3px 8px; border-radius: 6px;
+  }
+  .wg-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-right: 26px; margin-bottom: 7px; }
+  .wg-head {
+    font-family: var(--serif); font-size: 16.5px; font-weight: 700; line-height: 1.34;
+    letter-spacing: -0.005em; cursor: pointer;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .wg-head:hover { color: var(--crimson-dark); }
+  .wg-brief {
+    font-size: 12.5px; color: var(--muted); line-height: 1.55; margin-top: 7px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .wg-foot { margin-top: auto; padding-top: 12px; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .wg-foot .st-tags { flex: 1; min-width: 0; }
+  .wg-foot .st-tag { font-size: 11px; padding: 2px 9px; }
+  .wg-media { font-size: 11px; color: var(--muted); display: inline-flex; gap: 8px; align-items: center; white-space: nowrap; }
+  .wg-media span { display: inline-flex; align-items: center; gap: 4px; }
+  .wg-media svg { width: 12px; height: 12px; stroke: var(--muted-2); }
+  .wg-acts { display: flex; align-items: center; gap: 5px; margin-top: 11px; padding-top: 11px; border-top: 1px solid #f4f2ee; }
+  .wg-acts .tw-act { margin-left: 0; }
+  .wg-acts .wg-grow { flex: 1; }
+  .wg-read {
+    border: 1px solid var(--navy-800); background: #fff; color: var(--navy-800);
+    border-radius: 7px; padding: 5px 11px; font-size: 11.5px; font-weight: 700; cursor: pointer; font-family: var(--sans);
+  }
+  .wg-read:hover { background: var(--navy-800); color: #fff; }
+  .wg-body { display: none; margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 13px; }
+  .wg-card.open .wg-body { display: block; animation: fadeUp 0.18s ease; }
+  .wg-body p { font-size: 13.5px; line-height: 1.75; color: #2b2e3c; margin-bottom: 11px; max-width: 860px; }
+  .wg-lock {
+    margin-top: 10px; border: 1px dashed #eccf8f; background: #fdf6e8; border-radius: 9px;
+    padding: 10px 12px; font-size: 12px; color: #8a6410; line-height: 1.5;
+  }
+  .wg-lock b { color: #6d4f0c; }
+  .wg-lock button { margin-top: 7px; }
+  @media (max-width: 1280px) { .wire-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+  /* ---- asset detail modal ---- */
+  .am-overlay {
+    position: fixed; inset: 0; z-index: 130;
+    background: rgba(15,23,48,0.6); backdrop-filter: blur(3px);
+    display: none; align-items: center; justify-content: center; padding: 24px;
+  }
+  .am-overlay.open { display: flex; }
+  .am-modal {
+    background: #fff; border-radius: 16px;
+    width: min(880px, 100%); max-height: 88vh; overflow-y: auto;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+  }
+  .am-grid { display: grid; grid-template-columns: 1.15fr 1fr; }
+  .am-img { min-height: 340px; display: flex; align-items: center; justify-content: center; }
+  .am-img svg { width: 46px; height: 46px; stroke: rgba(255,255,255,0.6); }
+  .am-info { padding: 22px 24px; }
+  .am-close {
+    width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+    border: 1px solid var(--border); background: #fff; cursor: pointer; color: #4b4e5c; font-size: 14px;
+  }
+  .am-close:hover { border-color: var(--crimson); color: var(--crimson); }
+  .am-title { font-family: var(--serif); font-size: 17.5px; font-weight: 700; line-height: 1.45; }
+  .am-credit-row { display: flex; align-items: center; gap: 9px; margin: 11px 0 16px; }
+  .am-credit { font-size: 12px; font-weight: 700; color: var(--navy-800); }
+  .credit-copy {
+    border: 1px solid var(--border); background: #fff; border-radius: 7px;
+    font-size: 11px; font-weight: 600; color: #4b4e5c; padding: 4px 10px;
+    cursor: pointer; font-family: var(--sans); transition: all 0.12s ease;
+  }
+  .credit-copy:hover { border-color: var(--navy-800); color: var(--navy-800); }
+  .am-kv { display: grid; grid-template-columns: auto 1fr; gap: 7px 16px; font-size: 12.5px; margin-bottom: 16px; }
+  .am-kv .k { color: var(--muted-2); }
+  .am-kv .v { color: var(--ink); font-weight: 500; }
+  .am-terms {
+    background: var(--paper); border: 1px solid var(--border); border-radius: 10px;
+    padding: 11px 13px; font-size: 12px; color: #4b4e5c; line-height: 1.65; margin-bottom: 16px;
+  }
+  .am-dl-box { border-top: 1px dashed var(--border); padding-top: 15px; }
+  .res-seg { display: flex; gap: 4px; background: var(--paper); border: 1px solid var(--border); border-radius: 10px; padding: 4px; margin-bottom: 11px; }
+  .res-opt {
+    flex: 1; border: none; background: transparent; padding: 8px 6px; border-radius: 7px;
+    font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: pointer; font-family: var(--sans);
+    transition: all 0.13s ease;
+  }
+  .res-opt.active { background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgba(15,23,48,0.12); }
+  .quota-note { font-size: 12px; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+  .mbtn {
+    border: none; border-radius: 9px; padding: 10px 16px;
+    font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--sans);
+    transition: background 0.13s ease;
+  }
+  .mbtn.navy { background: var(--navy-800); color: #fff; }
+  .mbtn.navy:hover { background: var(--navy-900); }
+  .mbtn.amber { background: var(--amber); color: #fff; }
+  .mbtn.amber:hover { background: #d18a1d; }
+  .am-dl { width: 100%; }
+  .am-lockbox {
+    background: #fdf8ee; border: 1px dashed #e3c9a0; border-radius: 11px;
+    padding: 14px 15px; font-size: 13px; color: #8a6d3b; line-height: 1.6;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .am-lockbox.blue { background: var(--blue-bg); border-color: #bfd4f7; color: #2c4f9e; }
+  .am-lockbox .mbtn { align-self: flex-start; }
+
+  /* ---- library scale (filters row 2, density, infinite scroll) ---- */
+  .bulk-btn { white-space: nowrap; flex-shrink: 0; }
+  .bulk-clear { white-space: nowrap; flex-shrink: 0; }
+  .ml-filters2 { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .ml-filters2[hidden] { display: none; }
+  .ml-sel {
+    border: 1px solid var(--border); border-radius: 9px; padding: 8px 11px;
+    font-size: 12.5px; background: #fff; color: var(--ink); outline: none; cursor: pointer;
+  }
+  .ml-sel:focus { border-color: var(--navy-800); }
+  .ml-count { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .ml-count b { color: var(--ink); }
+  .ml-grid.compact { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .ml-grid.compact .ml-body { padding: 9px 10px 10px; }
+  .ml-grid.compact .ml-meta { display: none; }
+  .ml-grid.compact .ml-cap { font-size: 11.5px; min-height: 33px; }
+  .density-btns { display: flex; gap: 3px; background: #fff; border: 1px solid var(--border); border-radius: 9px; padding: 3px; }
+  .density-btn { border: none; background: transparent; width: 30px; height: 26px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+  .density-btn.active { background: var(--navy-800); color: #fff; }
+  .density-btn svg { width: 13px; height: 13px; stroke: currentColor; }
+  .ml-load { text-align: center; padding: 24px 0 10px; font-size: 12.5px; color: var(--muted); }
+
+  /* ---- declutter: collapsible facets, quieter cards ---- */
+  .ml-filter-toggle {
+    display: inline-flex; align-items: center; gap: 7px;
+    border: 1px solid var(--border); background: #fff; border-radius: 10px;
+    padding: 9px 13px; font-size: 12.5px; font-weight: 600; color: #4b4e5c;
+    cursor: pointer; transition: all 0.13s ease; flex-shrink: 0;
+  }
+  .ml-filter-toggle:hover { border-color: var(--navy-800); color: var(--navy-800); }
+  .ml-filter-toggle svg { width: 14px; height: 14px; stroke: currentColor; }
+  .ml-fbadge {
+    background: var(--crimson); color: #fff; font-size: 10px; font-weight: 700;
+    border-radius: 999px; min-width: 17px; height: 17px; padding: 0 5px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .ml-reset { border: none; background: none; font-size: 12px; font-weight: 600; color: var(--crimson); cursor: pointer; padding: 8px 4px; }
+  .ml-reset:hover { color: var(--crimson-dark); text-decoration: underline; }
+  .ml-cap {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; min-height: 36px;
+  }
+  .ml-card { box-shadow: none; }
+  .ml-card:hover { box-shadow: 0 6px 18px rgba(15,23,48,0.07); }
+  .ml-ent.inc { background: transparent; color: var(--green); padding: 4px 0 0; font-weight: 600; }
+
+  /* ---- UNB Photos showcase ---- */
+  .ph-hero { display: grid; grid-template-columns: 1.9fr 1fr; background: #fff; border: 1px solid var(--border); border-radius: 15px; overflow: hidden; margin-bottom: 6px; }
+  .ph-hero-img { min-height: 310px; position: relative; display: flex; align-items: center; justify-content: center; cursor: zoom-in; }
+  .ph-hero-img svg { width: 46px; height: 46px; stroke: rgba(255,255,255,0.6); }
+  .ph-hero-tag { position: absolute; top: 12px; left: 12px; background: rgba(15,23,48,0.78); color: #fff; font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; padding: 4px 11px; border-radius: 6px; }
+  .ph-hero-body { padding: 22px 24px; display: flex; flex-direction: column; }
+  .ph-hero-cap { font-family: var(--serif); font-size: 19px; font-weight: 600; line-height: 1.5; margin-bottom: 11px; letter-spacing: -0.01em; }
+  .ph-hero-meta { font-size: 12px; color: var(--muted); margin-bottom: 15px; }
+  .ph-attach { font-size: 12px; background: var(--blue-bg); color: var(--blue); border-radius: 8px; padding: 9px 12px; font-weight: 600; margin-bottom: 15px; cursor: pointer; line-height: 1.5; }
+  .ph-attach:hover { text-decoration: underline; }
+  .ph-lic { margin-top: auto; font-size: 11.5px; color: var(--green); font-weight: 600; }
+  .ph-sec { margin: 26px 0 0; }
+  .ph-sec-title { font-family: var(--serif); font-size: 17.5px; font-weight: 700; margin-bottom: 13px; display: flex; align-items: baseline; gap: 10px; letter-spacing: -0.01em; }
+  .ph-sec-title .sub { font-family: var(--sans); font-size: 11.5px; font-weight: 500; color: var(--muted-2); }
+  .gal-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .gal-card { background: #fff; border: 1px solid var(--border); border-radius: 13px; overflow: hidden; transition: transform 0.14s ease, box-shadow 0.14s ease; }
+  .gal-card:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(15,23,48,0.09); }
+  .gal-thumb { height: 128px; position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .gal-thumb svg { width: 26px; height: 26px; stroke: rgba(255,255,255,0.65); }
+  .gal-thumb .n { position: absolute; bottom: 8px; right: 8px; background: rgba(15,23,48,0.78); color: #fff; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 5px; }
+  .gal-body { padding: 12px 14px 13px; }
+  .gal-title { font-size: 13.5px; font-weight: 700; margin-bottom: 4px; }
+  .gal-story { font-size: 11.5px; color: var(--blue); font-weight: 600; cursor: pointer; }
+  .gal-story:hover { text-decoration: underline; }
+  .gal-acts { display: flex; gap: 6px; margin-top: 11px; }
+  .gal-btn { flex: 1; border: 1px solid var(--border); background: #fff; border-radius: 8px; font-size: 11.5px; font-weight: 600; padding: 7px 4px; cursor: pointer; color: #4b4e5c; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.12s ease; white-space: nowrap; }
+  .gal-btn:hover { border-color: var(--navy-800); color: var(--navy-800); }
+  .gal-btn svg { width: 12px; height: 12px; stroke: currentColor; }
+  .coll-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .coll-card { position: relative; border-radius: 11px; overflow: hidden; height: 96px; display: flex; flex-direction: column; justify-content: flex-end; padding: 11px 13px; color: #fff; cursor: pointer; transition: transform 0.14s ease; }
+  .coll-card:hover { transform: translateY(-2px); }
+  .coll-name { font-size: 13px; font-weight: 700; text-shadow: 0 1px 6px rgba(0,0,0,0.4); }
+  .coll-n { font-size: 10.5px; opacity: 0.85; }
+  .coll-bell { position: absolute; top: 8px; right: 8px; width: 27px; height: 27px; border-radius: 7px; border: none; background: rgba(255,255,255,0.22); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); transition: background 0.13s ease; }
+  .coll-bell:hover { background: rgba(255,255,255,0.38); }
+  .coll-bell.on { background: var(--amber); }
+  .coll-bell svg { width: 13px; height: 13px; stroke: currentColor; }
+  .trend-list { background: #fff; border: 1px solid var(--border); border-radius: 13px; overflow: hidden; }
+  .trend-item { display: flex; align-items: center; gap: 13px; padding: 11px 17px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s ease; }
+  .trend-item:last-child { border-bottom: none; }
+  .trend-item:hover { background: var(--paper); }
+  .trend-rank { font-family: var(--serif); font-size: 19px; font-weight: 700; color: var(--muted-2); width: 22px; flex-shrink: 0; }
+  .trend-cap { flex: 1; font-size: 13px; font-weight: 500; min-width: 0; }
+  .trend-dl { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ml-story { display: block; margin-top: 7px; font-size: 11.5px; color: var(--blue); font-weight: 600; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ml-story:hover { text-decoration: underline; }
+  .ph-stream-top { display: flex; gap: 10px; margin-bottom: 14px; }
+  @media (max-width: 900px) {
+    .ph-hero { grid-template-columns: 1fr; }
+    .ph-hero-img { min-height: 200px; }
+    .gal-row { grid-template-columns: 1fr; }
+    .coll-row { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (max-width: 800px) { .am-grid { grid-template-columns: 1fr; } .am-img { min-height: 220px; } }
+  @media (max-width: 980px) {
+    .page { grid-template-columns: 1fr; padding: 18px; }
+    .mast-clock, .user-meta { display: none; }
+    .pack-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="brand-strip"></div>
+
+<!-- ============ MASTHEAD ============ -->
+<header class="masthead">
+  <div class="mast-inner">
+    <a class="mast-brand" href="client-portal.html">
+      <div class="brand-mark">U</div>
+      <div class="mast-name">UNB Wire<span>Client Portal</span></div>
+    </a>
+    <div class="mast-right">
+      <div class="mast-clock"><span class="live-dot"></span><span id="clockTime">Dhaka</span></div>
+      <a class="admin-chip" href="index.html">← Admin panel</a>
+      <div class="user-wrap">
+        <button class="user-chip" id="userBtn">
+          <span class="user-avatar">DS</span>
+          <span class="user-meta"><span class="user-name">Daily Star</span><span class="user-role"><b>■</b> Premium subscriber</span></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="drop" id="userDrop">
+          <div class="drop-account">
+            <div class="drop-tier">★ Premium · renews 1 Oct 2026</div>
+            <div class="drop-quota"><span>Wire</span><div class="dq-bar"><span style="width:68%"></span></div><b>342/500</b></div>
+            <div class="drop-quota"><span>Media</span><div class="dq-bar"><span class="warm" id="dqMediaFill" style="width:58%"></span></div><b id="dqMedia">87/150</b></div>
+          </div>
+          <div class="drop-sep"></div>
+          <a class="drop-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>My downloads</a>
+          <a class="drop-item" href="delivery-settings.html"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>Subscription &amp; API keys</a>
+          <div class="drop-sep"></div>
+          <a class="drop-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Log out</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- ============ LEFT RAIL ============ -->
+  <aside>
+    <div class="rail-card">
+      <span class="sub-tier">★ Premium</span>
+      <div class="sub-name">Daily Star</div>
+      <div class="sub-renew">Renews 1 October 2026 · English wire + media pack</div>
+      <div class="quota">
+        <div class="quota-label"><span>Wire downloads</span><b>342 / 500</b></div>
+        <div class="quota-bar"><span class="quota-fill" style="width:68%"></span></div>
+      </div>
+      <div class="quota">
+        <div class="quota-label"><span>Media downloads</span><b id="mediaQuotaLabel">87 / 150</b></div>
+        <div class="quota-bar"><span class="quota-fill warm" id="mediaQuotaFill" style="width:58%"></span></div>
+      </div>
+      <a class="drop-item" href="delivery-settings.html" style="margin-top:10px;padding-left:0">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Delivery settings (FTP · API · alerts) →
+      </a>
+    </div>
+
+    <div class="rail-card" id="wireFiltersCard">
+      <div class="rail-title">Filters</div>
+      <div class="filter-group">
+        <label class="filter-label">Published</label>
+        <select class="select-input" id="fDate">
+          <option value="all">Any time</option>
+          <option value="60">Last hour</option>
+          <option value="360">Last 6 hours</option>
+          <option value="1440">Last 24 hours</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Media</label>
+        <select class="select-input" id="fMedia">
+          <option value="all">All stories</option>
+          <option value="photo">With photos</option>
+          <option value="video">With video</option>
+          <option value="text">Text only</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="check-line"><input type="checkbox" id="fExclusive"> Exclusive to Daily Star only</label>
+      </div>
+      <button class="clear-filters" id="clearFilters">Clear all filters</button>
+    </div>
+
+    <div class="rail-card" id="savedSearchesCard">
+      <div class="rail-title">Saved searches</div>
+      <div class="saved-item" data-q="election"><span class="term"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><span>election</span></span></div>
+      <div class="saved-item" data-q="swapon"><span class="term"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><span>swapon</span></span></div>
+      <div class="saved-item" data-q="padma"><span class="term"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><span>padma bridge</span></span></div>
+      <div class="saved-item" data-q="cricket"><span class="term"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><span>cricket</span></span></div>
+    </div>
+
+    <div class="rail-card">
+      <div class="rail-title">My recent downloads</div>
+      <div class="dl-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="dl-name">Rizvi returns to BNP's Nayapaltan… (Word)</span><span class="dl-time">2m</span></div>
+      <div class="dl-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span class="dl-name">Bangla QR photos (ZIP, 2)</span><span class="dl-time">18m</span></div>
+      <div class="dl-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg><span class="dl-name">Morning wire bundle (XML, 12)</span><span class="dl-time">3h</span></div>
+      <div class="dl-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="dl-name">Bishkhali riverbanks… (Word)</span><span class="dl-time">5h</span></div>
+    </div>
+  </aside>
+
+  <!-- ============ FEED ============ -->
+  <main>
+    <div class="feed-top">
+      <button class="rail-toggle" id="railToggle" title="Show account & filters">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+      </button>
+      <div class="feed-tabs">
+        <button class="feed-tab active" data-tab="wire">News wire</button>
+        <button class="feed-tab" data-tab="packs">Media library</button>
+        <button class="feed-tab" data-tab="photos">UNB Photos</button>
+      </div>
+      <span class="live-note" id="liveNote"><span class="live-dot"></span>Live — checking every 30s</span>
+      <span class="spacer"></span>
+      <div class="view-switch" id="viewSwitch">
+        <button class="view-btn active" data-view="cards" title="Card view — full context">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/></svg>
+          Cards
+        </button>
+        <button class="view-btn" data-view="grid" title="Grid view — visual scan">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>
+          Grid
+        </button>
+        <button class="view-btn" data-view="table" title="Table view — dense terminal">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+          Table
+        </button>
+      </div>
+      <div class="sort-wrap" id="sortWrap">
+        Sort
+        <select class="select-input" id="sortSel">
+          <option value="new">Latest first</option>
+          <option value="old">Oldest first</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="wirePanel">
+      <div class="omni">
+        <span class="omni-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
+        <input type="text" id="omniInput" placeholder="Search the wire — headline, keywords, tags, even image captions…">
+        <select class="omni-scope" id="omniScope">
+          <option value="all">Everywhere</option>
+          <option value="headline">Headlines</option>
+          <option value="tags">Tags</option>
+          <option value="captions">Image captions</option>
+        </select>
+        <kbd>/</kbd>
+      </div>
+      <div class="search-meta" id="searchMeta"></div>
+
+      <div class="cat-chips" id="catChips">
+        <button class="cat-chip active" data-cat="All">All</button>
+        <button class="cat-chip" data-cat="Bangladesh">Bangladesh</button>
+        <button class="cat-chip" data-cat="Politics">Politics</button>
+        <button class="cat-chip" data-cat="World">World</button>
+        <button class="cat-chip" data-cat="Sports">Sports</button>
+        <button class="cat-chip" data-cat="Business">Business</button>
+        <button class="cat-chip" data-cat="Environment">Environment</button>
+      </div>
+
+      <button class="new-pill" id="newPill">↑ 2 new stories on the wire — tap to load</button>
+
+      <div class="bulk-bar" id="bulkBar">
+        <span class="bulk-count" id="bulkCount">0 selected</span>
+        <button class="bulk-btn accent" id="bulkWord">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Word bundle
+        </button>
+        <button class="bulk-btn" id="bulkXml">XML bundle</button>
+        <button class="bulk-btn" id="bulkCsv">CSV (headlines)</button>
+        <button class="bulk-clear" id="bulkClear">Clear selection</button>
+      </div>
+
+      <div id="feedList"></div>
+      <div id="feedGrid" hidden></div>
+      <div id="feedTable" hidden></div>
+    </div>
+
+    <div id="packsPanel" hidden>
+      <div class="ml-filters">
+        <div class="src-chips" id="srcChips">
+          <button class="src-chip active" data-src="all">All sources</button>
+          <button class="src-chip" data-src="unb">UNB</button>
+          <button class="src-chip" data-src="ap">AP</button>
+        </div>
+        <div class="ml-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="mlSearch" placeholder="Search captions, photographers, locations…">
+        </div>
+        <button class="ml-filter-toggle" id="mlFilterToggle" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+          Filters
+          <span class="ml-fbadge" id="mlFBadge" hidden>0</span>
+        </button>
+        <div class="density-btns">
+          <button class="density-btn active" data-d="cozy" title="Comfortable view">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>
+          </button>
+          <button class="density-btn" data-d="compact" title="Compact view">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="4" height="4" rx="1"/><rect x="10" y="3" width="4" height="4" rx="1"/><rect x="17" y="3" width="4" height="4" rx="1"/><rect x="3" y="10" width="4" height="4" rx="1"/><rect x="10" y="10" width="4" height="4" rx="1"/><rect x="17" y="10" width="4" height="4" rx="1"/><rect x="3" y="17" width="4" height="4" rx="1"/><rect x="10" y="17" width="4" height="4" rx="1"/><rect x="17" y="17" width="4" height="4" rx="1"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="ml-filters2" id="mlFiltersRow" hidden>
+        <select class="ml-sel" id="mlCat">
+          <option value="All">All categories</option>
+          <option>Bangladesh</option>
+          <option>Politics</option>
+          <option>World</option>
+          <option>Sports</option>
+          <option>Business</option>
+          <option>Environment</option>
+        </select>
+        <select class="ml-sel" id="mlEnt">
+          <option value="all">All access levels</option>
+          <option value="dl">✓ Downloadable by me</option>
+          <option value="ex">★ Exclusive to me</option>
+          <option value="addon">AP add-on</option>
+          <option value="lock">🔒 Locked</option>
+        </select>
+        <select class="ml-sel" id="mlDate">
+          <option value="all">Any time</option>
+          <option value="1">Last 48 hours</option>
+          <option value="7">Last 7 days</option>
+          <option value="20">Last 3 weeks</option>
+        </select>
+        <select class="ml-sel" id="mlSort">
+          <option value="new">Newest first</option>
+          <option value="old">Oldest first</option>
+        </select>
+        <button class="ml-reset" id="mlResetBtn" hidden>Reset filters</button>
+      </div>
+      <div class="ml-count" id="mlCount"></div>
+
+      <div class="bulk-bar" id="basketBar">
+        <span class="bulk-count" id="basketCount">0 selected</span>
+        <button class="bulk-btn accent" id="basketZip">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download ZIP + license
+        </button>
+        <button class="bulk-clear" id="basketClear">Clear selection</button>
+      </div>
+
+      <div class="ml-grid" id="mediaGrid"></div>
+      <div class="ml-load" id="mlSentinel"></div>
+    </div>
+
+    <div id="photosPanel" hidden>
+      <!-- hero: photo of the day -->
+      <div class="ph-hero">
+        <div class="ph-hero-img g6" id="phHeroImg" title="Click to view full size">
+          <span class="ph-hero-tag">★ Photo of the day</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+        </div>
+        <div class="ph-hero-body">
+          <div class="ph-hero-cap">Fishermen unload the morning hilsa catch at Chandpur — the season peaks as river currents turn</div>
+          <div class="ph-hero-meta">Photo: Mahmud Hossain / UNB · Chandpur · Today, 7:55 AM · 3000 × 2000</div>
+          <div class="ph-attach" data-story="hilsa">📰 Attached to: “Hilsa glut at Chandpur landing station” — grab story + photos together</div>
+          <div class="res-seg" id="phHeroRes">
+            <button class="res-opt active" data-res="web">Web · 1200 px</button>
+            <button class="res-opt" data-res="print">Print · original</button>
+          </div>
+          <div class="quota-note" id="phHeroQuota">ℹ Will use 1 of <b>87</b> remaining media downloads this month</div>
+          <button class="mbtn navy am-dl" id="phHeroDl">Download photo</button>
+          <div class="ph-lic">✓ UNB license — unlimited archival, print + web included</div>
+        </div>
+      </div>
+
+      <!-- photo stories -->
+      <div class="ph-sec">
+        <div class="ph-sec-title">Photo stories <span class="sub">multi-frame narratives — browse, download all, or embed on your site</span></div>
+        <div class="gal-row" id="galRow"></div>
+      </div>
+
+      <!-- collections -->
+      <div class="ph-sec">
+        <div class="ph-sec-title">Collections <span class="sub">curated by the photo desk · 🔔 = notify me on new additions</span></div>
+        <div class="coll-row" id="collRow"></div>
+      </div>
+
+      <!-- trending -->
+      <div class="ph-sec">
+        <div class="ph-sec-title">Most downloaded this week <span class="sub">what other newsrooms are using</span></div>
+        <div class="trend-list" id="trendList"></div>
+      </div>
+
+      <!-- latest stream -->
+      <div class="ph-sec">
+        <div class="ph-sec-title">Latest from UNB photographers <span class="sub">every photo links back to its story</span></div>
+        <div class="ph-stream-top">
+          <div class="ml-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="phSearch" placeholder="Search captions, districts, photographers…">
+          </div>
+        </div>
+        <div class="ml-grid" id="phStream"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ ASSET DETAIL MODAL ============ -->
+<div class="am-overlay" id="amOverlay">
+  <div class="am-modal">
+    <div class="am-grid">
+      <div class="am-img g1" id="amImg"></div>
+      <div class="am-info">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+          <div class="am-title" id="amCap"></div>
+          <button class="am-close" id="amClose" title="Close (Esc)">✕</button>
+        </div>
+        <div class="am-credit-row">
+          <span class="am-credit" id="amCredit"></span>
+          <button class="credit-copy" id="amCopyCredit">Copy credit line</button>
+        </div>
+        <div class="am-kv" id="amKv"></div>
+        <div class="am-terms" id="amTerms"></div>
+        <div class="am-dl-box" id="amDlBox"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PHOTO LIGHTBOX ============ -->
+<div class="lb" id="lightbox">
+  <button class="lb-close" id="lbClose" title="Close (Esc)">✕</button>
+  <button class="lb-nav prev" id="lbPrev" title="Previous">‹</button>
+  <div class="lb-stage">
+    <div class="lb-img g1" id="lbImg"></div>
+    <div class="lb-cap" id="lbCap"></div>
+    <div class="lb-foot">
+      <span class="lb-count" id="lbCount">1 / 1</span>
+      <button class="lb-dl" id="lbDl">Download photo</button>
+    </div>
+  </div>
+  <button class="lb-nav next" id="lbNext" title="Next">›</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+  // ===== wire data =====
+  const STORIES = [
+    { id: 1, mins: 8, cat: 'Politics', ex: 'you', video: true,
+      head: "His battleground, his fort, his home: Rizvi returns to BNP's Nayapaltan central office after elevation to top post",
+      brief: "BNP's newly elevated leader Ruhul Kabir Rizvi returned to the party's Nayapaltan central office to a rousing welcome from activists who had waited since morning.",
+      body: "BNP's newly elevated leader Ruhul Kabir Rizvi returned to the party's Nayapaltan central office on Sunday, greeted by hundreds of activists who had waited outside since morning.\n\nSpeaking briefly to reporters, Rizvi said the office had always been his political home and pledged to rebuild the party's organisational strength at the grassroots.\n\nSenior joint secretary general Ruhul Kabir Rizvi was elevated to the party's top policy-making post on Saturday night.",
+      tags: ['politics', 'bnp', 'dhaka'],
+      caps: ["Rizvi speaks to reporters outside BNP's Nayapaltan central office — Photo: UNB", "BNP activists gather at Nayapaltan ahead of Rizvi's arrival — Photo: UNB", "Rizvi enters the party office after his elevation to the top post — Photo: UNB"] },
+    { id: 2, mins: 31, cat: 'Business', ex: null, video: false,
+      head: "Bangla QR's daily transactions cross Tk 110 crore following mandatory rollout",
+      brief: "Daily transactions through Bangla QR have crossed Tk 110 crore within weeks of the central bank making the interoperable code mandatory at merchant points.",
+      body: "Daily transactions through Bangla QR have crossed Tk 110 crore, Bangladesh Bank data showed, within weeks of the interoperable quick-response code being made mandatory at merchant points across the country.\n\nCentral bank officials said the interoperable system allows customers of any bank or mobile financial service to pay any merchant from a single code.\n\nMerchant onboarding has doubled in Dhaka and Chattogram since the directive took effect.",
+      tags: ['bangla-qr', 'economy', 'banking'],
+      caps: ["A customer pays via Bangla QR at a shop in Dhaka's New Market — Photo: UNB", "Bangladesh Bank headquarters in Motijheel — Photo: UNB"] },
+    { id: 3, mins: 47, cat: 'Politics', ex: null, video: false,
+      head: "Swapon joins as PM's political adviser",
+      brief: "Zahir Uddin Swapon has joined the Prime Minister's Office as political adviser, weeks after serving as information and broadcasting minister.",
+      body: "Zahir Uddin Swapon on Sunday joined the Prime Minister's Office as political adviser to the prime minister.\n\nPMO officials confirmed the appointment, saying Swapon will advise on political coordination and parliamentary affairs.\n\nSwapon previously served as information and broadcasting minister.",
+      tags: ['politics', 'pm-office'],
+      caps: ["Zahir Uddin Swapon arrives at the Prime Minister's Office — Photo: UNB"] },
+    { id: 4, mins: 68, cat: 'Bangladesh', ex: null, video: false,
+      head: "UNB's annual District Correspondents' Conference puts onus on credible journalism",
+      brief: "Daylong engagements on different aspects of the media landscape inaugurated by Zahir Uddin Swapon in the capital.",
+      body: "UNB's annual District Correspondents' Conference-2026 began in the capital on Saturday, putting the emphasis on credible, fact-based journalism at a time when misinformation travels faster than ever.\n\nThe conference featured high-level panel discussions and interactive sessions between newsroom members and district correspondents.\n\nAwards were handed out to the best district correspondents of the past year.",
+      tags: ['unb', 'journalism', 'dhaka'],
+      caps: ["Information minister Zahir Uddin Swapon speaks at the inaugural session of UNB's district correspondents' conference — Photo: UNB", "Award-winning district correspondents at the conference — Photo: UNB"] },
+    { id: 5, mins: 121, cat: 'World', ex: null, video: false,
+      head: "Thousands remain without power after strong winds hit Poland",
+      brief: "Emergency crews worked through the night to restore electricity after a storm front brought down trees and power lines across central Poland.",
+      body: "Tens of thousands of households in central Poland remained without electricity on Sunday after strong winds brought down trees and power lines overnight.\n\nEmergency crews restored supply to most urban areas by morning, but rural districts around Łódź were still affected.\n\nRail services on several regional routes were suspended pending track inspections.",
+      tags: ['world', 'weather', 'europe'],
+      caps: ["Fallen trees block a road after the storm in central Poland — Photo: AP"] },
+    { id: 6, mins: 122, cat: 'World', ex: null, video: true,
+      head: "2 dead, 4 missing after landslides in SW China's Yunnan",
+      brief: "Rescue teams are searching for four missing people after rain-triggered landslides hit a mountain township in Yunnan province.",
+      body: "At least two people died and four others were missing after rain-triggered landslides struck a mountain township in southwest China's Yunnan province, local authorities said.\n\nMore than 300 rescue workers with excavators and sniffer dogs were deployed to the site.\n\nProvincial meteorologists warned of further heavy rain over the next 48 hours.",
+      tags: ['world', 'china', 'disaster'],
+      caps: [] },
+    { id: 7, mins: 123, cat: 'World', ex: null, video: false,
+      head: "6.0-magnitude quake jolts Japan's Hokkaido: JMA",
+      brief: "No tsunami warning was issued after the offshore quake, which shook buildings across northern Japan.",
+      body: "A 6.0-magnitude earthquake struck off the eastern coast of Hokkaido on Sunday, the Japan Meteorological Agency said, shaking buildings across northern Japan.\n\nNo tsunami warning was issued and there were no immediate reports of casualties or damage.\n\nBullet train services in the region were briefly suspended for safety checks.",
+      tags: ['world', 'japan', 'earthquake'],
+      caps: [] },
+    { id: 8, mins: 185, cat: 'Environment', ex: null, video: false,
+      head: "Bishkhali riverbanks turn green as 50,000 trees reshape Bagerhat landscape",
+      brief: "A three-year community plantation drive has transformed eroding banks of the Bishkhali river into a continuous green belt.",
+      body: "A three-year community plantation drive has transformed the eroding banks of the Bishkhali river in Bagerhat into a continuous green belt of 50,000 trees.\n\nLocal administration officials said the belt has measurably reduced riverbank erosion and created new livelihoods through fruit-bearing species.\n\nThe programme will be replicated in two more coastal districts next year.",
+      tags: ['environment', 'bagerhat', 'climate'],
+      caps: ["Newly planted trees line the banks of the Bishkhali river — Photo: UNB", "Aerial view of the green belt in Bagerhat — Photo: UNB"] },
+    { id: 9, mins: 240, cat: 'Bangladesh', ex: 'other', video: true,
+      head: "Inside the metro rail expansion: documents reveal new timeline for MRT Line-1",
+      head: "Inside the metro rail expansion: documents reveal new timeline for MRT Line-1",
+      brief: "Exclusive documents show the revised construction schedule for the capital's first underground metro line.",
+      body: "",
+      tags: ['dhaka', 'metro-rail'],
+      caps: ["Construction site of MRT Line-1 at Kawran Bazar — Photo: UNB"] },
+    { id: 10, mins: 245, cat: 'Sports', ex: null, video: false,
+      head: "Tigers name squad for home Test series — two uncapped players included",
+      brief: "The selectors rewarded domestic form, handing maiden Test call-ups to a pacer and a top-order batter.",
+      body: "Bangladesh on Sunday named a 15-member squad for the upcoming home Test series, handing maiden call-ups to pacer Hasan Mahmud's new-ball partner and a top-order batter after strong domestic seasons.\n\nThe series begins at the Sher-e-Bangla National Stadium next week.\n\nThe squad will assemble in Mirpur for a conditioning camp on Tuesday.",
+      tags: ['cricket', 'tigers', 'sports'],
+      caps: ["Tigers train at the Sher-e-Bangla National Stadium in Mirpur — Photo: UNB"] },
+    { id: 11, mins: 320, cat: 'Bangladesh', ex: null, video: false,
+      head: "President pays tribute to Liberation War martyrs at National Memorial in Savar",
+      brief: "The president placed wreaths at the National Memorial and stood in solemn silence to honour the martyrs.",
+      body: "The president paid rich tributes to the martyrs of the Liberation War by placing wreaths at the National Memorial in Savar on Saturday morning.\n\nHe stood in solemn silence for a while as the bugle played the last post.\n\nSenior cabinet members and service chiefs were present.",
+      tags: ['bangladesh', 'president', 'savar'],
+      caps: ["The president places a wreath at the National Memorial in Savar — Photo: UNB"] },
+    { id: 12, mins: 380, cat: 'Business', ex: null, video: false,
+      head: "Remittance inflow keeps forex reserve steady above $20bn",
+      brief: "Expatriate Bangladeshis sent home over $2 billion for the third consecutive month, central bank data shows.",
+      body: "Expatriate Bangladeshis sent home more than $2 billion for the third consecutive month, keeping the gross foreign exchange reserve steady above $20 billion, Bangladesh Bank data showed.\n\nBankers attributed the sustained inflow to the stable exchange rate and formal-channel incentives.\n\nThe central bank expects the trend to hold through the festival season.",
+      tags: ['economy', 'remittance', 'banking'],
+      caps: [] }
+  ];
+
+  const NEW_STORIES = [
+    { id: 13, mins: 1, cat: 'Weather', ex: null, video: false,
+      head: "Met office forecasts light rain over Dhaka, Chattogram divisions this evening",
+      brief: "A low over the Bay is likely to bring light to moderate rain to parts of the country over the next 24 hours.",
+      body: "The Bangladesh Meteorological Department on Sunday forecast light to moderate rain over Dhaka and Chattogram divisions in the next 24 hours.\n\nA low-pressure area over the northwest Bay is driving the unsettled weather, a Met office bulletin said.\n\nDay temperatures may fall by 1–2°C across the country.",
+      tags: ['weather', 'dhaka'],
+      caps: ["Clouds gather over the capital ahead of the evening shower — Photo: UNB"] },
+    { id: 14, mins: 2, cat: 'Business', ex: null, video: false,
+      head: "DSEX closes higher as bank stocks rally for third straight session",
+      brief: "The benchmark index gained 0.8 percent with turnover crossing Tk 900 crore.",
+      body: "The Dhaka Stock Exchange's benchmark index DSEX closed 0.8 percent higher on Sunday as bank stocks rallied for a third straight session.\n\nTurnover crossed Tk 900 crore, the highest in two weeks.\n\nAnalysts credited renewed institutional buying in large-cap financials.",
+      tags: ['economy', 'dse', 'banking'],
+      caps: [] }
+  ];
+
+  const CAT_CLASS = { World: 'world', Sports: 'sports', Business: 'business', Environment: 'env' };
+  const GRADS = ['g1','g2','g3','g4','g5','g6','g7','g8'];
+
+  const state = { q: '', scope: 'all', cat: 'All', date: 'all', media: 'all', exOnly: false, sort: 'new', tab: 'wire' };
+  const selected = new Set();
+  let pendingNew = [];
+
+  // ===== helpers =====
+  function timeAgo(m) {
+    if (m < 60) return m + ' min ago';
+    const h = Math.round(m / 60);
+    return h + (h === 1 ? ' hr ago' : ' hrs ago');
+  }
+  function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function saveBlob(content, name, type) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([content], { type }));
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+  function flash(btn, label) {
+    const orig = btn.innerHTML;
+    btn.classList.add('done');
+    btn.innerHTML = '✓ ' + label;
+    setTimeout(() => { btn.classList.remove('done'); btn.innerHTML = orig; }, 1500);
+  }
+
+  // ===== filtering & search =====
+  function matchWhere(s) {
+    if (!state.q) return null;
+    const q = state.q.toLowerCase();
+    const inHead = s.head.toLowerCase().includes(q) || s.brief.toLowerCase().includes(q) || s.body.toLowerCase().includes(q);
+    const inTags = s.tags.some(t => t.includes(q));
+    const capHit = s.caps.find(c => c.toLowerCase().includes(q));
+    if (state.scope === 'headline') return (s.head.toLowerCase().includes(q)) ? 'headline' : null;
+    if (state.scope === 'tags') return inTags ? 'tag' : null;
+    if (state.scope === 'captions') return capHit ? capHit : null;
+    if (inTags) return 'tag';
+    if (capHit) return capHit;
+    return inHead ? 'headline' : null;
+  }
+
+  function filtered() {
+    let list = STORIES.filter(s => {
+      if (state.cat !== 'All' && s.cat !== state.cat) return false;
+      if (state.date !== 'all' && s.mins > +state.date) return false;
+      if (state.media === 'photo' && !s.caps.length) return false;
+      if (state.media === 'video' && !s.video) return false;
+      if (state.media === 'text' && (s.caps.length || s.video)) return false;
+      if (state.exOnly && s.ex !== 'you') return false;
+      if (state.q && !matchWhere(s)) return false;
+      return true;
+    });
+    list.sort((a, b) => state.sort === 'new' ? a.mins - b.mins : b.mins - a.mins);
+    return list;
+  }
+
+  // ===== render feed =====
+  const feedList = document.getElementById('feedList');
+
+  function renderFeed(freshIds) {
+    const list = filtered();
+    const meta = document.getElementById('searchMeta');
+    if (state.q) {
+      meta.classList.add('show');
+      meta.innerHTML = '<b>' + list.length + '</b> result' + (list.length === 1 ? '' : 's') +
+        ' for “<b>' + esc(state.q) + '</b>” in <b>' + document.getElementById('omniScope').selectedOptions[0].textContent + '</b>';
+    } else {
+      meta.classList.remove('show');
+    }
+
+    // view containers — same data, different lens
+    const feedTable = document.getElementById('feedTable');
+    const feedGrid = document.getElementById('feedGrid');
+    feedList.hidden = wireView !== 'cards';
+    feedGrid.hidden = wireView !== 'grid';
+    feedTable.hidden = wireView !== 'table';
+
+    if (!list.length) {
+      const emptyHtml = '<div class="feed-empty">No stories match — try a different keyword, tag, or caption search.</div>';
+      feedList.innerHTML = wireView === 'cards' ? emptyHtml : '';
+      feedGrid.innerHTML = wireView === 'grid' ? emptyHtml : '';
+      feedTable.innerHTML = wireView === 'table' ? emptyHtml : '';
+      return;
+    }
+
+    if (wireView === 'table') {
+      feedList.innerHTML = '';
+      feedGrid.innerHTML = '';
+      renderTable(list, freshIds);
+      syncBulk();
+      return;
+    }
+
+    if (wireView === 'grid') {
+      feedList.innerHTML = '';
+      feedTable.innerHTML = '';
+      renderGrid(list, freshIds);
+      syncBulk();
+      return;
+    }
+
+    feedGrid.innerHTML = '';
+    feedTable.innerHTML = '';
+
+    feedList.innerHTML = list.map(s => {
+      const match = matchWhere(s);
+      const isLocked = s.ex === 'other';
+      const catCls = CAT_CLASS[s.cat] ? ' ' + CAT_CLASS[s.cat] : '';
+      let matchHtml = '';
+      if (match === 'tag') matchHtml = '<div class="st-match">Matched a <b>tag</b> on this story</div>';
+      else if (match && match !== 'headline') matchHtml = '<div class="st-match">Matched an <b>image caption</b>: “' + esc(match) + '”</div>';
+
+      const mediaNote =
+        (s.caps.length ? '<span class="st-media-note"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>' + s.caps.length + ' photo' + (s.caps.length > 1 ? 's' : '') + '</span>' : '') +
+        (s.video ? '<span class="st-media-note"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>1 video</span>' : '');
+
+      const lockedHtml = isLocked
+        ? '<div class="lock-note">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
+          '<div class="lock-text"><b>Exclusive to another subscriber.</b> Full text, photos and video of this story are not in your package.</div>' +
+          '<button class="lock-cta">Add to package</button>' +
+          '</div>'
+        : '<div class="st-body" id="body-' + s.id + '">' +
+          s.body.split('\n\n').map(p => '<p>' + esc(p) + '</p>').join('') +
+          '<p class="st-signoff">END/UNB/' + s.id + '</p>' +
+          ((s.caps.length || s.video)
+            ? '<div class="st-photos">' +
+              s.caps.map((c, i) =>
+                '<button type="button" class="st-photo ' + GRADS[(s.id + i) % 8] + '" data-photo="' + i + '" title="' + esc(c) + '">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>' +
+                '</button>').join('') +
+              (s.video
+                ? '<button type="button" class="st-photo ' + GRADS[(s.id + 5) % 8] + '" data-video="1" title="Video clip">' +
+                  '<svg viewBox="0 0 24 24" fill="rgba(255,255,255,0.9)" stroke="none"><polygon points="7 4 20 12 7 20 7 4"/></svg>' +
+                  '<span class="st-photo-dur">01:12</span></button>'
+                : '') +
+              '</div>'
+            : '') +
+          (s.caps.length
+            ? '<div class="caps-box" style="margin-top:12px"><div class="caps-title">Image captions in this story — searchable</div>' +
+              s.caps.map(c => '<div class="cap-line"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span>' + esc(c) + '</span></div>').join('') +
+              '</div>'
+            : '') +
+          '</div>';
+
+      const actionsHtml = isLocked
+        ? ''
+        : '<div class="st-actions">' +
+          '<button class="st-btn preview" data-act="preview">Preview ▾</button>' +
+          '<button class="st-btn" data-act="copy"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy text</button>' +
+          '<button class="st-btn" data-act="word"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Word</button>' +
+          '<button class="st-btn" data-act="xml"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>XML</button>' +
+          (s.caps.length ? '<button class="st-btn" data-act="photos"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Photos (' + s.caps.length + ') ZIP</button>' : '') +
+          '</div>';
+
+      return '<div class="story' + (isLocked ? ' locked' : '') + (freshIds && freshIds.has(s.id) ? ' fresh' : '') + (selected.has(s.id) ? ' selected' : '') + '" data-id="' + s.id + '">' +
+        '<label class="st-check"><input type="checkbox" data-check ' + (selected.has(s.id) ? 'checked' : '') + '></label>' +
+        '<div class="st-main">' +
+          '<div class="st-meta">' +
+            '<span class="st-cat' + catCls + '">' + s.cat + '</span>' +
+            '<span class="st-time">' + timeAgo(s.mins) + '</span>' +
+            (s.ex === 'you' ? '<span class="st-badge you">★ Exclusive to you</span>' : '') +
+            (s.video && !isLocked ? '<span class="st-badge vid">▶ Video</span>' : '') +
+          '</div>' +
+          '<a class="st-head">' + esc(s.head) + '</a>' +
+          '<div class="st-brief">' + esc(s.brief) + '</div>' +
+          matchHtml +
+          '<div class="st-sub">' +
+            '<div class="st-tags">' + s.tags.map(t => '<span class="st-tag" data-tag="' + t + '">#' + t + '</span>').join('') + '</div>' +
+            mediaNote +
+          '</div>' +
+          lockedHtml +
+          actionsHtml +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    wireHandlers();
+    syncBulk();
+  }
+
+  // ===== wire table view (terminal) =====
+  let wireView = 'cards';
+  let twDensity = 'cozy';
+  let twSort = null;               // null = follow sort dropdown, 'cat' = group by category
+  let twActiveIdx = -1;            // keyboard-active row
+  const twExpanded = new Set();    // inline-expanded story ids
+  const TW_CAT_DOT = { Politics: '#e5484d', Business: '#f0a832', World: '#3b6fe0', Sports: '#16a34a', Environment: '#0d9488', Bangladesh: '#16204a' };
+
+  document.querySelectorAll('#viewSwitch .view-btn').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.view === 'table' && window.innerWidth < 900) return; // mobile: cards only
+    wireView = b.dataset.view;
+    document.querySelectorAll('#viewSwitch .view-btn').forEach(x => x.classList.toggle('active', x === b));
+    renderFeed();
+  }));
+
+  function wireAct(act, s, btn) {
+    if (act === 'copy') { copyStory(s); flash(btn, 'Copied'); }
+    else if (act === 'word') { saveBlob(wordDoc([s]), 'unb-' + s.id + '.doc', 'application/msword'); flash(btn, 'Saved'); }
+    else if (act === 'xml') { saveBlob(xmlBundle([s]), 'unb-' + s.id + '.xml', 'application/xml'); flash(btn, 'Saved'); }
+    else if (act === 'photos') { photoZip(s, btn); }
+  }
+
+  function renderTable(list, freshIds) {
+    let rows = list.slice();
+    if (twSort === 'cat') rows.sort((a, b) => a.cat.localeCompare(b.cat) || a.mins - b.mins);
+    const photoIc = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
+    const vidIc = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>';
+    const copyIc = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    const dlIc = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+    const xmlIc = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>';
+
+    document.getElementById('feedTable').innerHTML =
+      '<div class="tw-wrap' + (twDensity === 'compact' ? ' tw-compact' : '') + '">' +
+        '<div class="tw-toolbar">' +
+          '<span><b>' + rows.length + '</b> stories · click a row to preview inline</span>' +
+          '<span class="kbd-hint">j / k move · x select · Enter preview</span>' +
+          '<div class="tw-density">' +
+            '<button data-d="cozy" class="' + (twDensity === 'cozy' ? 'active' : '') + '">Comfortable</button>' +
+            '<button data-d="compact" class="' + (twDensity === 'compact' ? 'active' : '') + '">Compact</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="tw-scroll"><table class="tw">' +
+          '<thead><tr>' +
+            '<th class="tw-check"><input type="checkbox" id="twCheckAll" title="Select all visible"></th>' +
+            '<th class="sortable" data-tsort="time">Time ' + (twSort === null ? (state.sort === 'new' ? '↓' : '↑') : '') + '</th>' +
+            '<th class="sortable" data-tsort="cat">Category' + (twSort === 'cat' ? ' ↓' : '') + '</th>' +
+            '<th>Headline</th>' +
+            '<th>Media</th>' +
+            '<th title="Exclusive to you">★</th>' +
+            '<th style="text-align:right">Actions</th>' +
+          '</tr></thead>' +
+          '<tbody>' +
+          rows.map((s, idx) => {
+            const isLocked = s.ex === 'other';
+            const dot = TW_CAT_DOT[s.cat] || '#7c7f8c';
+            let h = '<tr class="tw-row' + (selected.has(s.id) ? ' selected' : '') + (isLocked ? ' tw-locked' : '') +
+              (freshIds && freshIds.has(s.id) ? ' fresh' : '') +
+              '" data-id="' + s.id + '" data-idx="' + idx + '">' +
+              '<td class="tw-check"><input type="checkbox" data-check' + (selected.has(s.id) ? ' checked' : '') + (isLocked ? ' disabled' : '') + '></td>' +
+              '<td class="tw-time">' + timeAgo(s.mins) + '</td>' +
+              '<td><span class="tw-cat"><i style="background:' + dot + '"></i>' + s.cat + '</span></td>' +
+              '<td class="tw-head-cell">' + esc(s.head) + (isLocked ? ' <span class="tw-lock-ic">🔒</span>' : '') + '</td>' +
+              '<td><span class="tw-media">' +
+                (s.caps.length ? '<span>' + photoIc + s.caps.length + '</span>' : '') +
+                (s.video ? '<span>' + vidIc + '1</span>' : '') +
+              '</span></td>' +
+              '<td class="tw-ex">' + (s.ex === 'you' ? '★' : '') + '</td>' +
+              '<td class="tw-acts">' + (isLocked
+                ? '<button class="st-btn lock-cta-inline" data-lock>Add to package</button>'
+                : '<button class="tw-act" data-act="copy" title="Copy text">' + copyIc + '</button>' +
+                  '<button class="tw-act" data-act="word" title="Download Word">' + dlIc + '</button>' +
+                  '<button class="tw-act" data-act="xml" title="Download XML">' + xmlIc + '</button>') +
+              '</td>' +
+            '</tr>';
+            if (twExpanded.has(s.id) && !isLocked) {
+              h += '<tr class="tw-detail" data-id="' + s.id + '"><td colspan="7">' +
+                '<div class="tw-detail-box">' +
+                  '<div class="tw-detail-brief">' + esc(s.brief) + '</div>' +
+                  '<div class="st-tags" style="display:flex;gap:6px;flex-wrap:wrap">' +
+                    s.tags.map(t => '<span class="st-tag" data-tag="' + t + '">#' + t + '</span>').join('') +
+                  '</div>' +
+                  '<div class="st-actions">' +
+                    '<button class="st-btn" data-act="copy">' + copyIc.replace('width="1.8"', 'width="1.8"') + 'Copy text</button>' +
+                    '<button class="st-btn" data-act="word">' + dlIc + 'Word</button>' +
+                    '<button class="st-btn" data-act="xml">' + xmlIc + 'XML</button>' +
+                    (s.caps.length ? '<button class="st-btn" data-act="photos">' + photoIc + 'Photos (' + s.caps.length + ') ZIP</button>' : '') +
+                  '</div>' +
+                '</div>' +
+              '</td></tr>';
+            }
+            return h;
+          }).join('') +
+          '</tbody>' +
+        '</table></div>' +
+      '</div>';
+    tableHandlers(rows);
+    markTwActive();
+  }
+
+  function markTwActive() {
+    document.querySelectorAll('#feedTable .tw-row').forEach(r =>
+      r.classList.toggle('tw-active', +r.dataset.idx === twActiveIdx));
+  }
+
+  function tableHandlers(rows) {
+    const ft = document.getElementById('feedTable');
+    const storyOf = id => STORIES.find(x => x.id === id) || NEW_STORIES.find(x => x.id === id);
+
+    ft.querySelectorAll('.tw-density button').forEach(b => b.addEventListener('click', () => {
+      twDensity = b.dataset.d;
+      renderFeed();
+    }));
+    ft.querySelectorAll('th.sortable').forEach(th => th.addEventListener('click', () => {
+      if (th.dataset.tsort === 'time') {
+        twSort = null;
+        state.sort = state.sort === 'new' ? 'old' : 'new';
+        document.getElementById('sortSel').value = state.sort;
+      } else {
+        twSort = twSort === 'cat' ? null : 'cat';
+      }
+      renderFeed();
+    }));
+    const checkAll = ft.querySelector('#twCheckAll');
+    if (checkAll) checkAll.addEventListener('change', () => {
+      rows.forEach(s => { if (s.ex !== 'other') checkAll.checked ? selected.add(s.id) : selected.delete(s.id); });
+      renderFeed();
+    });
+    ft.querySelectorAll('.tw-row').forEach(row => {
+      const id = +row.dataset.id;
+      const s = storyOf(id);
+      if (!s) return;
+      row.addEventListener('click', e => {
+        if (e.target.closest('[data-check],[data-act],[data-lock],a')) return;
+        if (s.ex === 'other') return;
+        twExpanded.has(id) ? twExpanded.delete(id) : twExpanded.add(id);
+        twActiveIdx = +row.dataset.idx;
+        renderFeed();
+      });
+      const cb = row.querySelector('[data-check]');
+      if (cb) cb.addEventListener('change', () => {
+        cb.checked ? selected.add(id) : selected.delete(id);
+        row.classList.toggle('selected', cb.checked);
+        syncBulk();
+      });
+    });
+    ft.querySelectorAll('tr[data-id]').forEach(tr => {
+      const s = storyOf(+tr.dataset.id);
+      if (!s) return;
+      tr.querySelectorAll('[data-act]').forEach(btn => btn.addEventListener('click', e => {
+        e.stopPropagation();
+        wireAct(btn.dataset.act, s, btn);
+      }));
+      tr.querySelectorAll('.st-tag').forEach(t => t.addEventListener('click', e => {
+        e.stopPropagation();
+        setSearch(t.dataset.tag);
+      }));
+      const lockBtn = tr.querySelector('[data-lock]');
+      if (lockBtn) lockBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        lockBtn.textContent = '✓ Request sent';
+      });
+    });
+  }
+
+  // ===== wire grid view (visual scan) =====
+  const wgExpanded = new Set();   // grid cards opened to full-width reading mode
+
+  function renderGrid(list, freshIds) {
+    const photoIc = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
+    const vidIc = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>';
+    const copyIc = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    const dlIc = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+    const xmlIc = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>';
+
+    document.getElementById('feedGrid').innerHTML =
+      '<div class="wire-grid">' +
+      list.map(s => {
+        const isLocked = s.ex === 'other';
+        const catCls = CAT_CLASS[s.cat] ? ' ' + CAT_CLASS[s.cat] : '';
+        const open = wgExpanded.has(s.id);
+        const tags = s.tags.slice(0, 2).map(t => '<span class="st-tag" data-tag="' + t + '">#' + t + '</span>').join('') +
+          (s.tags.length > 2 ? '<span class="st-tag">+' + (s.tags.length - 2) + '</span>' : '');
+        const media = (s.caps.length ? '<span>' + photoIc + s.caps.length + '</span>' : '') +
+          (s.video ? '<span>' + vidIc + '1</span>' : '');
+        const thumb = (!isLocked && (s.caps.length || s.video))
+          ? '<button type="button" class="wg-thumb ' + GRADS[s.id % 8] + '" data-thumb title="' + (s.caps.length ? esc(s.caps[0]) : 'Video clip') + '">' +
+            (s.video && !s.caps.length
+              ? '<svg viewBox="0 0 24 24" fill="rgba(255,255,255,0.9)" stroke="none"><polygon points="7 4 20 12 7 20 7 4"/></svg>'
+              : photoIc) +
+            '<span class="wg-count">' + (s.caps.length ? s.caps.length + ' photo' + (s.caps.length > 1 ? 's' : '') : 'video') + '</span>' +
+            '</button>'
+          : '';
+        const lockHtml =
+          '<div class="wg-lock"><b>Exclusive to another subscriber.</b> Full text, photos and video of this story are not in your package.' +
+          '<br><button class="st-btn" data-lock>Add to package</button></div>';
+        const openHtml =
+          '<div class="wg-foot"><div class="st-tags">' + tags + '</div><span class="wg-media">' + media + '</span></div>' +
+          '<div class="wg-acts">' +
+            '<button class="wg-read" data-act="gridread">' + (open ? 'Close' : 'Read') + '</button>' +
+            '<span class="wg-grow"></span>' +
+            '<button class="tw-act" data-act="copy" title="Copy text">' + copyIc + '</button>' +
+            '<button class="tw-act" data-act="word" title="Download Word">' + dlIc + '</button>' +
+            '<button class="tw-act" data-act="xml" title="Download XML">' + xmlIc + '</button>' +
+            (s.caps.length ? '<button class="tw-act" data-act="photos" title="Photos (' + s.caps.length + ') ZIP">' + photoIc + '</button>' : '') +
+          '</div>' +
+          '<div class="wg-body">' +
+            s.body.split('\n\n').map(p => '<p>' + esc(p) + '</p>').join('') +
+            '<p class="st-signoff">END/UNB/' + s.id + '</p>' +
+          '</div>';
+
+        return '<div class="wg-card' + (selected.has(s.id) ? ' selected' : '') + (freshIds && freshIds.has(s.id) ? ' fresh' : '') +
+          (open ? ' open' : '') + (isLocked ? ' locked' : '') + '" data-id="' + s.id + '">' +
+          '<label class="wg-check"><input type="checkbox" data-check' + (selected.has(s.id) ? ' checked' : '') + (isLocked ? ' disabled' : '') + '></label>' +
+          thumb +
+          '<div class="wg-meta">' +
+            '<span class="st-cat' + catCls + '">' + s.cat + '</span>' +
+            '<span class="st-time">' + timeAgo(s.mins) + '</span>' +
+            (s.ex === 'you' ? '<span class="st-badge you">★ Exclusive</span>' : '') +
+            (s.video && !isLocked ? '<span class="st-badge vid">▶ Video</span>' : '') +
+          '</div>' +
+          '<a class="wg-head">' + esc(s.head) + '</a>' +
+          '<div class="wg-brief">' + esc(s.brief) + '</div>' +
+          (isLocked ? lockHtml : openHtml) +
+          '</div>';
+      }).join('') +
+      '</div>';
+    gridHandlers();
+  }
+
+  function gridHandlers() {
+    const fg = document.getElementById('feedGrid');
+    const storyOf = id => STORIES.find(x => x.id === id) || NEW_STORIES.find(x => x.id === id);
+    fg.querySelectorAll('.wg-card').forEach(card => {
+      const id = +card.dataset.id;
+      const s = storyOf(id);
+      if (!s) return;
+      const cb = card.querySelector('[data-check]');
+      if (cb) cb.addEventListener('change', () => {
+        cb.checked ? selected.add(id) : selected.delete(id);
+        card.classList.toggle('selected', cb.checked);
+        syncBulk();
+      });
+      const head = card.querySelector('.wg-head');
+      if (head) head.addEventListener('click', () => {
+        if (s.ex === 'other') return;
+        wgExpanded.has(id) ? wgExpanded.delete(id) : wgExpanded.add(id);
+        renderFeed();
+      });
+      const thumb = card.querySelector('[data-thumb]');
+      if (thumb) thumb.addEventListener('click', () => openLightbox(s, s.caps.length ? 0 : 'video'));
+      card.querySelectorAll('[data-act]').forEach(btn => btn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (btn.dataset.act === 'gridread') {
+          wgExpanded.has(id) ? wgExpanded.delete(id) : wgExpanded.add(id);
+          renderFeed();
+        } else {
+          wireAct(btn.dataset.act, s, btn);
+        }
+      }));
+      card.querySelectorAll('.st-tag').forEach(t => t.addEventListener('click', e => {
+        e.stopPropagation();
+        if (t.dataset.tag) setSearch(t.dataset.tag);
+      }));
+      const lockBtn = card.querySelector('[data-lock]');
+      if (lockBtn) lockBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        lockBtn.textContent = '✓ Request sent';
+      });
+    });
+  }
+
+  // keyboard nav — table view only
+  document.addEventListener('keydown', e => {
+    if (wireView !== 'table' || state.tab !== 'wire') return;
+    const tag = (document.activeElement || {}).tagName || '';
+    if (/INPUT|TEXTAREA|SELECT/.test(tag)) return;
+    const rows = [...document.querySelectorAll('#feedTable .tw-row')];
+    if (!rows.length) return;
+    if (e.key === 'j' || e.key === 'k') {
+      twActiveIdx = e.key === 'j' ? Math.min(twActiveIdx + 1, rows.length - 1) : Math.max(twActiveIdx - 1, 0);
+      markTwActive();
+      const el = document.querySelector('#feedTable .tw-row[data-idx="' + twActiveIdx + '"]');
+      if (el) el.scrollIntoView({ block: 'nearest' });
+      e.preventDefault();
+    } else if (e.key === 'x' && twActiveIdx >= 0) {
+      const row = document.querySelector('#feedTable .tw-row[data-idx="' + twActiveIdx + '"]');
+      const cb = row && row.querySelector('[data-check]');
+      if (cb && !cb.disabled) { cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); }
+    } else if (e.key === 'Enter' && twActiveIdx >= 0) {
+      const row = document.querySelector('#feedTable .tw-row[data-idx="' + twActiveIdx + '"]');
+      if (row) row.click();
+    }
+  });
+
+  // ===== story interactions =====
+  function wireHandlers() {
+    feedList.querySelectorAll('.story').forEach(card => {
+      const id = +card.dataset.id;
+      const s = STORIES.find(x => x.id === id) || NEW_STORIES.find(x => x.id === id);
+
+      card.querySelector('[data-check]').addEventListener('change', e => {
+        e.target.checked ? selected.add(id) : selected.delete(id);
+        card.classList.toggle('selected', e.target.checked);
+        syncBulk();
+      });
+
+      card.querySelector('.st-head').addEventListener('click', () => {
+        const btn = card.querySelector('[data-act="preview"]');
+        if (btn) btn.click();
+      });
+
+      card.querySelectorAll('.st-tag').forEach(t => t.addEventListener('click', () => {
+        setSearch(t.dataset.tag);
+      }));
+
+      card.querySelectorAll('.st-photo').forEach(p => p.addEventListener('click', () => {
+        openLightbox(s, p.dataset.video ? 'video' : +p.dataset.photo);
+      }));
+
+      card.querySelectorAll('[data-act]').forEach(btn => btn.addEventListener('click', () => {
+        const act = btn.dataset.act;
+        if (act === 'preview') {
+          const body = card.querySelector('.st-body');
+          const open = body.classList.toggle('open');
+          btn.textContent = open ? 'Preview ▴' : 'Preview ▾';
+        } else if (act === 'copy') {
+          copyStory(s);
+          flash(btn, 'Copied');
+        } else if (act === 'word') {
+          saveBlob(wordDoc([s]), 'unb-' + s.id + '.doc', 'application/msword');
+          flash(btn, 'Saved');
+        } else if (act === 'xml') {
+          saveBlob(xmlBundle([s]), 'unb-' + s.id + '.xml', 'application/xml');
+          flash(btn, 'Saved');
+        } else if (act === 'photos') {
+          photoZip(s, btn);
+        }
+      }));
+    });
+  }
+
+  // ===== photo lightbox =====
+  const lb = document.getElementById('lightbox');
+  let lbItems = [], lbIdx = 0, lbStory = null;
+
+  function openLightbox(s, start) {
+    lbStory = s;
+    lbItems = s.caps.map((c, i) => ({ type: 'photo', grad: GRADS[(s.id + i) % 8], cap: c, i }));
+    if (s.video) lbItems.push({ type: 'video', grad: GRADS[(s.id + 5) % 8], cap: 'Video clip · 01:12 — UNB video' });
+    if (!lbItems.length) return;
+    lbIdx = start === 'video' ? lbItems.length - 1 : start;
+    renderLb();
+    lb.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function renderLb() {
+    const it = lbItems[lbIdx];
+    const img = document.getElementById('lbImg');
+    img.className = 'lb-img ' + it.grad;
+    img.innerHTML = it.type === 'video'
+      ? '<svg viewBox="0 0 24 24" fill="rgba(255,255,255,0.9)" stroke="none"><polygon points="7 4 20 12 7 20 7 4"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
+    document.getElementById('lbCap').textContent = it.cap;
+    document.getElementById('lbCount').textContent = (lbIdx + 1) + ' / ' + lbItems.length;
+    document.getElementById('lbDl').textContent = it.type === 'video' ? 'Download video' : 'Download photo';
+  }
+  function closeLb() {
+    lb.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function stepLb(d) {
+    lbIdx = (lbIdx + d + lbItems.length) % lbItems.length;
+    renderLb();
+  }
+  document.getElementById('lbClose').addEventListener('click', closeLb);
+  document.getElementById('lbPrev').addEventListener('click', () => stepLb(-1));
+  document.getElementById('lbNext').addEventListener('click', () => stepLb(1));
+  lb.addEventListener('click', e => { if (e.target === lb) closeLb(); });
+  document.addEventListener('keydown', e => {
+    if (!lb.classList.contains('open')) return;
+    if (e.key === 'Escape') closeLb();
+    else if (e.key === 'ArrowLeft') stepLb(-1);
+    else if (e.key === 'ArrowRight') stepLb(1);
+  });
+  document.getElementById('lbDl').addEventListener('click', async function () {
+    const it = lbItems[lbIdx];
+    if (it.type === 'video') { flash(this, 'Queued'); return; }
+    saveBlob(await gradientPng(it.i), 'unb-' + lbStory.id + '-photo-' + (it.i + 1) + '.png', 'image/png');
+    flash(this, 'Saved');
+  });
+
+  function storyPlain(s) {
+    return s.head + '\n\n' + s.brief + '\n\nUNB Wire · ' + timeAgo(s.mins) + '\n\n' +
+      s.body + (s.caps.length ? '\n\nPhotos:\n' + s.caps.map(c => '- ' + c).join('\n') : '') + '\n\nEND/UNB/' + s.id;
+  }
+  function copyStory(s) {
+    const txt = storyPlain(s);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove();
+    }
+  }
+  function wordDoc(list) {
+    return '<html xmlns:o="urn:schemas-microsoft-com:office:office"><head><meta charset="utf-8"></head><body>' +
+      list.map(s =>
+        '<h2>' + esc(s.head) + '</h2><p><i>' + esc(s.brief) + '</i></p>' +
+        s.body.split('\n\n').map(p => '<p>' + esc(p) + '</p>').join('') +
+        (s.caps.length ? '<p><b>Photos:</b></p><ul>' + s.caps.map(c => '<li>' + esc(c) + '</li>').join('') + '</ul>' : '') +
+        '<p><small>END/UNB/' + s.id + '</small></p><hr>'
+      ).join('') + '</body></html>';
+  }
+  function xmlBundle(list) {
+    return '<?xml version="1.0" encoding="UTF-8"?>\n<wire client="daily-star" count="' + list.length + '">' +
+      list.map(s =>
+        '\n  <story id="' + s.id + '" category="' + s.cat + '" published="' + timeAgo(s.mins) + '">' +
+        '\n    <headline>' + esc(s.head) + '</headline>' +
+        '\n    <brief>' + esc(s.brief) + '</brief>' +
+        '\n    <body>' + s.body.split('\n\n').map(p => '\n      <p>' + esc(p) + '</p>').join('') + '\n    </body>' +
+        '\n    <tags>' + s.tags.map(t => '<tag>' + t + '</tag>').join('') + '</tags>' +
+        '\n    <media photos="' + s.caps.length + '" video="' + (s.video ? 1 : 0) + '"/>' +
+        '\n  </story>'
+      ).join('') + '\n</wire>';
+  }
+
+  // ===== photo zip via JSZip =====
+  function gradientPng(i) {
+    const c = document.createElement('canvas'); c.width = 1200; c.height = 800;
+    const ctx = c.getContext('2d');
+    const cols = [['#3b6fe0','#16204a'],['#e5484d','#7a1f2b'],['#16a34a','#0b3d24'],['#f0a832','#8a5410'],['#7c3aed','#2e1065'],['#0ea5e9','#0c4a6e'],['#db2777','#831843'],['#64748b','#1e293b']][i % 8];
+    const g = ctx.createLinearGradient(0, 0, 1200, 800);
+    g.addColorStop(0, cols[0]); g.addColorStop(1, cols[1]);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 1200, 800);
+    return new Promise(res => c.toBlob(res, 'image/png'));
+  }
+  async function photoZip(s, btn) {
+    btn.textContent = 'Zipping…';
+    const zip = new JSZip();
+    for (let i = 0; i < s.caps.length; i++) {
+      zip.file('photo-' + (i + 1) + '.png', await gradientPng(i));
+    }
+    zip.file('captions.txt', s.caps.join('\n\n'));
+    const blob = await zip.generateAsync({ type: 'blob' });
+    saveBlob(blob, 'unb-' + s.id + '-photos.zip', 'application/zip');
+    btn.textContent = 'Photos (' + s.caps.length + ') ZIP';
+    flash(btn, 'Saved');
+  }
+
+  // ===== media library =====
+  const MEDIA = [
+    { id: 'm1',  src: 'unb', type: 'photo', grad: 'g1', cap: "Rizvi speaks to reporters outside BNP's Nayapaltan central office", credit: 'Photo: UNB', by: 'Enamul Haque', date: 'Aug 24, 2026', loc: 'Dhaka', dim: '3000 × 2000', ent: 'inc',   cat: 'Politics' },
+    { id: 'm2',  src: 'unb', type: 'photo', grad: 'g4', cap: 'A customer pays via Bangla QR at a shop in New Market', credit: 'Photo: UNB', by: 'Sadia Rahman', date: 'Aug 23, 2026', loc: 'Dhaka', dim: '3000 × 2000', ent: 'inc',   cat: 'Business' },
+    { id: 'm3',  src: 'unb', type: 'video', grad: 'g5', cap: "PM's press conference — full clip", credit: 'UNB video', by: 'UNB Video Desk', date: 'Aug 23, 2026', loc: 'Dhaka', dim: '1080p · 01:12', ent: 'inc', cat: 'Politics' },
+    { id: 'm4',  src: 'ap',  type: 'photo', grad: 'g6', cap: 'Fallen trees block a road after the storm in central Poland', credit: 'Photo: AP', by: 'Czarek Sokolowski / AP', date: 'Aug 23, 2026', loc: 'Warsaw, Poland', dim: '3500 × 2333', ent: 'inc', cat: 'World' },
+    { id: 'm5',  src: 'ap',  type: 'photo', grad: 'g2', cap: 'Rescue workers search the landslide site in Yunnan', credit: 'Photo: AP', by: 'AP Photo / Xinhua', date: 'Aug 23, 2026', loc: 'Yunnan, China', dim: '3500 × 2333', ent: 'addon', cat: 'World' },
+    { id: 'm6',  src: 'ap',  type: 'photo', grad: 'g8', cap: 'Commuters at a Tokyo station after the Hokkaido quake', credit: 'Photo: AP', by: 'Kyodo via AP', date: 'Aug 23, 2026', loc: 'Tokyo, Japan', dim: '3500 × 2333', ent: 'lock', cat: 'World' },
+    { id: 'm7',  src: 'unb', type: 'photo', grad: 'g3', cap: 'Newly planted trees line the banks of the Bishkhali river', credit: 'Photo: UNB', by: 'Rashed Sumon', date: 'Aug 22, 2026', loc: 'Bagerhat', dim: '3000 × 2000', ent: 'inc', cat: 'Environment' },
+    { id: 'm8',  src: 'unb', type: 'photo', grad: 'g7', cap: 'Tigers train at the Sher-e-Bangla National Stadium in Mirpur', credit: 'Photo: UNB', by: 'Tuhin Shubhra', date: 'Aug 22, 2026', loc: 'Dhaka', dim: '3000 × 2000', ent: 'ex', cat: 'Sports' },
+    { id: 'm9',  src: 'ap',  type: 'photo', grad: 'g5', cap: 'UN General Assembly emergency session on climate finance', credit: 'Photo: AP', by: 'Mary Altaffer / AP', date: 'Aug 22, 2026', loc: 'New York, USA', dim: '3500 × 2333', ent: 'emb', cat: 'World' },
+    { id: 'm10', src: 'unb', type: 'video', grad: 'g2', cap: 'Padma Bridge aerial footage — morning traffic', credit: 'UNB video', by: 'UNB Video Desk', date: 'Aug 22, 2026', loc: 'Mawa', dim: '4K · 00:48', ent: 'inc', cat: 'Bangladesh' },
+    { id: 'm11', src: 'unb', type: 'photo', grad: 'g1', cap: 'The president places a wreath at the National Memorial in Savar', credit: 'Photo: UNB', by: 'Enamul Haque', date: 'Aug 22, 2026', loc: 'Savar', dim: '3000 × 2000', ent: 'inc', cat: 'Bangladesh' },
+    { id: 'm12', src: 'ap',  type: 'photo', grad: 'g4', cap: 'Traders work the floor as Asian stocks rally on rate-cut hopes', credit: 'Photo: AP', by: 'AP Photo', date: 'Aug 21, 2026', loc: 'Hong Kong', dim: '3500 × 2333', ent: 'addon', cat: 'Business' },
+  ];
+  const ENT = {
+    inc:   ['inc',   '✓ Included'],
+    addon: ['addon', 'AP add-on'],
+    lock:  ['lock',  '🔒 AP World pack'],
+    ex:    ['ex',    '★ Exclusive to you'],
+    emb:   ['emb',   'Embargoed'],
+  };
+  const mediaSel = new Set();
+  let mlSrc = 'all', mlQ = '';
+  let mediaQuota = 87, apCredits = 20;
+  const IMG_ICON = '<svg class="big" viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+  const PLAY_ICON = '<svg class="big" viewBox="0 0 24 24" fill="rgba(255,255,255,0.9)" stroke="none"><polygon points="7 4 20 12 7 20 7 4"/></svg>';
+
+  // ===== library corpus: curated items + generated long-tail =====
+  // (production e ei data server-side paginated API theke ashbe — ei demo te 124 ta item e
+  //  scale pattern gulo dekhanor jonno; count text e full library size dekhay)
+  const GEN_POOL = [
+    ['BNP standing committee in session at the Nayapaltan office', 'Politics', 'Dhaka'],
+    ['Lawmakers arrive for the Jatiya Sangsad budget session', 'Politics', 'Sher-e-Bangla Nagar'],
+    ['Election Commission briefing ahead of the city polls', 'Politics', 'Agargaon, Dhaka'],
+    ['Home minister addresses senior police officials in Rajarbagh', 'Politics', 'Dhaka'],
+    ['Morning fog settles over the Buriganga river', 'Bangladesh', 'Dhaka'],
+    ['Commuters crowd the launch terminal at Sadarghat', 'Bangladesh', 'Dhaka'],
+    ['Farmers harvest paddy in a flooded field', 'Bangladesh', 'Netrokona'],
+    ['Street vendors open shop at Karwan Bazar at dawn', 'Bangladesh', 'Dhaka'],
+    ['A rickshaw puller braves the rain in Old Dhaka', 'Bangladesh', 'Dhaka'],
+    ['Fishermen return with the morning hilsa catch', 'Bangladesh', 'Chandpur'],
+    ['Palestinians inspect damage after overnight strikes in Gaza', 'World', 'Gaza'],
+    ['Ukrainian soldiers move near the front line in Donetsk', 'World', 'Donetsk, Ukraine'],
+    ['Protesters gather outside parliament in London', 'World', 'London, UK'],
+    ['Wildfire smoke blankets the Los Angeles skyline', 'World', 'Los Angeles, USA'],
+    ['Voters queue at a polling station in New Delhi', 'World', 'New Delhi, India'],
+    ['Flooded streets after monsoon rain in Manila', 'World', 'Manila, Philippines'],
+    ['Shakib Al Hasan bowls during a training session', 'Sports', 'Mirpur, Dhaka'],
+    ['Fans fill the gallery during the Dhaka Test', 'Sports', 'Mirpur, Dhaka'],
+    ['Bangladesh women celebrate a wicket in the T20 series', 'Sports', 'Sylhet'],
+    ['Footballers train at the BFF turf in Motijheel', 'Sports', 'Dhaka'],
+    ['Trading screens glow at the Dhaka Stock Exchange', 'Business', 'Motijheel, Dhaka'],
+    ['Garment workers on a factory floor in Ashulia', 'Business', 'Ashulia'],
+    ['Containers stacked high at Chattogram port', 'Business', 'Chattogram'],
+    ['Banknotes counted at a bank branch in Motijheel', 'Business', 'Dhaka'],
+    ['A boy wades through a flooded street', 'Environment', 'Sylhet'],
+    ['Smog hangs over the Dhaka skyline at dawn', 'Environment', 'Dhaka'],
+    ['Sundarbans mangroves at low tide', 'Environment', 'Satkhira'],
+    ['A Bengal monitor lizard at a wetland', 'Environment', 'Tangail'],
+  ];
+  const GEN_BY_UNB = ['Enamul Haque', 'Sadia Rahman', 'Rashed Sumon', 'Tuhin Shubhra', 'Mahmud Hossain'];
+  const GEN_BY_AP = ['AP Photo', 'Mary Altaffer / AP', 'Czarek Sokolowski / AP', 'Kyodo via AP'];
+  const DATE_TXT = ['Aug 24, 2026','Aug 23, 2026','Aug 22, 2026','Aug 21, 2026','Aug 20, 2026','Aug 19, 2026','Aug 18, 2026','Aug 17, 2026','Aug 16, 2026','Aug 15, 2026','Aug 14, 2026','Aug 13, 2026','Aug 12, 2026','Aug 11, 2026','Aug 10, 2026','Aug 9, 2026','Aug 8, 2026','Aug 7, 2026','Aug 6, 2026','Aug 5, 2026','Aug 4, 2026'];
+  const LIB_TOTAL = 2847;
+
+  const genMedia = [];
+  for (let r = 0; r < 4; r++) {
+    GEN_POOL.forEach((g, i) => {
+      const n = r * GEN_POOL.length + i;
+      const src = n % 3 === 2 ? 'ap' : 'unb';
+      const vid = n % 11 === 5;
+      genMedia.push({
+        id: 'g' + n,
+        src,
+        type: vid ? 'video' : 'photo',
+        grad: 'g' + (n % 8 + 1),
+        cap: g[0],
+        credit: vid ? 'UNB video' : (src === 'ap' ? 'Photo: AP' : 'Photo: UNB'),
+        by: vid ? 'UNB Video Desk' : (src === 'ap' ? GEN_BY_AP[n % 4] : GEN_BY_UNB[n % 5]),
+        date: DATE_TXT[n % DATE_TXT.length],
+        d: n % DATE_TXT.length,
+        loc: g[2],
+        dim: vid ? '1080p · 00:' + (30 + n % 30) : '3000 × 2000',
+        ent: n % 13 === 6 ? 'lock' : n % 17 === 9 ? 'emb' : n % 7 === 2 ? 'addon' : n % 19 === 3 ? 'ex' : 'inc',
+        cat: g[1],
+      });
+    });
+  }
+  const MEDIA_D = [0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3];
+  MEDIA.forEach((m, i) => { m.d = MEDIA_D[i % MEDIA_D.length]; });
+  const ALL_MEDIA = MEDIA.concat(genMedia);
+
+  // ===== scale: faceted filter + paginated render + infinite scroll =====
+  const PAGE = 24;
+  let shown = PAGE;
+  let mlCat = 'All', mlEnt = 'all', mlDate = 'all', mlSort = 'new';
+
+  function filteredMedia() {
+    let list = ALL_MEDIA.filter(m =>
+      (mlSrc === 'all' || m.src === mlSrc) &&
+      (mlCat === 'All' || m.cat === mlCat) &&
+      (mlDate === 'all' || m.d <= +mlDate) &&
+      (mlEnt === 'all' ||
+        (mlEnt === 'dl' && ['inc', 'ex', 'addon'].includes(m.ent)) ||
+        (mlEnt !== 'dl' && m.ent === mlEnt)) &&
+      (!mlQ || (m.cap + ' ' + m.by + ' ' + m.loc + ' ' + m.cat).toLowerCase().includes(mlQ))
+    );
+    if (mlSort === 'old') list = list.slice().reverse();
+    return list;
+  }
+
+  function cardHtml(m) {
+    const ent = ENT[m.ent];
+    return '<div class="ml-card' + (mediaSel.has(m.id) ? ' selected' : '') + '">' +
+      '<div class="ml-thumb ' + m.grad + '" data-open="' + m.id + '">' +
+        '<span class="ml-src' + (m.src === 'ap' ? ' ap' : '') + '">' + m.src.toUpperCase() + '</span>' +
+        '<input type="checkbox" class="ml-check" data-check="' + m.id + '"' + (mediaSel.has(m.id) ? ' checked' : '') + '>' +
+        (m.type === 'video' ? PLAY_ICON + '<span class="ml-dur">' + m.dim.split('· ')[1] + '</span>' : IMG_ICON) +
+        (m.ent === 'emb'
+          ? '<div class="ml-embargo"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Embargoed</span><span class="t">Available in 2h 14m</span></div>'
+          : '') +
+      '</div>' +
+      '<div class="ml-body">' +
+        '<a class="ml-cap" data-open="' + m.id + '">' + esc(m.cap) + '</a>' +
+        '<div class="ml-meta">' + m.by + ' · ' + m.loc + ' · ' + m.date + '</div>' +
+        '<span class="ml-ent ' + ent[0] + '">' + ent[1] + '</span>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderMedia() {
+    const list = filteredMedia();
+    const grid = document.getElementById('mediaGrid');
+    const countEl = document.getElementById('mlCount');
+    const sentinel = document.getElementById('mlSentinel');
+    if (!list.length) {
+      grid.innerHTML = '<div class="feed-empty" style="grid-column:1/-1">No media matches your filters — try widening the date range or clearing the search.</div>';
+      countEl.innerHTML = '';
+      sentinel.innerHTML = '';
+      return;
+    }
+    const slice = list.slice(0, shown);
+    grid.innerHTML = slice.map(cardHtml).join('');
+    grid.querySelectorAll('[data-open]').forEach(el => el.addEventListener('click', e => {
+      if (e.target.classList.contains('ml-check')) return;
+      openAsset(el.dataset.open);
+    }));
+    grid.querySelectorAll('.ml-check').forEach(c => c.addEventListener('change', () => {
+      c.checked ? mediaSel.add(c.dataset.check) : mediaSel.delete(c.dataset.check);
+      c.closest('.ml-card').classList.toggle('selected', c.checked);
+      syncBasket();
+    }));
+    countEl.innerHTML = 'Showing <b>' + slice.length + '</b> of <b>' + list.length.toLocaleString() + '</b> matching · ' + LIB_TOTAL.toLocaleString() + ' assets in your library';
+    sentinel.innerHTML = slice.length < list.length
+      ? 'Loading more as you scroll…'
+      : (list.length > PAGE ? 'That\'s everything matching — refine filters to dig into the rest of the archive' : '');
+  }
+
+  new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting && shown < filteredMedia().length) {
+      shown += PAGE;
+      renderMedia();
+    }
+  }, { rootMargin: '500px' }).observe(document.getElementById('mlSentinel'));
+
+  function syncQuota() {
+    document.getElementById('mediaQuotaLabel').textContent = mediaQuota + ' / 150';
+    document.getElementById('mediaQuotaFill').style.width = (mediaQuota / 150 * 100).toFixed(1) + '%';
+    const dq = document.getElementById('dqMedia');
+    if (dq) {
+      dq.textContent = mediaQuota + '/150';
+      document.getElementById('dqMediaFill').style.width = (mediaQuota / 150 * 100).toFixed(1) + '%';
+    }
+  }
+
+  // ===== asset detail modal =====
+  let currentAsset = null, amRes = 'web';
+  const kv = (k, v) => '<span class="k">' + k + '</span><span class="v">' + v + '</span>';
+  function openAsset(id) {
+    const m = ALL_MEDIA.find(x => x.id === id);
+    if (!m) return;
+    currentAsset = m;
+    amRes = 'web';
+    const img = document.getElementById('amImg');
+    img.className = 'am-img ' + m.grad;
+    img.innerHTML = m.type === 'video' ? PLAY_ICON : IMG_ICON;
+    document.getElementById('amCap').textContent = m.cap;
+    document.getElementById('amCredit').textContent = m.credit;
+    document.getElementById('amCopyCredit').textContent = 'Copy credit line';
+    document.getElementById('amKv').innerHTML =
+      kv('Photographer', m.by) +
+      kv('Source', m.src === 'ap' ? 'Associated Press (via UNB)' : 'UNB staff') +
+      kv('Date', m.date) +
+      kv('Location', m.loc) +
+      kv('Size', m.dim) +
+      kv('Category', m.cat);
+    document.getElementById('amTerms').innerHTML = m.src === 'ap'
+      ? '<b>AP license:</b> Editorial use only · Credit line mandatory · Single publication · No archival beyond 30 days · Not for advertising'
+      : '<b>UNB license:</b> Editorial use · Credit line required · Unlimited archival while subscription is active';
+    const box = document.getElementById('amDlBox');
+    if (m.ent === 'lock') {
+      box.innerHTML = '<div class="am-lockbox">🔒 <b>Part of the AP World photo pack</b> — not in your current subscription. Ask UNB to enable it, or buy it as an add-on.<button class="mbtn amber" id="amUpgrade">Request AP World pack</button></div>';
+      document.getElementById('amUpgrade').addEventListener('click', e => { e.target.textContent = '✓ Request sent to UNB sales'; });
+    } else if (m.ent === 'emb') {
+      box.innerHTML = '<div class="am-lockbox blue">⏱ <b>Embargoed by AP</b> — available in <b>2h 14m</b> (today 6:00 PM Dhaka time). It will appear in your library automatically.<button class="mbtn navy" id="amNotify">Notify me when available</button></div>';
+      document.getElementById('amNotify').addEventListener('click', e => { e.target.textContent = '✓ You will be emailed'; });
+    } else {
+      const quotaTxt = m.ent === 'addon'
+        ? 'ℹ Will use 1 of <b>' + apCredits + '</b> remaining AP add-on credits this month'
+        : 'ℹ Will use 1 of <b>' + mediaQuota + '</b> remaining media downloads this month';
+      box.innerHTML =
+        (m.ent === 'ex' ? '<div class="quota-note" style="color:#b7791f"><b>★ Exclusive to Daily Star</b> — exclusive window ends tomorrow 6:00 PM, then it opens to other clients.</div>' : '') +
+        '<div class="res-seg"><button class="res-opt active" data-res="web">Web · 1200 px</button><button class="res-opt" data-res="print">Print · original</button></div>' +
+        '<div class="quota-note">' + quotaTxt + '</div>' +
+        '<button class="mbtn navy am-dl" id="amDownload">Download ' + m.type + '</button>';
+      box.querySelectorAll('.res-opt').forEach(b => b.addEventListener('click', () => {
+        amRes = b.dataset.res;
+        box.querySelectorAll('.res-opt').forEach(x => x.classList.toggle('active', x === b));
+      }));
+      document.getElementById('amDownload').addEventListener('click', async e => {
+        const btn = e.target;
+        if (m.type === 'video') { btn.textContent = '✓ Queued — FTP auto-push will deliver it'; return; }
+        saveBlob(await gradientPng(ALL_MEDIA.indexOf(m)), 'unb-' + m.id + '-' + amRes + '.png', 'image/png');
+        btn.textContent = '✓ Downloaded (' + (amRes === 'web' ? '1200 px' : 'original') + ')';
+        if (m.ent === 'addon') { apCredits--; } else { mediaQuota--; syncQuota(); }
+        setTimeout(() => { btn.textContent = 'Download ' + m.type; }, 2200);
+      });
+    }
+    document.getElementById('amOverlay').classList.add('open');
+  }
+  document.getElementById('amClose').addEventListener('click', () => document.getElementById('amOverlay').classList.remove('open'));
+  document.getElementById('amOverlay').addEventListener('click', e => { if (e.target.id === 'amOverlay') e.target.classList.remove('open'); });
+  document.getElementById('amCopyCredit').addEventListener('click', function () {
+    if (!currentAsset) return;
+    const txt = currentAsset.credit + ' — ' + currentAsset.by;
+    (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).catch(() => {});
+    this.textContent = '✓ Copied';
+    setTimeout(() => this.textContent = 'Copy credit line', 1400);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.getElementById('amOverlay').classList.remove('open');
+  });
+
+  // ===== basket =====
+  const basketBar = document.getElementById('basketBar');
+  function syncBasket() {
+    basketBar.classList.toggle('show', mediaSel.size > 0);
+    document.getElementById('basketCount').textContent = mediaSel.size + ' selected';
+  }
+  document.getElementById('basketClear').addEventListener('click', () => { mediaSel.clear(); renderMedia(); syncBasket(); });
+  document.getElementById('basketZip').addEventListener('click', async function () {
+    const items = ALL_MEDIA.filter(m => mediaSel.has(m.id) && m.type === 'photo' && m.ent !== 'lock' && m.ent !== 'emb');
+    if (!items.length) {
+      this.textContent = 'Select downloadable photos first';
+      setTimeout(() => this.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download ZIP + license', 1600);
+      return;
+    }
+    this.textContent = 'Zipping…';
+    const zip = new JSZip();
+    for (const m of items) zip.file(m.id + '.png', await gradientPng(ALL_MEDIA.indexOf(m)));
+    zip.file('captions.txt', items.map(m => m.cap + '\n' + m.credit + ' — ' + m.by + ' · ' + m.loc + ' · ' + m.date).join('\n\n'));
+    zip.file('LICENSE.txt', 'UNB MEDIA LICENSE\n\nEditorial use only. Credit line mandatory.\nAP images: single publication, no archival beyond 30 days.\n\nDownloaded by: Daily Star (Premium) · ' + new Date().toISOString().slice(0, 10) + '\nAssets: ' + items.map(m => m.id).join(', '));
+    saveBlob(await zip.generateAsync({ type: 'blob' }), 'unb-media-' + items.length + '.zip', 'application/zip');
+    this.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download ZIP + license';
+    const photos = items.filter(m => m.ent !== 'addon').length;
+    mediaQuota -= photos;
+    syncQuota();
+  });
+
+  // library filters
+  function mlReset() { shown = PAGE; syncFilterBadge(); renderMedia(); }
+  function syncFilterBadge() {
+    const n = (mlCat !== 'All') + (mlEnt !== 'all') + (mlDate !== 'all');
+    const badge = document.getElementById('mlFBadge');
+    badge.hidden = n === 0;
+    badge.textContent = n;
+    document.getElementById('mlResetBtn').hidden = n === 0;
+  }
+  document.getElementById('mlFilterToggle').addEventListener('click', function () {
+    const row = document.getElementById('mlFiltersRow');
+    row.hidden = !row.hidden;
+    this.setAttribute('aria-expanded', String(!row.hidden));
+  });
+  document.getElementById('mlResetBtn').addEventListener('click', () => {
+    mlCat = 'All'; mlEnt = 'all'; mlDate = 'all';
+    document.getElementById('mlCat').value = 'All';
+    document.getElementById('mlEnt').value = 'all';
+    document.getElementById('mlDate').value = 'all';
+    mlReset();
+  });
+  document.querySelectorAll('#srcChips .src-chip').forEach(c => c.addEventListener('click', () => {
+    mlSrc = c.dataset.src;
+    document.querySelectorAll('#srcChips .src-chip').forEach(x => x.classList.toggle('active', x === c));
+    mlReset();
+  }));
+  document.getElementById('mlSearch').addEventListener('input', e => { mlQ = e.target.value.trim().toLowerCase(); mlReset(); });
+  document.getElementById('mlCat').addEventListener('change', e => { mlCat = e.target.value; mlReset(); });
+  document.getElementById('mlEnt').addEventListener('change', e => { mlEnt = e.target.value; mlReset(); });
+  document.getElementById('mlDate').addEventListener('change', e => { mlDate = e.target.value; mlReset(); });
+  document.getElementById('mlSort').addEventListener('change', e => { mlSort = e.target.value; mlReset(); });
+  document.querySelectorAll('.density-btn').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.density-btn').forEach(x => x.classList.toggle('active', x === b));
+    document.getElementById('mediaGrid').classList.toggle('compact', b.dataset.d === 'compact');
+  }));
+  renderMedia();
+
+  // ===== bulk bar =====
+  const bulkBar = document.getElementById('bulkBar');
+  function syncBulk() {
+    bulkBar.classList.toggle('show', selected.size > 0);
+    document.getElementById('bulkCount').textContent = selected.size + ' selected';
+  }
+  function selectedStories() {
+    return STORIES.filter(s => selected.has(s.id) && s.ex !== 'other');
+  }
+  document.getElementById('bulkWord').addEventListener('click', function () {
+    const list = selectedStories();
+    if (list.length) { saveBlob(wordDoc(list), 'unb-wire-bundle-' + list.length + '.doc', 'application/msword'); flash(this, 'Saved'); }
+  });
+  document.getElementById('bulkXml').addEventListener('click', function () {
+    const list = selectedStories();
+    if (list.length) { saveBlob(xmlBundle(list), 'unb-wire-bundle-' + list.length + '.xml', 'application/xml'); flash(this, 'Saved'); }
+  });
+  document.getElementById('bulkCsv').addEventListener('click', function () {
+    const list = selectedStories();
+    if (!list.length) return;
+    const csv = 'id,category,published,headline,tags,photos,video\n' + list.map(s =>
+      [s.id, s.cat, timeAgo(s.mins), '"' + s.head.replace(/"/g, '""') + '"', '"' + s.tags.join(' ') + '"', s.caps.length, s.video ? 1 : 0].join(',')
+    ).join('\n');
+    saveBlob(csv, 'unb-wire-headlines.csv', 'text/csv');
+    flash(this, 'Saved');
+  });
+  document.getElementById('bulkClear').addEventListener('click', () => { selected.clear(); renderFeed(); });
+
+  // ===== search =====
+  const omniInput = document.getElementById('omniInput');
+  function setSearch(q) {
+    omniInput.value = q;
+    state.q = q.trim();
+    renderFeed();
+  }
+  omniInput.addEventListener('input', () => { state.q = omniInput.value.trim(); renderFeed(); });
+  document.getElementById('omniScope').addEventListener('change', e => { state.scope = e.target.value; renderFeed(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === '/' && document.activeElement !== omniInput && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) {
+      e.preventDefault();
+      omniInput.focus();
+    }
+  });
+
+  // saved searches
+  document.querySelectorAll('.saved-item').forEach(el => el.addEventListener('click', () => setSearch(el.dataset.q)));
+
+  // ===== filters =====
+  document.getElementById('fDate').addEventListener('change', e => { state.date = e.target.value; renderFeed(); });
+  document.getElementById('fMedia').addEventListener('change', e => { state.media = e.target.value; renderFeed(); });
+  document.getElementById('fExclusive').addEventListener('change', e => { state.exOnly = e.target.checked; renderFeed(); });
+  document.getElementById('clearFilters').addEventListener('click', () => {
+    state.date = 'all'; state.media = 'all'; state.exOnly = false; state.cat = 'All';
+    document.getElementById('fDate').value = 'all';
+    document.getElementById('fMedia').value = 'all';
+    document.getElementById('fExclusive').checked = false;
+    document.querySelectorAll('.cat-chip').forEach(c => c.classList.toggle('active', c.dataset.cat === 'All'));
+    renderFeed();
+  });
+  document.getElementById('sortSel').addEventListener('change', e => { state.sort = e.target.value; renderFeed(); });
+  document.querySelectorAll('.cat-chip').forEach(c => c.addEventListener('click', () => {
+    state.cat = c.dataset.cat;
+    document.querySelectorAll('.cat-chip').forEach(x => x.classList.toggle('active', x === c));
+    renderFeed();
+  }));
+
+  // ===== collapsible rail (on-demand) =====
+  const pageEl = document.querySelector('.page');
+  const railToggle = document.getElementById('railToggle');
+  pageEl.classList.add('rail-hidden'); // default collapsed — feed full width
+  railToggle.addEventListener('click', () => {
+    const hidden = pageEl.classList.toggle('rail-hidden');
+    railToggle.classList.toggle('active', !hidden);
+    railToggle.title = hidden ? 'Show account & filters' : 'Hide account & filters';
+  });
+
+  // ===== tabs =====
+  document.querySelectorAll('.feed-tab').forEach(t => t.addEventListener('click', () => {
+    state.tab = t.dataset.tab;
+    const wire = state.tab === 'wire';
+    document.querySelectorAll('.feed-tab').forEach(x => x.classList.toggle('active', x === t));
+    document.getElementById('wirePanel').hidden = state.tab !== 'wire';
+    document.getElementById('packsPanel').hidden = state.tab !== 'packs';
+    document.getElementById('photosPanel').hidden = state.tab !== 'photos';
+    // contextual chrome — rail + top bar shudhu relevant tab e dekhay
+    document.getElementById('wireFiltersCard').hidden = !wire;
+    document.getElementById('savedSearchesCard').hidden = !wire;
+    document.getElementById('liveNote').style.visibility = wire ? 'visible' : 'hidden';
+    document.getElementById('sortWrap').style.display = wire ? '' : 'none';
+    document.getElementById('viewSwitch').style.display = wire ? '' : 'none';
+  }));
+
+  // ===== simulated live wire =====
+  setTimeout(() => {
+    pendingNew = NEW_STORIES.map(s => ({ ...s }));
+    document.getElementById('newPill').classList.add('show');
+  }, 18000);
+  document.getElementById('newPill').addEventListener('click', () => {
+    const fresh = new Set(pendingNew.map(s => s.id));
+    STORIES.unshift(...pendingNew);
+    pendingNew = [];
+    document.getElementById('newPill').classList.remove('show');
+    renderFeed(fresh);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // ===== UNB Photos showcase =====
+  const GALLERIES = [
+    { id: 'gal1', title: 'Hilsa season in Chandpur', n: 12, grad: 'g6', story: 'hilsa', storyTitle: 'Hilsa glut at Chandpur landing station',
+      caps: ['Fishermen unload the morning hilsa catch at Chandpur', 'A trader weighs hilsa at the landing station', 'Crates of hilsa are loaded onto Dhaka-bound trucks', 'Buyers inspect the catch at the dawn auction'] },
+    { id: 'gal2', title: 'Monsoon lashes Sylhet', n: 9, grad: 'g5', story: 'sylhet', storyTitle: 'Sylhet flood situation worsens',
+      caps: ['A boy wades through a flooded street in Sylhet', 'Houses half-submerged near the Surma river', 'Residents move their belongings by boat', 'Relief teams reach a cut-off village'] },
+    { id: 'gal3', title: 'Tigers gear up for the Test', n: 14, grad: 'g3', story: 'tigers', storyTitle: 'Tigers begin Test camp at Mirpur',
+      caps: ['Tigers fielding drills at Sher-e-Bangla stadium', 'Shakib Al Hasan bowls during training', 'Batting practice under lights at Mirpur', 'The head coach speaks to the squad'] },
+  ];
+  const COLLECTIONS = [
+    { id: 'c1', name: 'Election 2026', n: 48, grad: 'g1', kw: 'election' },
+    { id: 'c2', name: 'Monsoon & climate', n: 36, grad: 'g5', kw: 'flood' },
+    { id: 'c3', name: 'Tigers Test series', n: 27, grad: 'g3', kw: 'tigers' },
+    { id: 'c4', name: 'Dhaka cityscape', n: 63, grad: 'g7', kw: 'dhaka' },
+  ];
+  const TRENDING = [
+    { cap: 'Rizvi waves to activists outside the Nayapaltan office', dl: 41 },
+    { cap: 'Bangladesh women celebrate a wicket in Sylhet', dl: 36 },
+    { cap: 'Bangla QR payment at a New Market shop', dl: 33 },
+    { cap: 'The president places a wreath at the National Memorial', dl: 28 },
+    { cap: 'New greenery on the Bishkhali riverbanks', dl: 22 },
+  ];
+  const STORY_TITLES = { hilsa: 'Hilsa glut at Chandpur landing station', tigers: 'Tigers begin Test camp at Mirpur', padma: 'Padma Bridge traffic crosses record' };
+  const PHOTO_STREAM = [
+    { id: 's1', cap: 'Morning fog settles over the Buriganga river', by: 'Rashed Sumon', loc: 'Dhaka', date: 'Today, 6:30 AM', grad: 'g5', story: null, kw: 'buriganga fog' },
+    { id: 's2', cap: 'Fishermen unload the morning hilsa catch', by: 'Mahmud Hossain', loc: 'Chandpur', date: 'Today, 7:55 AM', grad: 'g6', story: 'hilsa', kw: 'hilsa chandpur fish' },
+    { id: 's3', cap: 'Tigers fielding drills at Sher-e-Bangla stadium', by: 'Tuhin Shubhra', loc: 'Mirpur, Dhaka', date: 'Yesterday, 3:05 PM', grad: 'g3', story: 'tigers', kw: 'cricket tigers practice' },
+    { id: 's4', cap: 'Containers stacked high at Chattogram port', by: 'Mahmud Hossain', loc: 'Chattogram', date: 'Yesterday, 11:10 AM', grad: 'g1', story: null, kw: 'port export trade' },
+    { id: 's5', cap: 'Street vendors open shop at Karwan Bazar at dawn', by: 'Mahmud Hossain', loc: 'Dhaka', date: 'Yesterday, 5:50 AM', grad: 'g7', story: null, kw: 'karwan bazar vendors' },
+    { id: 's6', cap: 'Smog hangs over the Dhaka skyline at dawn', by: 'Mahmud Hossain', loc: 'Dhaka', date: '19 Aug, 6:10 AM', grad: 'g4', story: null, kw: 'smog pollution' },
+    { id: 's7', cap: 'Padma Bridge aerial view — morning traffic', by: 'Rashed Sumon', loc: 'Mawa', date: '19 Aug, 8:20 AM', grad: 'g8', story: 'padma', kw: 'padma bridge aerial' },
+    { id: 's8', cap: 'Commuters crowd the launch terminal at Sadarghat', by: 'Mahmud Hossain', loc: 'Dhaka', date: '21 Aug, 2:15 PM', grad: 'g2', story: null, kw: 'sadarghat launch commute' },
+  ];
+
+  function goStory(kw) {
+    document.querySelector('.feed-tab[data-tab="wire"]').click();
+    setSearch(kw);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function gotoLibrary(q) {
+    document.querySelector('.feed-tab[data-tab="packs"]').click();
+    const inp = document.getElementById('mlSearch');
+    inp.value = q;
+    inp.dispatchEvent(new Event('input'));
+  }
+
+  // hero
+  let heroRes = 'web';
+  document.querySelectorAll('#phHeroRes .res-opt').forEach(b => b.addEventListener('click', () => {
+    heroRes = b.dataset.res;
+    document.querySelectorAll('#phHeroRes .res-opt').forEach(x => x.classList.toggle('active', x === b));
+  }));
+  document.getElementById('phHeroDl').addEventListener('click', async function () {
+    saveBlob(await gradientPng(5), 'unb-photo-of-the-day-' + heroRes + '.png', 'image/png');
+    this.textContent = '✓ Downloaded (' + (heroRes === 'web' ? '1200 px' : 'original') + ')';
+    mediaQuota--;
+    syncQuota();
+    const q = document.querySelector('#phHeroQuota b');
+    if (q) q.textContent = mediaQuota;
+    setTimeout(() => this.textContent = 'Download photo', 2200);
+  });
+  document.getElementById('phHeroImg').addEventListener('click', () => {
+    openLightbox({ id: 200, caps: ['Fishermen unload the morning hilsa catch at Chandpur — the season peaks as river currents turn · Photo: Mahmud Hossain / UNB'], video: false }, 0);
+  });
+  document.querySelector('.ph-attach').addEventListener('click', () => goStory('hilsa'));
+
+  // galleries
+  document.getElementById('galRow').innerHTML = GALLERIES.map((g, gi) =>
+    '<div class="gal-card">' +
+      '<div class="gal-thumb ' + g.grad + '" data-gal="' + gi + '" title="Browse gallery">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>' +
+        '<span class="n">' + g.n + ' frames</span>' +
+      '</div>' +
+      '<div class="gal-body">' +
+        '<div class="gal-title">' + g.title + '</div>' +
+        '<span class="gal-story" data-story-kw="' + g.story + '">📰 ' + g.storyTitle + '</span>' +
+        '<div class="gal-acts">' +
+          '<button class="gal-btn" data-gal-browse="' + gi + '"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Browse</button>' +
+          '<button class="gal-btn" data-gal-zip="' + gi + '"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>ZIP</button>' +
+          '<button class="gal-btn" data-gal-embed="' + gi + '"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>Embed</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>').join('');
+  document.querySelectorAll('[data-gal-browse], [data-gal]').forEach(el => el.addEventListener('click', () => {
+    const gi = +(el.dataset.galBrowse ?? el.dataset.gal);
+    const g = GALLERIES[gi];
+    openLightbox({ id: 210 + gi, caps: g.caps, video: false }, 0);
+  }));
+  document.querySelectorAll('[data-gal-zip]').forEach(btn => btn.addEventListener('click', async () => {
+    const g = GALLERIES[+btn.dataset.galZip];
+    btn.textContent = 'Zipping…';
+    const zip = new JSZip();
+    for (let i = 0; i < g.caps.length; i++) zip.file('photo-' + (i + 1) + '.png', await gradientPng(+btn.dataset.galZip * 10 + i));
+    zip.file('captions.txt', g.caps.join('\n\n') + '\n\nPhotos: UNB');
+    saveBlob(await zip.generateAsync({ type: 'blob' }), 'unb-' + g.id + '.zip', 'application/zip');
+    flash(btn, 'Saved');
+    setTimeout(() => btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;stroke:currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>ZIP', 1600);
+  }));
+  document.querySelectorAll('[data-gal-embed]').forEach(btn => btn.addEventListener('click', () => {
+    const g = GALLERIES[+btn.dataset.galEmbed];
+    const code = '<iframe src="https://photos.unbnews.org/embed/' + g.id + '" width="100%" height="520" frameborder="0" title="UNB Photos — ' + g.title + '"></iframe>';
+    (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).catch(() => {});
+    flash(btn, '✓ Embed code copied');
+  }));
+  document.querySelectorAll('.gal-story').forEach(el => el.addEventListener('click', () => goStory(el.dataset.storyKw)));
+
+  // collections
+  document.getElementById('collRow').innerHTML = COLLECTIONS.map(c =>
+    '<div class="coll-card ' + c.grad + '" data-coll="' + c.id + '">' +
+      '<button class="coll-bell" data-bell="' + c.id + '" title="Notify me on new additions"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>' +
+      '<div class="coll-name">' + c.name + '</div>' +
+      '<div class="coll-n">' + c.n + ' photos</div>' +
+    '</div>').join('');
+  document.querySelectorAll('.coll-card').forEach(card => card.addEventListener('click', () => {
+    const c = COLLECTIONS.find(x => x.id === card.dataset.coll);
+    gotoLibrary(c.kw);
+  }));
+  document.querySelectorAll('.coll-bell').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    b.classList.toggle('on');
+    b.title = b.classList.contains('on') ? 'Notifications on — you will be emailed' : 'Notify me on new additions';
+  }));
+
+  // trending
+  document.getElementById('trendList').innerHTML = TRENDING.map((t, i) =>
+    '<div class="trend-item" data-trend="' + i + '">' +
+      '<span class="trend-rank">' + (i + 1) + '</span>' +
+      '<span class="trend-cap">' + t.cap + '</span>' +
+      '<span class="trend-dl">↓ ' + t.dl + ' downloads</span>' +
+    '</div>').join('');
+  document.querySelectorAll('.trend-item').forEach(el => el.addEventListener('click', () => {
+    const t = TRENDING[+el.dataset.trend];
+    openLightbox({ id: 230 + (+el.dataset.trend), caps: [t.cap + ' · Photo: UNB'], video: false }, 0);
+  }));
+
+  // latest stream
+  let phQ = '';
+  function renderStream() {
+    const list = PHOTO_STREAM.filter(p => !phQ || (p.cap + ' ' + p.by + ' ' + p.loc + ' ' + p.kw).toLowerCase().includes(phQ));
+    const grid = document.getElementById('phStream');
+    if (!list.length) { grid.innerHTML = '<div class="feed-empty" style="grid-column:1/-1">No photos match — try another keyword.</div>'; return; }
+    grid.innerHTML = list.map(p =>
+      '<div class="ml-card">' +
+        '<div class="ml-thumb ' + p.grad + '" data-ph="' + p.id + '" style="cursor:zoom-in">' +
+          '<span class="ml-src">UNB</span>' + IMG_ICON +
+        '</div>' +
+        '<div class="ml-body">' +
+          '<a class="ml-cap" data-ph="' + p.id + '">' + esc(p.cap) + '</a>' +
+          '<div class="ml-meta">' + p.by + ' · ' + p.loc + ' · ' + p.date + '</div>' +
+          (p.story ? '<span class="ml-story" data-story-kw="' + p.story + '" title="Open the attached story">📰 ' + STORY_TITLES[p.story] + '</span>' : '') +
+          '<span class="ml-ent inc">✓ Included</span>' +
+        '</div>' +
+      '</div>').join('');
+    grid.querySelectorAll('[data-ph]').forEach(el => el.addEventListener('click', () => {
+      const p = PHOTO_STREAM.find(x => x.id === el.dataset.ph);
+      openLightbox({ id: 250 + PHOTO_STREAM.indexOf(p), caps: [p.cap + ' · Photo: ' + p.by + ' / UNB'], video: false }, 0);
+    }));
+    grid.querySelectorAll('[data-story-kw]').forEach(el => el.addEventListener('click', e => {
+      e.stopPropagation();
+      goStory(el.dataset.storyKw);
+    }));
+  }
+  document.getElementById('phSearch').addEventListener('input', e => { phQ = e.target.value.trim().toLowerCase(); renderStream(); });
+  renderStream();
+
+  // ===== header =====
+  function tickClock() {
+    const now = new Date();
+    const d = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Dhaka', weekday: 'short', day: 'numeric', month: 'short' }).format(now);
+    const t = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Dhaka', hour: 'numeric', minute: '2-digit', hour12: true }).format(now);
+    document.getElementById('clockTime').textContent = 'Dhaka · ' + d + ' · ' + t;
+  }
+  tickClock();
+  setInterval(tickClock, 30000);
+
+  const userBtn = document.getElementById('userBtn');
+  const userDrop = document.getElementById('userDrop');
+  userBtn.addEventListener('click', e => { e.stopPropagation(); userDrop.classList.toggle('open'); });
+  userDrop.addEventListener('click', e => e.stopPropagation());
+  document.addEventListener('click', () => userDrop.classList.remove('open'));
+
+  renderFeed();
+</script>
+
+</body>
+</html>

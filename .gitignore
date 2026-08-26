@@ -1,0 +1,33 @@
+# Dependencies
+/vendor
+/node_modules
+
+# Laravel
+/public/build
+/public/hot
+/storage/*.key
+/storage/app/public
+/storage/framework/cache
+/storage/framework/sessions
+/storage/framework/testing
+/storage/framework/views
+/storage/logs
+/bootstrap/cache
+
+# Environment & secrets
+.env
+.env.backup
+.env.production
+auth.json
+
+# Test & tooling artifacts
+.phpunit.result.cache
+npm-debug.log
+yarn-error.log
+
+# IDE / OS
+/.fleet
+/.idea
+/.vscode
+.DS_Store
+Thumbs.db

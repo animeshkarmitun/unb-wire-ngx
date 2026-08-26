@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNB Wire — Clients</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@6..72,400;6..72,600;6..72,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy-900: #0f1730;
+    --navy-800: #16204a;
+    --navy-text: #aab3cf;
+    --navy-label: #667099;
+    --crimson: #e5484d;
+    --crimson-dark: #d13438;
+    --crimson-soft: #fdecec;
+    --amber: #f0a832;
+    --paper: #faf9f6;
+    --panel: #ffffff;
+    --border: #eceae5;
+    --ink: #1c1f2e;
+    --muted: #7c7f8c;
+    --muted-2: #b0b2bc;
+    --green: #16a34a;
+    --green-bg: #e5f6ec;
+    --blue: #3b6fe0;
+    --blue-bg: #e9f0fd;
+    --purple: #7c3aed;
+    --purple-bg: #f3eafe;
+    --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --sans: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--sans); background: var(--paper); color: var(--ink); -webkit-font-smoothing: antialiased; }
+  .brand-strip { position: fixed; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--crimson) 0%, var(--amber) 45%, var(--navy-800) 100%); z-index: 50; }
+  .app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; padding-top: 4px; }
+
+  /* ============ SIDEBAR ============ */
+  .sidebar { background: linear-gradient(180deg, var(--navy-800) 0%, var(--navy-900) 100%); padding: 24px 16px 26px; display: flex; flex-direction: column; gap: 26px; position: sticky; top: 4px; max-height: calc(100vh - 4px); overflow-y: auto; align-self: start; }
+  .brand { display: flex; align-items: center; gap: 11px; padding: 2px 10px 6px; text-decoration: none; }
+  .brand-mark { width: 36px; height: 36px; border-radius: 10px; background: var(--crimson); color: #fff; font-family: "Fraunces", Georgia, serif; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(229,72,77,0.4); }
+  .brand-name { color: #fff; font-family: "Fraunces", Georgia, serif; font-size: 16.5px; font-weight: 600; line-height: 1.2; }
+  .brand-sub { color: var(--navy-label); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+  .nav-section-label { color: var(--navy-label); font-size: 10.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; padding: 0 10px; margin-bottom: 8px; }
+  .nav-item { display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 9px; color: var(--navy-text); text-decoration: none; font-size: 13.5px; font-weight: 500; margin-bottom: 2px; transition: all 0.14s ease; }
+  .nav-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+  .nav-item.active { background: rgba(229,72,77,0.16); color: #fff; box-shadow: inset 3px 0 0 var(--crimson); }
+  .nav-item svg { width: 17px; height: 17px; stroke: currentColor; flex-shrink: 0; }
+  .nav-badge { margin-left: auto; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; }
+  .nav-badge.red { background: rgba(229,72,77,0.25); color: #ff8a8e; }
+  .nav-badge.green { background: rgba(22,163,74,0.25); color: #7ee2a8; }
+
+  /* ============ TOPNAV ============ */
+  .main-col { min-width: 0; }
+  .topnav { background: var(--panel); border-bottom: 1px solid var(--border); padding: 13px 38px; display: flex; align-items: center; gap: 16px; position: sticky; top: 4px; z-index: 40; }
+  .topnav-search { flex: 1; max-width: 480px; display: flex; align-items: center; gap: 9px; background: var(--paper); border: 1px solid var(--border); border-radius: 10px; padding: 8px 14px; }
+  .topnav-search svg { width: 15px; height: 15px; stroke: var(--muted-2); flex-shrink: 0; }
+  .topnav-search input { border: none; background: transparent; outline: none; font-size: 13.5px; font-family: var(--sans); width: 100%; color: var(--ink); }
+  .topnav-search input::placeholder { color: var(--muted-2); }
+  .topnav-search kbd { font-family: var(--sans); font-size: 11px; color: var(--muted-2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 7px; background: #fff; }
+  .topnav-right { margin-left: auto; display: flex; align-items: center; gap: 13px; }
+  .topnav-clock { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+  .icon-btn-top { position: relative; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.13s ease; text-decoration: none; }
+  .icon-btn-top:hover { border-color: var(--navy-800); }
+  .icon-btn-top svg { width: 16px; height: 16px; stroke: #4b4e5c; }
+  .bell-badge { position: absolute; top: -5px; right: -5px; background: var(--crimson); color: #fff; font-size: 9.5px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 999px; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
+  .topnav-item-wrap { position: relative; }
+  .user-chip { display: flex; align-items: center; gap: 9px; border: 1px solid var(--border); background: #fff; border-radius: 10px; padding: 5px 12px 5px 6px; cursor: pointer; font-family: var(--sans); }
+  .user-avatar { width: 27px; height: 27px; border-radius: 8px; background: var(--navy-800); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .user-meta { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.25; }
+  .user-name { font-size: 12.5px; font-weight: 600; }
+  .user-role { font-size: 10.5px; color: var(--muted-2); }
+  .user-chip svg { width: 13px; height: 13px; stroke: var(--muted-2); }
+  .drop { position: absolute; right: 0; top: calc(100% + 8px); background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 14px 34px rgba(15,23,48,0.13); min-width: 200px; padding: 6px; display: none; z-index: 60; }
+  .drop.wide { min-width: 320px; }
+  .drop.open { display: block; animation: fadeUp 0.16s ease; }
+  .drop-head { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted-2); padding: 8px 10px 6px; }
+  .drop-item { display: flex; align-items: flex-start; gap: 9px; padding: 8px 10px; border-radius: 8px; font-size: 13px; color: var(--ink); text-decoration: none; cursor: pointer; }
+  .drop-item:hover { background: var(--paper); }
+  .drop-item svg { width: 14px; height: 14px; stroke: var(--muted); flex-shrink: 0; margin-top: 2px; }
+  .drop-item.danger { color: var(--crimson-dark); }
+  .drop-item.danger svg { stroke: var(--crimson-dark); }
+  .drop-sep { height: 1px; background: var(--border); margin: 5px 8px; }
+  .drop-foot { display: block; text-align: center; font-size: 12px; font-weight: 600; color: var(--blue); padding: 8px; text-decoration: none; border-top: 1px solid var(--border); margin-top: 4px; }
+  .noti-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .noti-text { font-size: 12.5px; line-height: 1.45; }
+  .noti-time { font-size: 11px; color: var(--muted-2); margin-top: 2px; }
+
+  /* ============ PAGE ============ */
+  .main { padding: 30px 38px 40px; max-width: 1420px; }
+  .breadcrumb { font-size: 12.5px; color: var(--muted-2); margin-bottom: 14px; }
+  .breadcrumb a { color: var(--muted); text-decoration: none; }
+  .breadcrumb a:hover { color: var(--crimson-dark); }
+  .topbar { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; flex-wrap: wrap; }
+  .topbar h1 { font-family: "Fraunces", Georgia, serif; font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+  .topbar-actions { margin-left: auto; display: flex; gap: 10px; }
+  .btn { font-family: var(--sans); font-size: 14px; font-weight: 500; padding: 11px 20px; border-radius: 10px; cursor: pointer; border: 1px solid transparent; transition: all 0.15s ease; display: inline-flex; align-items: center; gap: 7px; text-decoration: none; }
+  .btn svg { width: 14px; height: 14px; stroke: currentColor; }
+  .btn-outline { background: var(--panel); border-color: #e3e1da; color: var(--ink); }
+  .btn-outline:hover { border-color: var(--navy-800); color: var(--navy-800); }
+  .btn-primary { background: var(--crimson); color: #fff; box-shadow: 0 2px 8px rgba(229,72,77,0.3); }
+  .btn-primary:hover { background: var(--crimson-dark); }
+  .btn-navy { background: var(--navy-800); color: #fff; }
+  .btn-navy:hover { background: var(--navy-900); }
+  .btn-sm { padding: 7px 13px; font-size: 12.5px; border-radius: 8px; }
+
+  /* ---- stats strip ---- */
+  .stat-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 13px; margin-bottom: 22px; }
+  .stat-card { background: var(--panel); border: 1px solid var(--border); border-radius: 13px; padding: 15px 18px; }
+  .stat-num { font-family: "Fraunces", Georgia, serif; font-size: 27px; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+  .stat-num.green { color: var(--green); }
+  .stat-num.amber { color: #b7791f; }
+  .stat-num.red { color: var(--crimson-dark); }
+  .stat-label { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+
+  /* ---- toolbar ---- */
+  .toolbar { display: flex; align-items: center; gap: 11px; margin-bottom: 15px; flex-wrap: wrap; }
+  .toolbar-search { flex: 1; min-width: 220px; max-width: 380px; display: flex; align-items: center; gap: 9px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 9px 14px; }
+  .toolbar-search svg { width: 15px; height: 15px; stroke: var(--muted-2); flex-shrink: 0; }
+  .toolbar-search input { border: none; background: transparent; outline: none; font-size: 13.5px; font-family: var(--sans); width: 100%; color: var(--ink); }
+  .st-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .st-chip { border: 1px solid #e3e1da; background: var(--panel); border-radius: 999px; padding: 7px 14px; font-size: 12.5px; font-weight: 500; color: var(--ink); cursor: pointer; font-family: var(--sans); transition: all 0.13s ease; }
+  .st-chip:hover { border-color: var(--crimson); color: var(--crimson-dark); }
+  .st-chip.active { background: var(--crimson-soft); border-color: var(--crimson); color: var(--crimson-dark); font-weight: 700; }
+  .select-input { appearance: none; border: 1px solid #e3e1da; background: var(--panel) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237c7f8c' stroke-width='2' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 11px center / 13px; border-radius: 9px; padding: 9px 34px 9px 13px; font-size: 13px; font-family: var(--sans); color: var(--ink); cursor: pointer; }
+
+  /* ---- bulk bar ---- */
+  .bulk-bar { display: none; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--navy-800); color: #fff; border-radius: 12px; padding: 11px 16px; margin-bottom: 15px; position: sticky; top: 72px; z-index: 30; box-shadow: 0 10px 26px rgba(15,23,48,0.25); }
+  .bulk-bar.show { display: flex; animation: fadeUp 0.2s ease; }
+  .bulk-count { font-size: 13px; font-weight: 700; }
+  .bulk-btn { border: 1px solid rgba(255,255,255,0.3); background: transparent; color: #fff; border-radius: 8px; padding: 7px 13px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: var(--sans); transition: all 0.13s ease; white-space: nowrap; }
+  .bulk-btn:hover { background: rgba(255,255,255,0.12); }
+  .bulk-btn.accent { background: var(--crimson); border-color: var(--crimson); }
+  .bulk-btn.accent:hover { background: var(--crimson-dark); }
+  .bulk-select { background-color: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: #fff; border-radius: 8px; padding: 7px 30px 7px 11px; font-size: 12.5px; font-family: var(--sans); cursor: pointer; }
+  .bulk-select option { color: var(--ink); }
+  .bulk-clear { margin-left: auto; border: none; background: none; color: var(--navy-text); font-size: 12px; cursor: pointer; font-family: var(--sans); }
+  .bulk-clear:hover { color: #fff; text-decoration: underline; }
+
+  /* ---- client list ---- */
+  .cl-list { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(28,31,46,0.04); }
+  .cl-row { display: grid; grid-template-columns: 34px 46px minmax(0, 2.1fr) minmax(0, 1.5fr) minmax(0, 1.2fr) minmax(0, 1.2fr) 116px 26px; align-items: center; gap: 13px; padding: 14px 18px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s ease; }
+  .cl-row:last-child { border-bottom: none; }
+  .cl-row:hover { background: #fbfaf7; }
+  .cl-row.selected { background: var(--blue-bg); }
+  .cl-row.head { cursor: default; background: #fbfaf7; padding: 10px 18px; }
+  .cl-row.head:hover { background: #fbfaf7; }
+  .cl-row.head span { font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-2); }
+  .cl-check input { width: 15px; height: 15px; accent-color: var(--crimson); cursor: pointer; margin: 0; display: block; }
+  .cl-logo { width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12.5px; font-weight: 700; font-family: "Fraunces", Georgia, serif; }
+  .g1 { background: linear-gradient(135deg, #3b6fe0, #16204a); }
+  .g2 { background: linear-gradient(135deg, #e5484d, #7a1f2b); }
+  .g3 { background: linear-gradient(135deg, #16a34a, #0b3d24); }
+  .g4 { background: linear-gradient(135deg, #f0a832, #8a5410); }
+  .g5 { background: linear-gradient(135deg, #7c3aed, #2e1065); }
+  .g6 { background: linear-gradient(135deg, #0ea5e9, #0c4a6e); }
+  .g7 { background: linear-gradient(135deg, #db2777, #831843); }
+  .g8 { background: linear-gradient(135deg, #64748b, #1e293b); }
+  .cl-name { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .cl-name .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cl-type { font-size: 11.5px; color: var(--muted-2); margin-top: 2px; }
+  .cl-chs { display: flex; gap: 5px; align-items: center; }
+  .ch-ic { position: relative; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border); background: #fff; display: flex; align-items: center; justify-content: center; }
+  .ch-ic svg { width: 13px; height: 13px; stroke: var(--muted-2); }
+  .ch-ic.on { background: var(--green-bg); border-color: transparent; }
+  .ch-ic.on svg { stroke: var(--green); }
+  .ch-ic.fail { background: var(--crimson-soft); border-color: transparent; }
+  .ch-ic.fail svg { stroke: var(--crimson-dark); }
+  .ch-ic .ch-dot { position: absolute; top: -3px; right: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--crimson); border: 2px solid #fff; display: none; }
+  .ch-ic.fail .ch-dot { display: block; }
+  .cl-pkg { font-size: 12.5px; font-weight: 600; }
+  .cl-tier { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; margin-top: 3px; }
+  .cl-tier.Premium { background: linear-gradient(135deg, var(--amber), #d18a1d); color: #fff; }
+  .cl-tier.Standard { background: var(--blue-bg); color: var(--blue); }
+  .cl-tier.Basic { background: #f3f1ee; color: var(--muted); }
+  .cl-renew { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .cl-renew.soon { color: #b7791f; font-weight: 600; }
+  .cl-usage { font-size: 11px; color: var(--muted-2); }
+  .cl-usage .u-bar { height: 4px; border-radius: 999px; background: #f0eee9; margin-top: 5px; overflow: hidden; }
+  .cl-usage .u-fill { height: 100%; border-radius: 999px; background: var(--navy-800); }
+  .cl-status { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; padding: 5px 11px; border-radius: 999px; width: fit-content; }
+  .cl-status i { width: 7px; height: 7px; border-radius: 50%; }
+  .cl-status.active { background: var(--green-bg); color: var(--green); }
+  .cl-status.active i { background: var(--green); }
+  .cl-status.paused { background: #fdf3e0; color: #b7791f; }
+  .cl-status.paused i { background: var(--amber); }
+  .cl-status.deactivated { background: #f3f1ee; color: var(--muted); }
+  .cl-status.deactivated i { background: var(--muted-2); }
+  .cl-chev { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+  .cl-chev svg { width: 14px; height: 14px; stroke: var(--muted-2); }
+  .cl-empty { padding: 46px 20px; text-align: center; color: var(--muted-2); font-size: 13.5px; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ---- detail drawer ---- */
+  .drawer-overlay { position: fixed; inset: 0; z-index: 120; background: rgba(15,23,48,0.45); backdrop-filter: blur(2px); display: none; }
+  .drawer-overlay.open { display: block; animation: fadeUp 0.15s ease; }
+  .drawer { position: fixed; top: 4px; right: 0; bottom: 0; width: min(500px, 100%); background: var(--paper); z-index: 121; box-shadow: -18px 0 46px rgba(15,23,48,0.2); transform: translateX(102%); transition: transform 0.26s ease; display: flex; flex-direction: column; }
+  .drawer.open { transform: none; }
+  .dr-head { background: var(--panel); border-bottom: 1px solid var(--border); padding: 17px 22px 0; }
+  .dr-top { display: flex; align-items: flex-start; gap: 13px; }
+  .dr-logo { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; font-weight: 700; font-family: "Fraunces", Georgia, serif; flex-shrink: 0; }
+  .dr-name { font-family: "Fraunces", Georgia, serif; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+  .dr-sub { font-size: 12px; color: var(--muted); margin-top: 3px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .dr-close { margin-left: auto; border: 1px solid var(--border); background: #fff; width: 32px; height: 32px; border-radius: 9px; cursor: pointer; font-size: 14px; color: var(--muted); flex-shrink: 0; }
+  .dr-close:hover { border-color: var(--navy-800); color: var(--navy-800); }
+  .dr-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .dr-tabs { display: flex; gap: 2px; margin-top: 15px; }
+  .dr-tab { border: none; background: transparent; padding: 9px 13px; font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: pointer; font-family: var(--sans); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .dr-tab:hover { color: var(--ink); }
+  .dr-tab.active { color: var(--crimson-dark); border-bottom-color: var(--crimson); }
+  .dr-body { flex: 1; overflow-y: auto; padding: 20px 22px 30px; }
+  .dr-sec { background: var(--panel); border: 1px solid var(--border); border-radius: 13px; padding: 16px 18px; margin-bottom: 14px; }
+  .dr-sec-title { font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted-2); margin-bottom: 12px; }
+  .dr-kv { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: 13px; }
+  .dr-kv .k { color: var(--muted); flex-shrink: 0; }
+  .dr-kv .v { font-weight: 500; text-align: right; }
+  .usage-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .usage-box { background: var(--paper); border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; }
+  .usage-num { font-family: "Fraunces", Georgia, serif; font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .usage-label { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+  .addon-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .addon-chip { font-size: 11px; font-weight: 600; background: var(--blue-bg); color: var(--blue); border-radius: 999px; padding: 4px 11px; }
+  .addon-chip.none { background: #f3f1ee; color: var(--muted-2); }
+  .note-area { width: 100%; min-height: 76px; border: 1px solid #e3e1da; border-radius: 10px; padding: 10px 13px; font-size: 13px; font-family: var(--sans); color: var(--ink); background: var(--paper); outline: none; resize: vertical; }
+  .note-area:focus { border-color: var(--navy-800); background: #fff; }
+
+  /* ---- channels tab ---- */
+  .chan-row { border: 1px solid var(--border); border-radius: 13px; background: var(--panel); margin-bottom: 12px; overflow: hidden; }
+  .chan-top { display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
+  .chan-ic { width: 38px; height: 38px; border-radius: 10px; background: var(--paper); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .chan-ic svg { width: 17px; height: 17px; stroke: var(--navy-800); }
+  .chan-name { font-size: 13.5px; font-weight: 700; }
+  .chan-sub { font-size: 11.5px; color: var(--muted-2); margin-top: 2px; }
+  .chan-health { font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+  .chan-health.ok { background: var(--green-bg); color: var(--green); }
+  .chan-health.fail { background: var(--crimson-soft); color: var(--crimson-dark); }
+  .chan-health.off { background: #f3f1ee; color: var(--muted-2); }
+  .switch { margin-left: auto; position: relative; width: 38px; height: 22px; flex-shrink: 0; cursor: pointer; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .tr { position: absolute; inset: 0; border-radius: 999px; background: #ddd9d0; transition: background 0.15s ease; }
+  .switch .tr::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.22); transition: transform 0.15s ease; }
+  .switch input:checked + .tr { background: var(--green); }
+  .switch input:checked + .tr::after { transform: translateX(16px); }
+  .chan-body { border-top: 1px solid var(--border); padding: 14px 16px; display: none; }
+  .chan-row.open .chan-body { display: block; }
+  .chan-field { margin-bottom: 10px; }
+  .chan-field label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
+  .chan-input { width: 100%; border: 1px solid #e3e1da; border-radius: 9px; padding: 8px 12px; font-size: 12.5px; font-family: var(--sans); color: var(--ink); background: var(--paper); outline: none; }
+  .chan-input:focus { border-color: var(--navy-800); background: #fff; }
+  .chan-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .chan-3col { display: grid; grid-template-columns: 2fr 1.4fr 0.8fr; gap: 10px; }
+  .key-row { display: flex; gap: 8px; }
+  .key-row .chan-input { font-family: ui-monospace, monospace; letter-spacing: 0.02em; }
+  .key-btn { border: 1px solid #e3e1da; background: #fff; border-radius: 8px; padding: 0 12px; font-size: 11.5px; font-weight: 600; color: #4b4e5c; cursor: pointer; font-family: var(--sans); white-space: nowrap; }
+  .key-btn:hover { border-color: var(--navy-800); color: var(--navy-800); }
+  .chip-input-row { display: flex; gap: 8px; margin-top: 8px; }
+  .mini-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .mini-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 500; background: var(--paper); border: 1px solid var(--border); border-radius: 999px; padding: 4px 6px 4px 11px; }
+  .mini-chip button { border: none; background: none; color: var(--muted-2); cursor: pointer; font-size: 11px; padding: 0 3px; }
+  .mini-chip button:hover { color: var(--crimson-dark); }
+  .test-note { font-size: 11.5px; color: var(--muted); margin-top: 8px; display: flex; align-items: center; gap: 6px; }
+
+  /* ---- package tab ---- */
+  .pkg-current { border: 1px solid var(--border); border-radius: 13px; padding: 15px 17px; background: linear-gradient(135deg, #fdf9ef, #fff); margin-bottom: 14px; }
+  .pkg-name { font-family: "Fraunces", Georgia, serif; font-size: 17px; font-weight: 700; }
+  .pkg-since { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+  .pkg-opt { display: flex; align-items: center; gap: 11px; border: 1px solid #e3e1da; border-radius: 11px; padding: 11px 14px; margin-bottom: 8px; cursor: pointer; transition: all 0.13s ease; background: #fff; }
+  .pkg-opt:hover { border-color: var(--navy-800); }
+  .pkg-opt.sel { border-color: var(--crimson); background: var(--crimson-soft); }
+  .pkg-opt input { accent-color: var(--crimson); }
+  .pkg-opt .pn { font-size: 13px; font-weight: 700; }
+  .pkg-opt .pd { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .pkg-opt .pp { margin-left: auto; font-size: 12.5px; font-weight: 700; color: var(--navy-800); white-space: nowrap; }
+  .addon-check { display: flex; align-items: center; gap: 10px; padding: 8px 2px; font-size: 13px; cursor: pointer; }
+  .addon-check input { accent-color: var(--crimson); width: 15px; height: 15px; }
+  .addon-check .ap { margin-left: auto; font-size: 11.5px; color: var(--muted); }
+
+  /* ---- activity timeline ---- */
+  .tl-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .tl-item:last-child { border-bottom: none; }
+  .tl-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .tl-text { font-size: 12.5px; line-height: 1.5; }
+  .tl-time { font-size: 11px; color: var(--muted-2); margin-top: 2px; }
+
+  /* ---- modals ---- */
+  .modal-overlay { position: fixed; inset: 0; z-index: 130; background: rgba(15,23,48,0.5); backdrop-filter: blur(3px); display: none; align-items: center; justify-content: center; padding: 24px; }
+  .modal-overlay.open { display: flex; animation: fadeUp 0.16s ease; }
+  .modal { background: #fff; border-radius: 16px; width: min(520px, 100%); max-height: 88vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,0.28); }
+  .modal-lg { width: min(640px, 100%); }
+  .mo-head { display: flex; align-items: center; gap: 10px; padding: 18px 22px 15px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: #fff; z-index: 2; }
+  .mo-title { font-family: "Fraunces", Georgia, serif; font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+  .mo-close { margin-left: auto; border: 1px solid var(--border); background: #fff; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; color: var(--muted); font-size: 13px; }
+  .mo-close:hover { border-color: var(--navy-800); color: var(--navy-800); }
+  .mo-body { padding: 19px 22px; }
+  .mo-actions { display: flex; gap: 10px; justify-content: flex-end; padding: 15px 22px 18px; border-top: 1px solid var(--border); }
+  .field { margin-bottom: 15px; }
+  .field-label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 7px; }
+  .field-label .req { color: var(--crimson); }
+  .text-input, .text-area { width: 100%; border: 1px solid #e3e1da; border-radius: 10px; padding: 10px 14px; font-size: 14px; font-family: var(--sans); color: var(--ink); background: var(--paper); outline: none; transition: border 0.13s ease, background 0.13s ease; }
+  .text-input:focus, .text-area:focus { border-color: var(--navy-800); background: #fff; }
+  .text-area { min-height: 74px; resize: vertical; }
+  .field-hint { font-size: 11.5px; color: var(--muted-2); margin-top: 6px; }
+
+  /* ---- onboard wizard ---- */
+  .wiz-steps { display: flex; gap: 4px; padding: 14px 22px 0; }
+  .wiz-step { flex: 1; text-align: center; font-size: 11px; font-weight: 600; color: var(--muted-2); padding-bottom: 9px; border-bottom: 2px solid var(--border); }
+  .wiz-step.active { color: var(--crimson-dark); border-bottom-color: var(--crimson); }
+  .wiz-step.done { color: var(--green); border-bottom-color: var(--green); }
+  .wiz-pane { display: none; }
+  .wiz-pane.active { display: block; animation: fadeUp 0.18s ease; }
+  .wiz-review { background: var(--paper); border: 1px solid var(--border); border-radius: 11px; padding: 14px 16px; font-size: 13px; }
+  .wiz-review .dr-kv { padding: 5px 0; }
+
+  /* ---- toast ---- */
+  .toast-wrap { position: fixed; bottom: 22px; right: 22px; z-index: 300; display: flex; flex-direction: column; gap: 9px; }
+  .toast { background: var(--navy-900); color: #fff; border-radius: 11px; padding: 12px 17px; font-size: 13px; font-weight: 500; box-shadow: 0 12px 30px rgba(15,23,48,0.35); animation: fadeUp 0.2s ease; max-width: 340px; }
+  .toast b { color: #ffd166; }
+
+  @media (max-width: 1180px) { .stat-strip { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 980px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { flex-direction: row; flex-wrap: wrap; gap: 8px; position: static; max-height: none; }
+    .main { padding: 20px 18px 40px; }
+    .topnav { padding: 11px 18px; }
+    .topnav-clock, .user-meta { display: none; }
+    .cl-row { grid-template-columns: 34px 46px minmax(0, 2fr) 110px 26px; }
+    .cl-row .cl-hide-m { display: none; }
+    .stat-strip { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="brand-strip"></div>
+<div class="app">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="sidebar">
+    <a class="brand" href="index.html">
+      <div class="brand-mark">U</div>
+      <div>
+        <div class="brand-name">UNB Wire</div>
+        <div class="brand-sub">Newsroom</div>
+      </div>
+    </a>
+
+    <nav>
+      <div class="nav-section-label">Overview</div>
+      <a class="nav-item" href="index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        Dashboard
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        Content pipeline
+        <span class="nav-badge red">4</span>
+      </a>
+      <a class="nav-item active" href="clients.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Clients
+      </a>
+    </nav>
+
+    <nav>
+      <div class="nav-section-label">Newsroom</div>
+      <a class="nav-item" href="english-news.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0V9"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6z"/></svg>
+        English News
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Bangla News
+      </a>
+      <a class="nav-item" href="unb-photo-manager.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1 2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        UNB Photos
+      </a>
+      <a class="nav-item" href="ap-photo-manager.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+        AP Photo Manager
+      </a>
+    </nav>
+
+    <nav>
+      <div class="nav-section-label">Field apps</div>
+      <a class="nav-item" href="mojo-field-desk.html" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        MoJo desk
+      </a>
+      <a class="nav-item" href="photo-field-desk.html" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Photo desk
+      </a>
+    </nav>
+
+    <nav>
+      <div class="nav-section-label">Distribution</div>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Distribution log
+      </a>
+      <a class="nav-item" href="clients.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Client FTP
+        <span class="nav-badge green">3</span>
+      </a>
+      <a class="nav-item" href="packages.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        Packages
+      </a>
+      <a class="nav-item" href="english-service.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+        English Service
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+        Bangla Service
+      </a>
+    </nav>
+
+    <nav>
+      <div class="nav-section-label">Settings</div>
+      <a class="nav-item" href="roles.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+        Roles &amp; access
+      </a>
+      <a class="nav-item" href="ai-settings.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1 5.1 1.9-5.1 1.9L12 17l-1.9-4.1L5 11l5.1-1.9L12 3z"/><path d="M19 15l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7.7-1.8z"/></svg>
+        AI settings
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Preferences
+      </a>
+    </nav>
+  </aside>
+
+  <!-- ================= MAIN COLUMN ================= -->
+  <div class="main-col">
+
+    <header class="topnav">
+      <div class="topnav-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="Search stories, clients, photos…">
+        <kbd>/</kbd>
+      </div>
+      <div class="topnav-right">
+        <div class="topnav-clock"><span class="live-dot"></span><span id="clockTime">Dhaka</span></div>
+        <a class="icon-btn-top" href="client-portal.html" title="Client portal (subscriber view)"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></a>
+        <div class="topnav-item-wrap">
+          <button class="icon-btn-top" id="bellBtn" title="Notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="bell-badge">3</span>
+          </button>
+          <div class="drop wide" id="bellDrop">
+            <div class="drop-head">Notifications</div>
+            <div class="drop-item"><span class="noti-dot" style="background:var(--green)"></span><div><div class="noti-text">Distribution complete — 12 stories pushed to 47 clients</div><div class="noti-time">10 min ago</div></div></div>
+            <div class="drop-item"><span class="noti-dot" style="background:var(--blue)"></span><div><div class="noti-text">Daily Star downloaded 3 photos from the archive</div><div class="noti-time">32 min ago</div></div></div>
+            <div class="drop-item"><span class="noti-dot" style="background:var(--crimson)"></span><div><div class="noti-text">FTP upload failed for Jugantor — retry needed</div><div class="noti-time">1 hr ago</div></div></div>
+            <a class="drop-foot" href="#">View distribution log</a>
+          </div>
+        </div>
+        <div class="topnav-item-wrap">
+          <button class="user-chip" id="userBtn">
+            <span class="user-avatar">NK</span>
+            <span class="user-meta"><span class="user-name">Nahar Khan</span><span class="user-role">Chief Editor</span></span>
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="drop" id="userDrop">
+            <a class="drop-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>My profile</a>
+            <a class="drop-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Preferences</a>
+            <div class="drop-sep"></div>
+            <a class="drop-item danger" href="#"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Log out</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ================= MAIN ================= -->
+    <main class="main">
+      <div class="breadcrumb"><a href="index.html">Home</a> &nbsp;/&nbsp; Clients</div>
+
+      <div class="topbar">
+        <h1>Clients</h1>
+        <div class="topbar-actions">
+          <button class="btn btn-outline" id="exportCsvBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CSV
+          </button>
+          <button class="btn btn-primary" id="addClientBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Onboard client
+          </button>
+        </div>
+      </div>
+
+      <div class="stat-strip">
+        <div class="stat-card"><div class="stat-num" id="stTotal">0</div><div class="stat-label">Total clients</div></div>
+        <div class="stat-card"><div class="stat-num green" id="stActive">0</div><div class="stat-label">Active subscriptions</div></div>
+        <div class="stat-card"><div class="stat-num amber" id="stPaused">0</div><div class="stat-label">Paused</div></div>
+        <div class="stat-card"><div class="stat-num amber" id="stRenew">0</div><div class="stat-label">Renewals due ≤ 45 days</div></div>
+        <div class="stat-card"><div class="stat-num red" id="stIssues">0</div><div class="stat-label">Delivery issues</div></div>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="clSearch" placeholder="Search client, city, contact…">
+        </div>
+        <div class="st-chips" id="statusChips">
+          <button class="st-chip active" data-st="all">All</button>
+          <button class="st-chip" data-st="active">Active</button>
+          <button class="st-chip" data-st="paused">Paused</button>
+          <button class="st-chip" data-st="deactivated">Deactivated</button>
+        </div>
+        <select class="select-input" id="tierSel">
+          <option value="all">All tiers</option>
+          <option>Premium</option>
+          <option>Standard</option>
+          <option>Basic</option>
+        </select>
+        <select class="select-input" id="sortSel">
+          <option value="name">Sort: Name</option>
+          <option value="renewal">Sort: Renewal date</option>
+          <option value="usage">Sort: Usage</option>
+        </select>
+      </div>
+
+      <div class="bulk-bar" id="bulkBar">
+        <span class="bulk-count" id="bulkCount">0 selected</span>
+        <button class="bulk-btn" id="bulkPause">Pause selected</button>
+        <select class="bulk-select" id="bulkPkg">
+          <option value="">Change package…</option>
+          <option>Premium Wire + Media</option>
+          <option>Standard Wire</option>
+          <option>Basic Headlines</option>
+        </select>
+        <button class="bulk-btn" id="bulkPkgApply">Apply</button>
+        <button class="bulk-btn" id="bulkCsv">Export selected</button>
+        <button class="bulk-clear" id="bulkClear">Clear</button>
+      </div>
+
+      <div class="cl-list" id="clList"></div>
+    </main>
+  </div>
+</div>
+
+<!-- ================= CLIENT DETAIL DRAWER ================= -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<aside class="drawer" id="drawer">
+  <div class="dr-head">
+    <div class="dr-top">
+      <div class="dr-logo" id="drLogo">DS</div>
+      <div>
+        <div class="dr-name" id="drName">Client</div>
+        <div class="dr-sub" id="drSub"></div>
+      </div>
+      <button class="dr-close" id="drClose" title="Close">✕</button>
+    </div>
+    <div class="dr-actions" id="drActions"></div>
+    <div class="dr-tabs" id="drTabs">
+      <button class="dr-tab active" data-dtab="overview">Overview</button>
+      <button class="dr-tab" data-dtab="channels">Channels</button>
+      <button class="dr-tab" data-dtab="package">Package</button>
+      <button class="dr-tab" data-dtab="activity">Activity</button>
+    </div>
+  </div>
+  <div class="dr-body" id="drBody"></div>
+</aside>
+
+<!-- ================= PAUSE MODAL ================= -->
+<div class="modal-overlay" id="pauseOverlay">
+  <div class="modal">
+    <div class="mo-head">
+      <div class="mo-title">Pause client</div>
+      <button class="mo-close" data-close="pauseOverlay">✕</button>
+    </div>
+    <div class="mo-body">
+      <div class="field-hint" style="margin-bottom:14px">Deliveries to <b id="pauseName"></b> will be held (queued, not sent) until you resume. Portal login stays active but the wire stops updating.</div>
+      <div class="field">
+        <label class="field-label">Reason <span class="req">*</span></label>
+        <select class="select-input" id="pauseReason" style="width:100%">
+          <option>Payment hold</option>
+          <option>Client requested</option>
+          <option>Technical issue on client side</option>
+          <option>Contract renegotiation</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">Internal note</label>
+        <textarea class="text-area" id="pauseNote" placeholder="e.g. — Accounts following up on July invoice…"></textarea>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label class="field-label">Auto-resume on (optional)</label>
+        <input class="text-input" type="date" id="pauseResume">
+      </div>
+    </div>
+    <div class="mo-actions">
+      <button class="btn btn-outline" data-close="pauseOverlay">Cancel</button>
+      <button class="btn btn-primary" id="pauseConfirm">Pause deliveries</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= DEACTIVATE MODAL ================= -->
+<div class="modal-overlay" id="deactOverlay">
+  <div class="modal">
+    <div class="mo-head">
+      <div class="mo-title">Deactivate client</div>
+      <button class="mo-close" data-close="deactOverlay">✕</button>
+    </div>
+    <div class="mo-body">
+      <div class="field-hint" style="margin-bottom:14px">This offboards <b id="deactName"></b>: portal access revoked, all channels stopped, API keys invalidated. Download history and invoices are kept for records. You can reactivate later.</div>
+      <label class="addon-check" style="font-weight:600">
+        <input type="checkbox" id="deactCheck">
+        I understand — deactivate this client
+      </label>
+    </div>
+    <div class="mo-actions">
+      <button class="btn btn-outline" data-close="deactOverlay">Cancel</button>
+      <button class="btn btn-primary" id="deactConfirm" disabled>Deactivate</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= ONBOARD WIZARD ================= -->
+<div class="modal-overlay" id="wizOverlay">
+  <div class="modal modal-lg">
+    <div class="mo-head">
+      <div class="mo-title">Onboard new client</div>
+      <button class="mo-close" data-close="wizOverlay">✕</button>
+    </div>
+    <div class="wiz-steps" id="wizSteps">
+      <div class="wiz-step active" data-ws="1">1 · Details</div>
+      <div class="wiz-step" data-ws="2">2 · Package &amp; channels</div>
+      <div class="wiz-step" data-ws="3">3 · Review &amp; activate</div>
+    </div>
+    <div class="mo-body">
+      <div class="wiz-pane active" data-wp="1">
+        <div class="field">
+          <label class="field-label">Organisation name <span class="req">*</span></label>
+          <input class="text-input" id="wName" placeholder="e.g. The Daily Ittefaq">
+        </div>
+        <div class="chan-2col">
+          <div class="field">
+            <label class="field-label">Type</label>
+            <select class="select-input" id="wType" style="width:100%">
+              <option>National daily</option>
+              <option>English daily</option>
+              <option>Online portal</option>
+              <option>TV channel</option>
+              <option>Radio</option>
+              <option>Magazine</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">City</label>
+            <input class="text-input" id="wCity" placeholder="Dhaka">
+          </div>
+        </div>
+        <div class="chan-2col" style="margin-bottom:0">
+          <div class="field" style="margin-bottom:0">
+            <label class="field-label">Primary contact</label>
+            <input class="text-input" id="wContact" placeholder="Desk editor name">
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label class="field-label">Contact email <span class="req">*</span></label>
+            <input class="text-input" id="wEmail" type="email" placeholder="newsdesk@example.com">
+          </div>
+        </div>
+      </div>
+      <div class="wiz-pane" data-wp="2">
+        <div class="field">
+          <label class="field-label">Subscription package</label>
+          <div id="wPkgs">
+            <label class="pkg-opt sel"><input type="radio" name="wpkg" value="Premium Wire + Media" checked><span><span class="pn">Premium Wire + Media</span><span class="pd" style="display:block">Full wire + photos/videos + priority support</span></span><span class="pp">৳85k/mo</span></label>
+            <label class="pkg-opt"><input type="radio" name="wpkg" value="Standard Wire"><span><span class="pn">Standard Wire</span><span class="pd" style="display:block">Full text wire + 200 photos/mo</span></span><span class="pp">৳45k/mo</span></label>
+            <label class="pkg-opt"><input type="radio" name="wpkg" value="Basic Headlines"><span><span class="pn">Basic Headlines</span><span class="pd" style="display:block">Headlines + briefs only, no media</span></span><span class="pp">৳18k/mo</span></label>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Add-ons</label>
+          <label class="addon-check"><input type="checkbox" class="waddon" value="AP World pack">AP World pack (photos + world wire)<span class="ap">+৳30k/mo</span></label>
+          <label class="addon-check"><input type="checkbox" class="waddon" value="Bangla service">Bangla service<span class="ap">+৳20k/mo</span></label>
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label class="field-label">Delivery channels</label>
+          <label class="addon-check"><input type="checkbox" checked disabled>Client portal dashboard <span class="ap">always included</span></label>
+          <label class="addon-check"><input type="checkbox" class="wchan" value="email" checked>Email alerts</label>
+          <label class="addon-check"><input type="checkbox" class="wchan" value="ftp">FTP / SFTP auto-push</label>
+          <label class="addon-check" style="margin-bottom:0"><input type="checkbox" class="wchan" value="api">API access</label>
+        </div>
+      </div>
+      <div class="wiz-pane" data-wp="3">
+        <div class="field-hint" style="margin-bottom:13px">Review the setup. Activating creates the portal account, provisions selected channels, and emails credentials to the client contact.</div>
+        <div class="wiz-review" id="wizReview"></div>
+      </div>
+    </div>
+    <div class="mo-actions">
+      <button class="btn btn-outline" id="wizBack" style="visibility:hidden">← Back</button>
+      <button class="btn btn-navy" id="wizNext">Continue →</button>
+      <button class="btn btn-primary" id="wizActivate" style="display:none">Activate client</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+  // ===== helpers =====
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function saveBlob(content, name, type) {
+    const b = new Blob([content], { type: type || 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+  function toast(msg) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.innerHTML = msg;
+    document.getElementById('toastWrap').appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 320); }, 3400);
+  }
+  function flash(btn, label) {
+    if (!btn || btn.dataset.busy) return;
+    const orig = btn.innerHTML;
+    btn.dataset.busy = '1';
+    btn.innerHTML = label;
+    setTimeout(() => { btn.innerHTML = orig; delete btn.dataset.busy; }, 1600);
+  }
+
+  // ===== data =====
+  const CH_META = {
+    portal: { name: 'Portal', ic: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>' },
+    email: { name: 'Email', ic: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>' },
+    ftp: { name: 'FTP/SFTP', ic: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' },
+    api: { name: 'API', ic: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>' }
+  };
+
+  const CLIENTS = [
+    { id: 1, name: 'The Daily Star', ini: 'DS', grad: 'g1', type: 'National English daily', city: 'Dhaka', tier: 'Premium', status: 'active', pkg: 'Premium Wire + Media', addons: ['AP World pack', 'Bangla service'], renewal: '1 Oct 2026', renewDays: 37, since: 'Mar 2014',
+      contacts: [{ n: 'News Desk', r: '24/7 desk', e: 'newsdesk@thedailystar.net' }, { n: 'Rahim Uddin', r: 'Digital head', e: 'rahim@thedailystar.net' }],
+      channels: { email: { on: true, list: ['newsdesk@thedailystar.net', 'city@thedailystar.net'], health: 'ok' }, ftp: { on: true, host: '103.118.19.26', user: 'unb', port: '21', pass: 'Ds@Unb321', health: 'ok' }, api: { on: true, key: 'unb_live_7f3a9d2c4b8e1a6f', webhook: 'https://api.thedailystar.net/unb-hook', health: 'ok' } },
+      usage: { dl: 1284, quota: 2000, api: '41.2k', last: '12 min ago' },
+      note: 'Prefers XML push for breaking news. Renew with AP pack upsell conversation.',
+      activity: [{ c: '#16a34a', t: 'Downloaded 3 photos from the archive', w: '32 min ago' }, { c: '#3b6fe0', t: 'API key regenerated by client admin', w: '2 days ago' }, { c: '#16a34a', t: 'Package renewed — Premium Wire + Media', w: 'Aug 1, 2026' }] },
+    { id: 2, name: 'Prothom Alo', ini: 'PA', grad: 'g2', type: 'National daily', city: 'Dhaka', tier: 'Premium', status: 'active', pkg: 'Premium Wire + Media', addons: ['Bangla service'], renewal: '15 Nov 2026', renewDays: 82, since: 'Jan 2012',
+      contacts: [{ n: 'Chief News Editor', r: 'Desk', e: 'cne@prothomalo.com' }],
+      channels: { email: { on: true, list: ['cne@prothomalo.com'], health: 'ok' }, ftp: { on: true, host: '203.82.197.181', user: 'palounb', port: '21', pass: 'Pa#8821lm', health: 'ok' }, api: { on: false, key: '', webhook: '', health: 'off' } },
+      usage: { dl: 962, quota: 2000, api: '—', last: '1 hr ago' },
+      note: '', activity: [{ c: '#16a34a', t: 'FTP push completed — morning bundle (14 stories)', w: '6 hr ago' }] },
+    { id: 3, name: 'Jugantor', ini: 'JU', grad: 'g4', type: 'National daily', city: 'Dhaka', tier: 'Standard', status: 'active', pkg: 'Standard Wire', addons: [], renewal: '3 Sep 2026', renewDays: 9, since: 'Jun 2016',
+      contacts: [{ n: 'IT Cell', r: 'Technical', e: 'it@jugantor.com' }],
+      channels: { email: { on: true, list: ['it@jugantor.com'], health: 'ok' }, ftp: { on: true, host: 'ftp.jugantor.com', user: 'jug_unb', port: '21', pass: 'Jg!2210x', health: 'fail' }, api: { on: false, key: '', webhook: '', health: 'off' } },
+      usage: { dl: 311, quota: 800, api: '—', last: '3 hr ago' },
+      note: 'FTP failing since yesterday — client IT notified, waiting on firewall whitelist.',
+      activity: [{ c: '#e5484d', t: 'FTP upload failed — auth timeout (auto-retry scheduled)', w: '1 hr ago' }, { c: '#f0a832', t: 'Renewal reminder sent — expires 3 Sep', w: '2 days ago' }] },
+    { id: 4, name: 'Bangladesh Today', ini: 'BT', grad: 'g6', type: 'English daily', city: 'Dhaka', tier: 'Standard', status: 'paused', pkg: 'Standard Wire', addons: [], renewal: '20 Oct 2026', renewDays: 56, since: 'Sep 2018', pauseReason: 'Payment hold',
+      contacts: [{ n: 'Accounts', r: 'Billing', e: 'accounts@bangladeshtoday.net' }],
+      channels: { email: { on: true, list: ['accounts@bangladeshtoday.net'], health: 'ok' }, ftp: { on: false, host: '', user: '', port: '21', pass: '', health: 'off' }, api: { on: true, key: 'unb_live_2c8d4e9f1a3b5d7c', webhook: 'https://cms.bangladeshtoday.net/hooks/unb', health: 'ok' } },
+      usage: { dl: 88, quota: 800, api: '3.1k', last: '5 days ago' },
+      note: 'Paused over July invoice. Accounts following up; MD assured payment by Eid.',
+      activity: [{ c: '#f0a832', t: 'Deliveries paused — reason: Payment hold', w: '5 days ago' }, { c: '#3b6fe0', t: 'Invoice #INV-2291 sent', w: '12 days ago' }] },
+    { id: 5, name: 'The Daily Ittefaq', ini: 'IT', grad: 'g5', type: 'National daily', city: 'Dhaka', tier: 'Standard', status: 'active', pkg: 'Standard Wire', addons: ['Bangla service'], renewal: '11 Jan 2027', renewDays: 139, since: 'Apr 2015',
+      contacts: [{ n: 'Newsroom', r: 'Desk', e: 'newsroom@ittefaq.com.bd' }],
+      channels: { email: { on: true, list: ['newsroom@ittefaq.com.bd'], health: 'ok' }, ftp: { on: true, host: '103.42.11.9', user: 'itfunb', port: '22', pass: 'Itf@2209s', health: 'ok' }, api: { on: false, key: '', webhook: '', health: 'off' } },
+      usage: { dl: 542, quota: 800, api: '—', last: '26 min ago' },
+      note: '', activity: [{ c: '#16a34a', t: 'SFTP push completed — evening bundle', w: '2 hr ago' }] },
+    { id: 6, name: 'Dhaka Tribune', ini: 'DT', grad: 'g3', type: 'English daily', city: 'Dhaka', tier: 'Premium', status: 'active', pkg: 'Premium Wire + Media', addons: ['AP World pack'], renewal: '28 Sep 2026', renewDays: 34, since: 'Nov 2019',
+      contacts: [{ n: 'Digital Desk', r: 'Online', e: 'digital@dhakatribune.com' }],
+      channels: { email: { on: true, list: ['digital@dhakatribune.com'], health: 'ok' }, ftp: { on: false, host: '', user: '', port: '21', pass: '', health: 'off' }, api: { on: true, key: 'unb_live_9e1f3a5c7b2d4f6a', webhook: 'https://api.dhakatribune.com/unb', health: 'ok' } },
+      usage: { dl: 1740, quota: 2000, api: '58.7k', last: '4 min ago' },
+      note: 'Heavy API consumer — fully digital workflow, no FTP.', activity: [{ c: '#16a34a', t: 'API pulled UNB Photos showcase feed', w: '18 min ago' }] },
+    { id: 7, name: 'Samakal', ini: 'SM', grad: 'g7', type: 'National daily', city: 'Dhaka', tier: 'Basic', status: 'paused', pkg: 'Basic Headlines', addons: [], renewal: '5 Dec 2026', renewDays: 102, since: 'Feb 2020', pauseReason: 'Client requested',
+      contacts: [{ n: 'Desk', r: 'News', e: 'desk@samakal.com' }],
+      channels: { email: { on: true, list: ['desk@samakal.com'], health: 'ok' }, ftp: { on: false, host: '', user: '', port: '21', pass: '', health: 'off' }, api: { on: false, key: '', webhook: '', health: 'off' } },
+      usage: { dl: 12, quota: 200, api: '—', last: '2 wks ago' },
+      note: 'Client asked to pause while they migrate CMS. Check back mid-September.',
+      activity: [{ c: '#f0a832', t: 'Deliveries paused — reason: Client requested', w: '2 wks ago' }] },
+    { id: 8, name: 'The Financial Express', ini: 'FE', grad: 'g8', type: 'Business daily', city: 'Dhaka', tier: 'Standard', status: 'deactivated', pkg: 'Standard Wire', addons: [], renewal: '—', renewDays: 999, since: 'May 2013',
+      contacts: [{ n: 'Former desk', r: '—', e: 'desk@thefinancialexpress.com.bd' }],
+      channels: { email: { on: false, list: [], health: 'off' }, ftp: { on: false, host: '', user: '', port: '21', pass: '', health: 'off' }, api: { on: false, key: '', webhook: '', health: 'off' } },
+      usage: { dl: 0, quota: 800, api: '—', last: '—' },
+      note: 'Offboarded Mar 2026 — moved to competitor. Keep records; win-back target for Q4.',
+      activity: [{ c: '#7c7f8c', t: 'Client deactivated — contract ended', w: 'Mar 30, 2026' }] }
+  ];
+
+  // ===== state =====
+  let clQ = '', clStatus = 'all', clTier = 'all', clSort = 'name';
+  const clSelected = new Set();
+  let openId = null, dtab = 'overview';
+  let pauseTarget = null, deactTarget = null;
+
+  const clientOf = id => CLIENTS.find(c => c.id === id);
+  const hasIssue = c => Object.values(c.channels).some(ch => ch.health === 'fail');
+
+  function filteredClients() {
+    let list = CLIENTS.filter(c => {
+      if (clStatus !== 'all' && c.status !== clStatus) return false;
+      if (clTier !== 'all' && c.tier !== clTier) return false;
+      if (clQ) {
+        const hay = (c.name + ' ' + c.city + ' ' + c.type + ' ' + c.contacts.map(x => x.e).join(' ')).toLowerCase();
+        if (!hay.includes(clQ)) return false;
+      }
+      return true;
+    });
+    if (clSort === 'name') list.sort((a, b) => a.name.localeCompare(b.name));
+    else if (clSort === 'renewal') list.sort((a, b) => a.renewDays - b.renewDays);
+    else list.sort((a, b) => (b.usage.dl / b.usage.quota) - (a.usage.dl / a.usage.quota));
+    return list;
+  }
+
+  // ===== stats =====
+  function renderStats() {
+    document.getElementById('stTotal').textContent = CLIENTS.length;
+    document.getElementById('stActive').textContent = CLIENTS.filter(c => c.status === 'active').length;
+    document.getElementById('stPaused').textContent = CLIENTS.filter(c => c.status === 'paused').length;
+    document.getElementById('stRenew').textContent = CLIENTS.filter(c => c.status === 'active' && c.renewDays <= 45).length;
+    document.getElementById('stIssues').textContent = CLIENTS.filter(c => c.status !== 'deactivated' && hasIssue(c)).length;
+  }
+
+  // ===== list =====
+  function chanIcons(c) {
+    return ['portal', 'email', 'ftp', 'api'].map(k => {
+      const ch = k === 'portal' ? { on: c.status === 'active', health: c.status === 'active' ? 'ok' : 'off' } : c.channels[k];
+      const cls = ch.health === 'fail' ? 'fail' : (ch.on ? 'on' : '');
+      return '<span class="ch-ic ' + cls + '" title="' + CH_META[k].name + (ch.health === 'fail' ? ' — failing' : (ch.on ? ' — on' : ' — off')) + '">' + CH_META[k].ic + '<span class="ch-dot"></span></span>';
+    }).join('');
+  }
+
+  function renderList() {
+    const list = filteredClients();
+    const el = document.getElementById('clList');
+    let html = '<div class="cl-row head"><span></span><span></span><span>Client</span><span class="cl-hide-m">Channels</span><span class="cl-hide-m">Package</span><span class="cl-hide-m">Usage this cycle</span><span>Status</span><span></span></div>';
+    if (!list.length) {
+      html += '<div class="cl-empty">No clients match — try clearing the search or status filter.</div>';
+    }
+    html += list.map(c => {
+      const pct = Math.min(100, Math.round(c.usage.dl / c.usage.quota * 100));
+      const issue = c.status !== 'deactivated' && hasIssue(c);
+      return '<div class="cl-row' + (clSelected.has(c.id) ? ' selected' : '') + '" data-id="' + c.id + '">' +
+        '<span class="cl-check"><input type="checkbox" data-check' + (clSelected.has(c.id) ? ' checked' : '') + '></span>' +
+        '<span class="cl-logo ' + c.grad + '">' + c.ini + '</span>' +
+        '<span><span class="cl-name"><span class="nm">' + esc(c.name) + '</span>' + (issue ? '<span class="chan-health fail">Delivery issue</span>' : '') + '</span><span class="cl-type">' + esc(c.type) + ' · ' + esc(c.city) + '</span></span>' +
+        '<span class="cl-chs cl-hide-m">' + chanIcons(c) + '</span>' +
+        '<span class="cl-hide-m"><span class="cl-pkg">' + esc(c.pkg) + '</span><br><span class="cl-tier ' + c.tier + '">' + c.tier + '</span></span>' +
+        '<span class="cl-hide-m"><span class="cl-usage">' + c.usage.dl.toLocaleString() + ' / ' + c.usage.quota.toLocaleString() + ' media</span><span class="u-bar"><span class="u-fill" style="display:block;width:' + pct + '%' + (pct > 85 ? ';background:var(--crimson)' : '') + '"></span></span></span>' +
+        '<span class="cl-status ' + c.status + '"><i></i>' + c.status.charAt(0).toUpperCase() + c.status.slice(1) + '</span>' +
+        '<span class="cl-chev"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>' +
+      '</div>';
+    }).join('');
+    el.innerHTML = html;
+
+    el.querySelectorAll('.cl-row[data-id]').forEach(row => {
+      const id = +row.dataset.id;
+      row.addEventListener('click', e => {
+        if (e.target.closest('[data-check]')) return;
+        openDrawer(id);
+      });
+      const cb = row.querySelector('[data-check]');
+      cb.addEventListener('change', () => {
+        cb.checked ? clSelected.add(id) : clSelected.delete(id);
+        row.classList.toggle('selected', cb.checked);
+        syncBulk();
+      });
+    });
+    syncBulk();
+  }
+
+  // ===== bulk =====
+  function syncBulk() {
+    document.getElementById('bulkBar').classList.toggle('show', clSelected.size > 0);
+    document.getElementById('bulkCount').textContent = clSelected.size + ' selected';
+  }
+  document.getElementById('bulkClear').addEventListener('click', () => { clSelected.clear(); renderList(); });
+  document.getElementById('bulkPause').addEventListener('click', function () {
+    let n = 0;
+    clSelected.forEach(id => { const c = clientOf(id); if (c.status === 'active') { c.status = 'paused'; c.pauseReason = 'Client requested'; c.activity.unshift({ c: '#f0a832', t: 'Deliveries paused — bulk action', w: 'Just now' }); n++; } });
+    clSelected.clear(); renderList(); renderStats();
+    toast('<b>' + n + '</b> client' + (n === 1 ? '' : 's') + ' paused — deliveries held');
+  });
+  document.getElementById('bulkPkgApply').addEventListener('click', function () {
+    const pkg = document.getElementById('bulkPkg').value;
+    if (!pkg) { toast('Choose a package first'); return; }
+    let n = 0;
+    clSelected.forEach(id => { const c = clientOf(id); c.pkg = pkg; c.tier = pkg.startsWith('Premium') ? 'Premium' : pkg.startsWith('Standard') ? 'Standard' : 'Basic'; c.activity.unshift({ c: '#3b6fe0', t: 'Package changed → ' + pkg, w: 'Just now' }); n++; });
+    clSelected.clear(); renderList();
+    toast('Package updated for <b>' + n + '</b> clients');
+  });
+  document.getElementById('bulkCsv').addEventListener('click', () => exportCsv(CLIENTS.filter(c => clSelected.has(c.id)), 'unb-clients-selected.csv'));
+  document.getElementById('exportCsvBtn').addEventListener('click', function () { exportCsv(filteredClients(), 'unb-clients.csv'); flash(this, 'Saved'); });
+
+  function exportCsv(list, name) {
+    if (!list.length) { toast('Nothing to export'); return; }
+    const csv = 'name,type,city,tier,package,status,channels,renewal,downloads_this_cycle,quota\n' + list.map(c => {
+      const chans = ['portal', 'email', 'ftp', 'api'].filter(k => k === 'portal' ? c.status === 'active' : c.channels[k].on).join(' + ');
+      return ['"' + c.name + '"', '"' + c.type + '"', c.city, c.tier, '"' + c.pkg + '"', c.status, '"' + chans + '"', '"' + c.renewal + '"', c.usage.dl, c.usage.quota].join(',');
+    }).join('\n');
+    saveBlob(csv, name, 'text/csv');
+    toast('<b>' + list.length + '</b> clients exported');
+  }
+
+  // ===== filters =====
+  document.getElementById('clSearch').addEventListener('input', e => { clQ = e.target.value.trim().toLowerCase(); renderList(); });
+  document.querySelectorAll('#statusChips .st-chip').forEach(b => b.addEventListener('click', () => {
+    clStatus = b.dataset.st;
+    document.querySelectorAll('#statusChips .st-chip').forEach(x => x.classList.toggle('active', x === b));
+    renderList();
+  }));
+  document.getElementById('tierSel').addEventListener('change', e => { clTier = e.target.value; renderList(); });
+  document.getElementById('sortSel').addEventListener('change', e => { clSort = e.target.value; renderList(); });
+
+  // ===== drawer =====
+  const drawer = document.getElementById('drawer');
+  const drawerOverlay = document.getElementById('drawerOverlay');
+
+  function openDrawer(id) {
+    openId = id;
+    dtab = 'overview';
+    document.querySelectorAll('.dr-tab').forEach(t => t.classList.toggle('active', t.dataset.dtab === 'overview'));
+    renderDrawer();
+    drawer.classList.add('open');
+    drawerOverlay.classList.add('open');
+  }
+  function closeDrawer() { drawer.classList.remove('open'); drawerOverlay.classList.remove('open'); openId = null; }
+  document.getElementById('drClose').addEventListener('click', closeDrawer);
+  drawerOverlay.addEventListener('click', closeDrawer);
+  document.querySelectorAll('.dr-tab').forEach(t => t.addEventListener('click', () => {
+    dtab = t.dataset.dtab;
+    document.querySelectorAll('.dr-tab').forEach(x => x.classList.toggle('active', x === t));
+    renderDrawer();
+  }));
+
+  function pushActivity(c, color, text) { c.activity.unshift({ c: color, t: text, w: 'Just now' }); }
+
+  function renderDrawer() {
+    const c = clientOf(openId);
+    if (!c) return;
+    const issue = c.status !== 'deactivated' && hasIssue(c);
+    document.getElementById('drLogo').className = 'dr-logo ' + c.grad;
+    document.getElementById('drLogo').textContent = c.ini;
+    document.getElementById('drName').textContent = c.name;
+    document.getElementById('drSub').innerHTML =
+      '<span class="cl-status ' + c.status + '"><i></i>' + c.status.charAt(0).toUpperCase() + c.status.slice(1) + '</span>' +
+      '<span>' + esc(c.type) + ' · ' + esc(c.city) + ' · since ' + esc(c.since) + '</span>' +
+      (issue ? '<span class="chan-health fail">Delivery issue</span>' : '');
+
+    // action buttons per status
+    const acts = [];
+    if (c.status === 'active') acts.push('<button class="btn btn-outline btn-sm" data-dact="pause">Pause deliveries</button>');
+    if (c.status === 'paused') acts.push('<button class="btn btn-navy btn-sm" data-dact="resume">Resume deliveries</button>');
+    if (c.status !== 'deactivated') acts.push('<button class="btn btn-outline btn-sm" data-dact="deact" style="color:var(--crimson-dark);border-color:#f0c9ca">Deactivate</button>');
+    else acts.push('<button class="btn btn-primary btn-sm" data-dact="reactivate">Reactivate client</button>');
+    document.getElementById('drActions').innerHTML = acts.join('');
+    document.querySelectorAll('#drActions [data-dact]').forEach(b => b.addEventListener('click', () => {
+      const act = b.dataset.dact;
+      if (act === 'pause') openPause(c.id);
+      else if (act === 'resume') {
+        c.status = 'active'; delete c.pauseReason;
+        pushActivity(c, '#16a34a', 'Deliveries resumed');
+        toast('<b>' + esc(c.name) + '</b> resumed — queued stories will now flow');
+        renderAll();
+      } else if (act === 'deact') openDeact(c.id);
+      else if (act === 'reactivate') {
+        c.status = 'active';
+        pushActivity(c, '#16a34a', 'Client reactivated');
+        toast('<b>' + esc(c.name) + '</b> reactivated — portal + channels live again');
+        renderAll();
+      }
+    }));
+
+    const body = document.getElementById('drBody');
+    if (dtab === 'overview') body.innerHTML = overviewHtml(c);
+    else if (dtab === 'channels') { body.innerHTML = channelsHtml(c); bindChannels(c); }
+    else if (dtab === 'package') { body.innerHTML = packageHtml(c); bindPackage(c); }
+    else body.innerHTML = activityHtml(c);
+
+    if (dtab === 'overview') {
+      document.getElementById('noteSave').addEventListener('click', function () {
+        c.note = document.getElementById('noteArea').value.trim();
+        flash(this, 'Saved');
+      });
+    }
+  }
+
+  function overviewHtml(c) {
+    const pct = Math.min(100, Math.round(c.usage.dl / c.usage.quota * 100));
+    return '<div class="dr-sec"><div class="dr-sec-title">Contacts</div>' +
+      c.contacts.map(x => '<div class="dr-kv"><span class="k">' + esc(x.r) + '</span><span class="v">' + esc(x.n) + ' · <span style="color:var(--blue)">' + esc(x.e) + '</span></span></div>').join('') +
+      '</div>' +
+      '<div class="dr-sec"><div class="dr-sec-title">Entitlements</div>' +
+      '<div class="dr-kv"><span class="k">Package</span><span class="v">' + esc(c.pkg) + '</span></div>' +
+      '<div class="dr-kv"><span class="k">Tier</span><span class="v"><span class="cl-tier ' + c.tier + '">' + c.tier + '</span></span></div>' +
+      '<div class="dr-kv"><span class="k">Add-ons</span><span class="v"><span class="addon-chips">' + (c.addons.length ? c.addons.map(a => '<span class="addon-chip">' + esc(a) + '</span>').join('') : '<span class="addon-chip none">None</span>') + '</span></span></div>' +
+      '<div class="dr-kv"><span class="k">Renewal</span><span class="v">' + esc(c.renewal) + (c.renewDays <= 45 && c.status === 'active' ? ' · <b style="color:#b7791f">due soon</b>' : '') + '</span></div>' +
+      '</div>' +
+      '<div class="dr-sec"><div class="dr-sec-title">Usage this cycle</div><div class="usage-grid">' +
+      '<div class="usage-box"><div class="usage-num">' + c.usage.dl.toLocaleString() + '</div><div class="usage-label">Media downloads (' + pct + '% of quota)</div></div>' +
+      '<div class="usage-box"><div class="usage-num">' + c.usage.api + '</div><div class="usage-label">API calls</div></div>' +
+      '<div class="usage-box"><div class="usage-num" style="font-size:14px;padding-top:4px">' + esc(c.usage.last) + '</div><div class="usage-label">Last active</div></div>' +
+      '<div class="usage-box"><div class="usage-num" style="font-size:14px;padding-top:4px">' + ['portal', 'email', 'ftp', 'api'].filter(k => k === 'portal' ? c.status === 'active' : c.channels[k].on).length + ' / 4</div><div class="usage-label">Channels live</div></div>' +
+      '</div></div>' +
+      '<div class="dr-sec"><div class="dr-sec-title">Internal note</div>' +
+      '<textarea class="note-area" id="noteArea" placeholder="Context for the newsroom — billing, preferences, escalation history…">' + esc(c.note) + '</textarea>' +
+      '<div style="margin-top:9px;text-align:right"><button class="btn btn-outline btn-sm" id="noteSave">Save note</button></div></div>';
+  }
+
+  function channelsHtml(c) {
+    const em = c.channels.email, ft = c.channels.ftp, ap = c.channels.api;
+    function healthPill(ch) {
+      if (!ch.on) return '<span class="chan-health off">Off</span>';
+      return ch.health === 'fail' ? '<span class="chan-health fail">Failing</span>' : '<span class="chan-health ok">Healthy</span>';
+    }
+    return '<div class="chan-row"><div class="chan-top">' +
+      '<span class="chan-ic">' + CH_META.portal.ic + '</span>' +
+      '<span><span class="chan-name">Client portal dashboard</span><div class="chan-sub">Wire, media library, UNB Photos showcase</div></span>' +
+      '<span class="chan-health ' + (c.status === 'active' ? 'ok' : 'off') + '">' + (c.status === 'active' ? 'Always on' : 'Suspended') + '</span>' +
+      '</div></div>' +
+
+      '<div class="chan-row' + (em.on ? ' open' : '') + '"><div class="chan-top">' +
+      '<span class="chan-ic">' + CH_META.email.ic + '</span>' +
+      '<span><span class="chan-name">Email alerts</span><div class="chan-sub">' + (em.list.length ? em.list.length + ' recipient' + (em.list.length > 1 ? 's' : '') : 'No recipients yet') + '</div></span>' +
+      healthPill(em) +
+      '<label class="switch"><input type="checkbox" data-ch="email"' + (em.on ? ' checked' : '') + '><span class="tr"></span></label>' +
+      '</div><div class="chan-body">' +
+      '<div class="mini-chips">' + em.list.map(e => '<span class="mini-chip">' + esc(e) + '<button data-rm-email="' + esc(e) + '">✕</button></span>').join('') + '</div>' +
+      '<div class="chip-input-row"><input class="chan-input" id="emAdd" placeholder="Add recipient email…"><button class="key-btn" id="emAddBtn">Add</button></div>' +
+      '</div></div>' +
+
+      '<div class="chan-row' + (ft.on ? ' open' : '') + '"><div class="chan-top">' +
+      '<span class="chan-ic">' + CH_META.ftp.ic + '</span>' +
+      '<span><span class="chan-name">FTP / SFTP auto-push</span><div class="chan-sub">' + (ft.host ? esc(ft.host) + ' · port ' + esc(ft.port) : 'Not configured') + '</div></span>' +
+      healthPill(ft) +
+      '<label class="switch"><input type="checkbox" data-ch="ftp"' + (ft.on ? ' checked' : '') + '><span class="tr"></span></label>' +
+      '</div><div class="chan-body">' +
+      '<div class="chan-3col">' +
+      '<div class="chan-field"><label>Host server</label><input class="chan-input" id="ftHost" value="' + esc(ft.host) + '" placeholder="ftp.client.com"></div>' +
+      '<div class="chan-field"><label>Username</label><input class="chan-input" id="ftUser" value="' + esc(ft.user) + '"></div>' +
+      '<div class="chan-field"><label>Port</label><input class="chan-input" id="ftPort" value="' + esc(ft.port) + '"></div>' +
+      '</div>' +
+      '<div class="chan-field"><label>Password</label><input class="chan-input" type="password" id="ftPass" value="' + esc(ft.pass) + '"></div>' +
+      '<div style="display:flex;gap:8px;align-items:center">' +
+      '<button class="btn btn-outline btn-sm" id="ftTest">Test connection</button>' +
+      '<button class="btn btn-navy btn-sm" id="ftSave">Save credentials</button>' +
+      '</div>' +
+      (ft.health === 'fail' ? '<div class="test-note" style="color:var(--crimson-dark)">⚠ Last push failed — auth timeout. Fix credentials or ask client to whitelist UNB IPs.</div>' : '') +
+      '</div></div>' +
+
+      '<div class="chan-row' + (ap.on ? ' open' : '') + '"><div class="chan-top">' +
+      '<span class="chan-ic">' + CH_META.api.ic + '</span>' +
+      '<span><span class="chan-name">API access</span><div class="chan-sub">' + (ap.on ? 'Live key · JSON feed + webhooks' : 'Not enabled') + '</div></span>' +
+      healthPill(ap) +
+      '<label class="switch"><input type="checkbox" data-ch="api"' + (ap.on ? ' checked' : '') + '><span class="tr"></span></label>' +
+      '</div><div class="chan-body">' +
+      '<div class="chan-field"><label>API key</label><div class="key-row">' +
+      '<input class="chan-input" id="apiKey" type="password" readonly value="' + esc(ap.key || '') + '" placeholder="Generated on enable">' +
+      '<button class="key-btn" id="apiReveal">Reveal</button>' +
+      '<button class="key-btn" id="apiRegen">Regenerate</button>' +
+      '</div></div>' +
+      '<div class="chan-field" style="margin-bottom:0"><label>Webhook URL</label><input class="chan-input" id="apiHook" value="' + esc(ap.webhook) + '" placeholder="https://…"></div>' +
+      '</div></div>';
+  }
+
+  function bindChannels(c) {
+    document.querySelectorAll('#drBody [data-ch]').forEach(sw => sw.addEventListener('change', () => {
+      const ch = c.channels[sw.dataset.ch];
+      ch.on = sw.checked;
+      if (ch.on) {
+        if (sw.dataset.ch === 'api' && !ch.key) ch.key = 'unb_live_' + Math.random().toString(16).slice(2, 18);
+        ch.health = 'ok';
+        pushActivity(c, '#16a34a', CH_META[sw.dataset.ch].name + ' channel enabled');
+      } else {
+        ch.health = 'off';
+        pushActivity(c, '#7c7f8c', CH_META[sw.dataset.ch].name + ' channel disabled');
+      }
+      toast('<b>' + esc(c.name) + '</b> — ' + CH_META[sw.dataset.ch].name + ' ' + (ch.on ? 'enabled' : 'disabled'));
+      renderDrawer(); renderList(); renderStats();
+    }));
+
+    const em = c.channels.email;
+    document.querySelectorAll('#drBody [data-rm-email]').forEach(b => b.addEventListener('click', () => {
+      em.list = em.list.filter(e => e !== b.dataset.rmEmail);
+      renderDrawer();
+    }));
+    const emAddBtn = document.getElementById('emAddBtn');
+    if (emAddBtn) emAddBtn.addEventListener('click', () => {
+      const inp = document.getElementById('emAdd');
+      const v = inp.value.trim();
+      if (!v || !v.includes('@')) { inp.focus(); return; }
+      em.list.push(v);
+      renderDrawer();
+    });
+
+    const ftTest = document.getElementById('ftTest');
+    if (ftTest) ftTest.addEventListener('click', function () {
+      const ft = c.channels.ftp;
+      this.textContent = 'Testing…';
+      setTimeout(() => {
+        ft.health = 'ok';
+        pushActivity(c, '#16a34a', 'FTP connection test passed');
+        toast('FTP connection to <b>' + esc(c.name) + '</b> is healthy');
+        renderDrawer(); renderList(); renderStats();
+      }, 900);
+    });
+    const ftSave = document.getElementById('ftSave');
+    if (ftSave) ftSave.addEventListener('click', function () {
+      const ft = c.channels.ftp;
+      ft.host = document.getElementById('ftHost').value.trim();
+      ft.user = document.getElementById('ftUser').value.trim();
+      ft.port = document.getElementById('ftPort').value.trim();
+      ft.pass = document.getElementById('ftPass').value;
+      pushActivity(c, '#3b6fe0', 'FTP credentials updated');
+      flash(this, 'Saved');
+      renderList();
+    });
+
+    const rev = document.getElementById('apiReveal');
+    if (rev) rev.addEventListener('click', function () {
+      const inp = document.getElementById('apiKey');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+      this.textContent = inp.type === 'password' ? 'Reveal' : 'Hide';
+    });
+    const regen = document.getElementById('apiRegen');
+    if (regen) regen.addEventListener('click', function () {
+      if (!this.dataset.sure) { this.dataset.sure = '1'; this.textContent = 'Sure? Old key dies'; return; }
+      c.channels.api.key = 'unb_live_' + Math.random().toString(16).slice(2, 18);
+      pushActivity(c, '#f0a832', 'API key regenerated — old key invalidated');
+      toast('New API key issued for <b>' + esc(c.name) + '</b>');
+      renderDrawer();
+    });
+  }
+
+  function packageHtml(c) {
+    const pkgs = [
+      ['Premium Wire + Media', 'Full wire + photos/videos + priority support', '৳85k/mo', 'Premium'],
+      ['Standard Wire', 'Full text wire + 200 photos/mo', '৳45k/mo', 'Standard'],
+      ['Basic Headlines', 'Headlines + briefs only, no media', '৳18k/mo', 'Basic']
+    ];
+    const addons = [['AP World pack', '+৳30k/mo'], ['Bangla service', '+৳20k/mo']];
+    return '<div class="pkg-current"><div class="pkg-name">' + esc(c.pkg) + '</div>' +
+      '<div class="pkg-since">Current package · since ' + esc(c.since) + ' · renews ' + esc(c.renewal) + '</div></div>' +
+      '<div class="dr-sec"><div class="dr-sec-title">Change package</div>' +
+      pkgs.map(p => '<label class="pkg-opt' + (c.pkg === p[0] ? ' sel' : '') + '"><input type="radio" name="dPkg" value="' + p[0] + '"' + (c.pkg === p[0] ? ' checked' : '') + '><span><span class="pn">' + p[0] + '</span><span class="pd" style="display:block">' + p[1] + '</span></span><span class="pp">' + p[2] + '</span></label>').join('') +
+      '</div>' +
+      '<div class="dr-sec"><div class="dr-sec-title">Add-ons</div>' +
+      addons.map(a => '<label class="addon-check"><input type="checkbox" class="dAddon" value="' + a[0] + '"' + (c.addons.includes(a[0]) ? ' checked' : '') + '>' + a[0] + '<span class="ap">' + a[1] + '</span></label>').join('') +
+      '</div>' +
+      '<div class="dr-sec"><div class="dr-sec-title">Effective</div>' +
+      '<select class="select-input" id="pkgWhen" style="width:100%"><option>Immediately (prorated)</option><option>Next billing cycle — ' + esc(c.renewal) + '</option></select>' +
+      '<div style="margin-top:13px;text-align:right"><button class="btn btn-primary btn-sm" id="pkgApply">Apply changes</button></div></div>';
+  }
+
+  function bindPackage(c) {
+    document.querySelectorAll('#drBody .pkg-opt').forEach(o => o.addEventListener('click', () => {
+      document.querySelectorAll('#drBody .pkg-opt').forEach(x => x.classList.toggle('sel', x === o));
+    }));
+    document.getElementById('pkgApply').addEventListener('click', function () {
+      const np = document.querySelector('#drBody input[name="dPkg"]:checked').value;
+      const na = [...document.querySelectorAll('#drBody .dAddon:checked')].map(x => x.value);
+      const when = document.getElementById('pkgWhen').value;
+      const changed = np !== c.pkg || na.join() !== c.addons.join();
+      if (!changed) { toast('No changes to apply'); return; }
+      c.pkg = np;
+      c.tier = np.startsWith('Premium') ? 'Premium' : np.startsWith('Standard') ? 'Standard' : 'Basic';
+      c.addons = na;
+      pushActivity(c, '#3b6fe0', 'Package updated → ' + np + (na.length ? ' + ' + na.join(', ') : '') + ' (' + when.split(' —')[0].toLowerCase() + ')');
+      toast('<b>' + esc(c.name) + '</b> package updated');
+      renderDrawer(); renderList();
+    });
+  }
+
+  function activityHtml(c) {
+    return '<div class="dr-sec"><div class="dr-sec-title">Timeline</div>' +
+      c.activity.map(a => '<div class="tl-item"><span class="tl-dot" style="background:' + a.c + '"></span><div><div class="tl-text">' + esc(a.t) + '</div><div class="tl-time">' + esc(a.w) + '</div></div></div>').join('') +
+      '</div>';
+  }
+
+  // ===== pause / deactivate =====
+  const pauseOverlay = document.getElementById('pauseOverlay');
+  const deactOverlay = document.getElementById('deactOverlay');
+  function openPause(id) { pauseTarget = id; document.getElementById('pauseName').textContent = clientOf(id).name; pauseOverlay.classList.add('open'); }
+  function openDeact(id) {
+    deactTarget = id;
+    document.getElementById('deactName').textContent = clientOf(id).name;
+    document.getElementById('deactCheck').checked = false;
+    document.getElementById('deactConfirm').disabled = true;
+    deactOverlay.classList.add('open');
+  }
+  document.getElementById('deactCheck').addEventListener('change', function () {
+    document.getElementById('deactConfirm').disabled = !this.checked;
+  });
+  document.getElementById('pauseConfirm').addEventListener('click', () => {
+    const c = clientOf(pauseTarget);
+    c.status = 'paused';
+    c.pauseReason = document.getElementById('pauseReason').value;
+    const note = document.getElementById('pauseNote').value.trim();
+    const resume = document.getElementById('pauseResume').value;
+    pushActivity(c, '#f0a832', 'Deliveries paused — reason: ' + c.pauseReason + (resume ? ' · auto-resume ' + resume : '') + (note ? ' — ' + note : ''));
+    pauseOverlay.classList.remove('open');
+    toast('<b>' + esc(c.name) + '</b> paused — deliveries held, portal read-only');
+    renderAll();
+  });
+  document.getElementById('deactConfirm').addEventListener('click', () => {
+    const c = clientOf(deactTarget);
+    c.status = 'deactivated';
+    Object.values(c.channels).forEach(ch => { ch.on = false; ch.health = 'off'; });
+    pushActivity(c, '#7c7f8c', 'Client deactivated — access revoked, records kept');
+    deactOverlay.classList.remove('open');
+    toast('<b>' + esc(c.name) + '</b> deactivated');
+    renderAll();
+  });
+  document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => document.getElementById(b.dataset.close).classList.remove('open')));
+  [pauseOverlay, deactOverlay].forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }));
+
+  function renderAll() { renderList(); renderStats(); if (openId !== null) renderDrawer(); }
+
+  // ===== onboard wizard =====
+  const wizOverlay = document.getElementById('wizOverlay');
+  let wizStep = 1;
+  function wizShow(n) {
+    wizStep = n;
+    document.querySelectorAll('.wiz-pane').forEach(p => p.classList.toggle('active', +p.dataset.wp === n));
+    document.querySelectorAll('.wiz-step').forEach(s => {
+      const k = +s.dataset.ws;
+      s.classList.toggle('active', k === n);
+      s.classList.toggle('done', k < n);
+    });
+    document.getElementById('wizBack').style.visibility = n > 1 ? 'visible' : 'hidden';
+    document.getElementById('wizNext').style.display = n < 3 ? '' : 'none';
+    document.getElementById('wizActivate').style.display = n === 3 ? '' : 'none';
+    if (n === 3) {
+      const pkg = document.querySelector('#wPkgs input:checked').value;
+      const addons = [...document.querySelectorAll('.waddon:checked')].map(x => x.value);
+      const chans = ['Portal'].concat([...document.querySelectorAll('.wchan:checked')].map(x => CH_META[x.value].name));
+      document.getElementById('wizReview').innerHTML =
+        '<div class="dr-kv"><span class="k">Organisation</span><span class="v">' + esc(document.getElementById('wName').value.trim()) + '</span></div>' +
+        '<div class="dr-kv"><span class="k">Type / city</span><span class="v">' + esc(document.getElementById('wType').value) + ' · ' + esc(document.getElementById('wCity').value.trim() || 'Dhaka') + '</span></div>' +
+        '<div class="dr-kv"><span class="k">Contact</span><span class="v">' + esc(document.getElementById('wContact').value.trim() || '—') + ' · ' + esc(document.getElementById('wEmail').value.trim()) + '</span></div>' +
+        '<div class="dr-kv"><span class="k">Package</span><span class="v">' + esc(pkg) + (addons.length ? ' + ' + esc(addons.join(', ')) : '') + '</span></div>' +
+        '<div class="dr-kv"><span class="k">Channels</span><span class="v">' + chans.join(' · ') + '</span></div>';
+    }
+  }
+  document.getElementById('addClientBtn').addEventListener('click', () => { wizShow(1); wizOverlay.classList.add('open'); });
+  wizOverlay.addEventListener('click', e => { if (e.target === wizOverlay) wizOverlay.classList.remove('open'); });
+  document.getElementById('wizBack').addEventListener('click', () => wizShow(wizStep - 1));
+  document.getElementById('wizNext').addEventListener('click', () => {
+    if (wizStep === 1) {
+      if (!document.getElementById('wName').value.trim()) { document.getElementById('wName').focus(); toast('Organisation name is required'); return; }
+      if (!document.getElementById('wEmail').value.trim().includes('@')) { document.getElementById('wEmail').focus(); toast('Valid contact email is required'); return; }
+    }
+    wizShow(wizStep + 1);
+  });
+  document.getElementById('wizActivate').addEventListener('click', () => {
+    const name = document.getElementById('wName').value.trim();
+    const pkg = document.querySelector('#wPkgs input:checked').value;
+    const chans = {};
+    ['email', 'ftp', 'api'].forEach(k => {
+      const on = [...document.querySelectorAll('.wchan:checked')].some(x => x.value === k);
+      chans[k] = k === 'email'
+        ? { on: on, list: on ? [document.getElementById('wEmail').value.trim()] : [], health: on ? 'ok' : 'off' }
+        : k === 'ftp'
+          ? { on: on, host: '', user: '', port: '21', pass: '', health: on ? 'ok' : 'off' }
+          : { on: on, key: on ? 'unb_live_' + Math.random().toString(16).slice(2, 18) : '', webhook: '', health: on ? 'ok' : 'off' };
+    });
+    const ini = name.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    CLIENTS.unshift({
+      id: Date.now(), name: name, ini: ini, grad: 'g' + (1 + CLIENTS.length % 8), type: document.getElementById('wType').value,
+      city: document.getElementById('wCity').value.trim() || 'Dhaka',
+      tier: pkg.startsWith('Premium') ? 'Premium' : pkg.startsWith('Standard') ? 'Standard' : 'Basic',
+      status: 'active', pkg: pkg, addons: [...document.querySelectorAll('.waddon:checked')].map(x => x.value),
+      renewal: '25 Sep 2027', renewDays: 396, since: 'Aug 2026',
+      contacts: [{ n: document.getElementById('wContact').value.trim() || 'News Desk', r: 'Primary', e: document.getElementById('wEmail').value.trim() }],
+      channels: chans,
+      usage: { dl: 0, quota: pkg.startsWith('Premium') ? 2000 : pkg.startsWith('Standard') ? 800 : 200, api: chans.api.on ? '0' : '—', last: 'Just now' },
+      note: '', activity: [{ c: '#16a34a', t: 'Client onboarded — ' + pkg, w: 'Just now' }]
+    });
+    wizOverlay.classList.remove('open');
+    toast('<b>' + esc(name) + '</b> onboarded — credentials emailed to client');
+    renderList(); renderStats();
+    ['wName', 'wCity', 'wContact', 'wEmail'].forEach(id => document.getElementById(id).value = '');
+  });
+
+  // Esc closes anything open
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    closeDrawer();
+    [pauseOverlay, deactOverlay, wizOverlay].forEach(o => o.classList.remove('open'));
+  });
+
+  // ===== header: dropdowns + Dhaka clock =====
+  function setupDrop(btnId, dropId) {
+    const btn = document.getElementById(btnId);
+    const drop = document.getElementById(dropId);
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      document.querySelectorAll('.drop.open').forEach(d => { if (d !== drop) d.classList.remove('open'); });
+      drop.classList.toggle('open');
+    });
+    drop.addEventListener('click', e => e.stopPropagation());
+  }
+  setupDrop('bellBtn', 'bellDrop');
+  setupDrop('userBtn', 'userDrop');
+  document.addEventListener('click', () => document.querySelectorAll('.drop.open').forEach(d => d.classList.remove('open')));
+
+  function tickClock() {
+    const now = new Date();
+    const d = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Dhaka', weekday: 'short', day: 'numeric', month: 'short' }).format(now);
+    const t = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Dhaka', hour: 'numeric', minute: '2-digit', hour12: true }).format(now);
+    document.getElementById('clockTime').textContent = 'Dhaka · ' + d + ' · ' + t;
+  }
+  tickClock();
+  setInterval(tickClock, 30000);
+
+  renderStats();
+  renderList();
+</script>
+</body>
+</html>

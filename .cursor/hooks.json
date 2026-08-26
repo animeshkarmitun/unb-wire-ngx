@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterFileEdit": [
+      {
+        "command": "php .cursor/hooks/php-lint.php"
+      }
+    ],
+    "afterShellExecution": [
+      {
+        "command": "php .cursor/hooks/track-test-run.php"
+      }
+    ],
+    "stop": [
+      {
+        "command": "php .cursor/hooks/stop-test-gate.php",
+        "loop_limit": 1
+      }
+    ]
+  }
+}

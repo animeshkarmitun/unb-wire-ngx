@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNB Field — Photo Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@6..72,400;6..72,600;6..72,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy-900: #0f1730;
+    --navy-800: #16204a;
+    --crimson: #e5484d;
+    --crimson-dark: #d13438;
+    --crimson-soft: #fdecec;
+    --amber: #f0a832;
+    --paper: #faf9f6;
+    --panel: #ffffff;
+    --border: #eceae5;
+    --ink: #1c1f2e;
+    --muted: #7c7f8c;
+    --muted-2: #b0b2bc;
+    --green: #16a34a;
+    --green-bg: #e5f6ec;
+    --blue: #3b6fe0;
+    --blue-bg: #e9f0fd;
+    --purple: #7c3aed;
+    --purple-bg: #f3eafe;
+    --serif: "Source Serif 4", Georgia, serif;
+    --sans: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--sans); background: #efece6; color: var(--ink); -webkit-font-smoothing: antialiased; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ============ FIELD APP SHELL ============ */
+  .field-app { max-width: 680px; margin: 0 auto; min-height: 100vh; background: var(--paper); box-shadow: 0 0 60px rgba(15,23,48,0.08); display: flex; flex-direction: column; }
+
+  /* ---- top bar ---- */
+  .mj-top {
+    position: sticky; top: 0; z-index: 50;
+    background: linear-gradient(135deg, var(--navy-800), var(--navy-900));
+    padding: 14px 18px; display: flex; align-items: center; gap: 12px;
+  }
+  .mj-top::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--crimson), var(--amber)); }
+  .mj-brand { display: flex; align-items: center; gap: 10px; }
+  .mj-mark { width: 34px; height: 34px; border-radius: 10px; background: var(--crimson); color: #fff; font-family: "Fraunces", Georgia, serif; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+  .mj-title { color: #fff; font-family: "Fraunces", Georgia, serif; font-size: 16px; font-weight: 600; line-height: 1.15; }
+  .mj-sub { color: #8f9cc7; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 1px; }
+  .net-toggle {
+    margin-left: auto; display: flex; align-items: center; gap: 7px;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 999px; padding: 5px 12px 5px 7px; cursor: pointer; font-family: var(--sans);
+    color: #cdd5ee; font-size: 11px; font-weight: 700; transition: all 0.15s ease;
+  }
+  .net-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px rgba(22,163,74,0.8); }
+  .net-toggle.off { border-color: rgba(229,72,77,0.5); color: #ff9d9f; }
+  .net-toggle.off .net-dot { background: var(--crimson); box-shadow: 0 0 8px rgba(229,72,77,0.8); }
+  .mj-av { width: 34px; height: 34px; border-radius: 50%; background: var(--amber); color: var(--navy-900); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+
+  /* ---- views ---- */
+  .mj-main { flex: 1; padding: 18px 16px 110px; }
+  .mj-view { display: none; }
+  .mj-view.active { display: block; animation: fadeUp 0.2s ease; }
+  .mj-hello { font-family: "Fraunces", Georgia, serif; font-size: 23px; font-weight: 600; letter-spacing: -0.01em; }
+  .mj-hello-sub { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+
+  /* ---- stats ---- */
+  .mj-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin: 16px 0 18px; }
+  .mj-stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 11px 10px; text-align: center; }
+  .mj-stat b { display: block; font-family: "Fraunces", Georgia, serif; font-size: 21px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .mj-stat b.green { color: var(--green); }
+  .mj-stat b.red { color: var(--crimson-dark); }
+  .mj-stat span { font-size: 9.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* ---- big CTA ---- */
+  .mj-file-cta {
+    display: flex; align-items: center; gap: 14px; width: 100%;
+    background: linear-gradient(135deg, var(--crimson), var(--crimson-dark));
+    border: none; border-radius: 16px; padding: 18px; cursor: pointer;
+    color: #fff; text-align: left; font-family: var(--sans);
+    box-shadow: 0 10px 26px rgba(229,72,77,0.35); transition: transform 0.14s ease;
+    margin-bottom: 18px;
+  }
+  .mj-file-cta:hover { transform: translateY(-2px); }
+  .mj-file-cta:active { transform: scale(0.985); }
+  .mj-file-cta .cta-ic { width: 46px; height: 46px; border-radius: 13px; background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .mj-file-cta .cta-ic svg { width: 21px; height: 21px; stroke: #fff; }
+  .cta-t { font-size: 16.5px; font-weight: 700; font-family: "Fraunces", Georgia, serif; }
+  .cta-s { font-size: 11.5px; opacity: 0.85; margin-top: 2px; }
+  .cta-arrow { margin-left: auto; font-size: 19px; font-weight: 700; }
+
+  /* ---- section titles ---- */
+  .mj-sec-t { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-2); margin: 20px 2px 10px; display: flex; align-items: center; gap: 8px; }
+  .mj-sec-t .cnt { background: #f3f1ee; color: var(--muted); border-radius: 999px; padding: 1px 8px; font-size: 10px; }
+
+  /* ---- batch cards (home + status) ---- */
+  .bt-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 14px 15px; margin-bottom: 10px; }
+  .bt-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+  .urg-tag { font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 5px; }
+  .urg-tag.breaking { background: var(--crimson); color: #fff; }
+  .urg-tag.urgent { background: #fdf3e0; color: #b7791f; }
+  .urg-tag.normal { background: #f3f1ee; color: var(--muted); }
+  .bt-time { font-size: 10.5px; color: var(--muted-2); margin-left: auto; font-variant-numeric: tabular-nums; }
+  .bt-event { font-family: var(--serif); font-size: 15.5px; font-weight: 600; line-height: 1.4; }
+  .bt-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 7px; font-size: 11px; color: var(--muted-2); }
+  .bt-meta svg { width: 11px; height: 11px; stroke: var(--muted-2); vertical-align: -1px; margin-right: 2px; }
+  .st-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 700; padding: 4px 11px; border-radius: 999px; }
+  .st-pill i { width: 6px; height: 6px; border-radius: 50%; }
+  .st-sending { background: var(--blue-bg); color: var(--blue); } .st-sending i { background: var(--blue); }
+  .st-queued { background: #f3f1ee; color: var(--muted); } .st-queued i { background: var(--muted-2); }
+  .st-pending { background: #fdf3e0; color: #b7791f; } .st-pending i { background: var(--amber); }
+  .st-review { background: var(--purple-bg); color: var(--purple); } .st-review i { background: var(--purple); }
+  .st-approved { background: var(--green-bg); color: var(--green); } .st-approved i { background: var(--green); }
+  .st-reedit { background: var(--blue-bg); color: var(--blue); } .st-reedit i { background: var(--blue); }
+  .st-rejected { background: var(--crimson-soft); color: var(--crimson-dark); } .st-rejected i { background: var(--crimson); }
+  .bt-thumbs { display: flex; gap: 6px; margin-top: 10px; }
+  .bt-thumbs .th { width: 46px; height: 46px; border-radius: 8px; overflow: hidden; }
+  .bt-thumbs .th img { width: 100%; height: 100%; object-fit: cover; }
+  .bt-thumbs .th.more { background: var(--navy-800); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+  .bt-prog { height: 4px; border-radius: 3px; background: var(--border); overflow: hidden; margin-top: 10px; }
+  .bt-prog span { display: block; height: 100%; background: var(--blue); transition: width 0.2s linear; }
+  .bt-note { display: flex; gap: 8px; border-radius: 9px; padding: 9px 11px; margin-top: 10px; font-size: 12px; line-height: 1.5; }
+  .bt-note svg { width: 13px; height: 13px; flex-shrink: 0; margin-top: 2px; }
+  .bt-note.red { background: var(--crimson-soft); color: var(--crimson-dark); }
+  .bt-note.red svg { stroke: var(--crimson-dark); }
+  .bt-note.blue { background: var(--blue-bg); color: var(--blue); }
+  .bt-note.blue svg { stroke: var(--blue); }
+  .bt-note.green { background: var(--green-bg); color: var(--green); }
+  .bt-note.green svg { stroke: var(--green); }
+  .bt-acts { display: flex; gap: 8px; margin-top: 11px; }
+  .bt-btn { flex: 1; border-radius: 9px; padding: 9px; font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: var(--sans); border: 1px solid #e3e1da; background: #fff; color: #4b4e5c; transition: all 0.13s ease; }
+  .bt-btn:hover { border-color: var(--navy-800); color: var(--navy-800); }
+  .bt-btn.dark { background: var(--navy-800); border-color: var(--navy-800); color: #fff; }
+  .bt-btn.dark:hover { background: var(--navy-900); }
+
+  /* ---- upload view ---- */
+  .cmp-card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+  .cmp-label { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted-2); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .cmp-input { width: 100%; border: 1px solid #e3e1da; border-radius: 11px; padding: 12px 14px; font-size: 14px; font-family: var(--sans); color: var(--ink); background: var(--paper); outline: none; transition: border 0.13s ease, background 0.13s ease; }
+  .cmp-input:focus { border-color: var(--crimson); background: #fff; }
+  .dl-row { display: flex; gap: 9px; }
+  .dl-row .cmp-input:first-child { max-width: 150px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.04em; }
+  .dl-auto { font-size: 10.5px; color: var(--muted-2); margin-top: 7px; display: flex; align-items: center; gap: 5px; }
+  .dl-auto svg { width: 11px; height: 11px; stroke: var(--green); }
+  .urg-seg { display: flex; gap: 6px; }
+  .urg-opt { position: relative; flex: 1; }
+  .urg-opt input { position: absolute; opacity: 0; pointer-events: none; }
+  .urg-opt span { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 6px; border-radius: 10px; border: 1px solid #e3e1da; background: #fff; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; transition: all 0.13s ease; user-select: none; }
+  .urg-opt input:checked + span[data-u="breaking"] { background: var(--crimson); border-color: var(--crimson); color: #fff; }
+  .urg-opt input:checked + span[data-u="urgent"] { background: var(--amber); border-color: var(--amber); color: #fff; }
+  .urg-opt input:checked + span[data-u="normal"] { background: var(--navy-800); border-color: var(--navy-800); color: #fff; }
+
+  .asg-banner { display: none; align-items: center; gap: 10px; background: var(--blue-bg); border: 1px solid #cfe0fb; border-radius: 12px; padding: 11px 13px; margin-bottom: 14px; font-size: 12.5px; color: var(--blue); font-weight: 600; line-height: 1.45; }
+  .asg-banner.show { display: flex; }
+  .asg-banner svg { width: 15px; height: 15px; stroke: var(--blue); flex-shrink: 0; }
+  .asg-banner button { margin-left: auto; border: none; background: rgba(59,111,224,0.14); color: var(--blue); border-radius: 7px; padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: var(--sans); }
+
+  /* photo batch cards in upload */
+  .ph-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ph-card { background: var(--panel); border: 1px solid var(--border); border-radius: 13px; overflow: hidden; }
+  .ph-thumb { position: relative; height: 108px; background: #e8e6e1; }
+  .ph-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ph-x { position: absolute; top: 6px; right: 6px; width: 21px; height: 21px; border-radius: 50%; border: none; background: rgba(15,23,48,0.72); color: #fff; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .ph-num { position: absolute; top: 6px; left: 6px; background: rgba(15,23,48,0.72); color: #fff; font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 5px; }
+  .ph-body { padding: 9px 10px 10px; }
+  .ph-cap { width: 100%; border: 1px solid #e8e6e0; border-radius: 8px; padding: 7px 9px; font-size: 11.5px; font-family: var(--sans); color: var(--ink); background: var(--paper); outline: none; resize: vertical; min-height: 46px; line-height: 1.45; }
+  .ph-cap:focus { border-color: var(--crimson); background: #fff; }
+  .ph-add {
+    border: 1.5px dashed #d8d5cd; background: #fcfbf8; border-radius: 13px; min-height: 170px;
+    color: var(--muted-2); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
+    font-size: 11.5px; font-weight: 600; font-family: var(--sans); transition: all 0.13s ease;
+  }
+  .ph-add:hover { border-color: var(--crimson); color: var(--crimson-dark); background: var(--crimson-soft); }
+  .ph-add svg { width: 24px; height: 24px; stroke: currentColor; }
+  .credit-line { display: flex; align-items: center; gap: 7px; background: var(--paper); border: 1px dashed var(--border); border-radius: 9px; padding: 8px 11px; font-size: 11px; color: var(--muted); margin-top: 10px; }
+  .credit-line svg { width: 12px; height: 12px; stroke: var(--muted-2); flex-shrink: 0; }
+  .credit-line b { color: var(--ink); }
+
+  .cmp-actions { display: flex; gap: 10px; position: sticky; bottom: 86px; z-index: 20; }
+  .btn { font-family: var(--sans); font-size: 14px; font-weight: 600; padding: 13px 18px; border-radius: 12px; cursor: pointer; border: 1px solid transparent; transition: all 0.14s ease; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn svg { width: 15px; height: 15px; stroke: currentColor; }
+  .btn-outline { background: var(--panel); border-color: #e3e1da; color: var(--ink); }
+  .btn-outline:hover { border-color: var(--navy-800); }
+  .btn-send { flex: 1; background: var(--crimson); color: #fff; font-size: 15px; box-shadow: 0 8px 22px rgba(229,72,77,0.35); }
+  .btn-send:hover { background: var(--crimson-dark); }
+
+  /* ---- assignments ---- */
+  .as-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 15px; margin-bottom: 11px; }
+  .as-card.pending { border-left: 4px solid var(--amber); }
+  .as-card.accepted { border-left: 4px solid var(--green); }
+  .as-card.declined { border-left: 4px solid var(--muted-2); opacity: 0.75; }
+  .as-title { font-family: var(--serif); font-size: 15.5px; font-weight: 600; line-height: 1.4; }
+  .as-brief { font-size: 12.5px; color: var(--muted); line-height: 1.6; margin-top: 5px; }
+  .shot-list { margin: 9px 0 0; padding: 0; list-style: none; }
+  .shot-list li { font-size: 11.5px; color: #4b4e5c; padding: 4px 0 4px 19px; position: relative; border-top: 1px dashed var(--border); }
+  .shot-list li::before { content: ""; position: absolute; left: 4px; top: 9px; width: 7px; height: 7px; border-radius: 50%; border: 2px solid var(--crimson); }
+  .shot-list li.done { color: var(--muted-2); text-decoration: line-through; }
+  .shot-list li.done::before { background: var(--green); border-color: var(--green); }
+  .as-meta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 9px; font-size: 11px; color: var(--muted-2); }
+  .as-meta svg { width: 11px; height: 11px; stroke: var(--muted-2); vertical-align: -1px; margin-right: 3px; }
+  .as-acts { display: flex; gap: 8px; margin-top: 12px; }
+  .as-btn { flex: 1; border-radius: 9px; padding: 9px; font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: var(--sans); border: 1px solid #e3e1da; background: #fff; color: #4b4e5c; transition: all 0.13s ease; }
+  .as-btn.yes { background: var(--green); border-color: var(--green); color: #fff; }
+  .as-btn.yes:hover { background: #128a3e; }
+  .as-btn.no:hover { border-color: var(--crimson); color: var(--crimson-dark); }
+  .as-btn.file { background: var(--navy-800); border-color: var(--navy-800); color: #fff; }
+  .as-state { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 9px; border-radius: 5px; }
+  .as-state.pending { background: #fdf3e0; color: #b7791f; }
+  .as-state.accepted { background: var(--green-bg); color: var(--green); }
+  .as-state.declined { background: #f3f1ee; color: var(--muted); }
+
+  /* ---- profile ---- */
+  .pf-card { background: linear-gradient(135deg, var(--navy-800), var(--navy-900)); border-radius: 16px; padding: 20px; color: #fff; display: flex; gap: 15px; align-items: center; }
+  .pf-av { width: 58px; height: 58px; border-radius: 50%; background: var(--amber); color: var(--navy-900); font-size: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .pf-name { font-family: "Fraunces", Georgia, serif; font-size: 19px; font-weight: 600; }
+  .pf-sub { font-size: 11.5px; color: #8f9cc7; margin-top: 3px; }
+  .pf-list { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .pf-row { display: flex; align-items: center; gap: 11px; padding: 13px 16px; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+  .pf-row:last-child { border-bottom: none; }
+  .pf-row svg { width: 15px; height: 15px; stroke: var(--muted-2); }
+  .pf-row b { margin-left: auto; font-weight: 700; }
+  .byl-row { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .byl-row:last-child { border-bottom: none; }
+  .byl-head { font-family: var(--serif); font-size: 13.5px; font-weight: 600; line-height: 1.45; }
+  .byl-meta { font-size: 10.5px; color: var(--muted-2); margin-top: 3px; }
+
+  /* ---- bottom nav ---- */
+  .mj-nav {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: min(680px, 100%); z-index: 60;
+    background: rgba(255,255,255,0.96); backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border);
+    display: flex; padding: 8px 6px 12px;
+  }
+  .mn-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; border: none; background: none; cursor: pointer; font-family: var(--sans); font-size: 10px; font-weight: 600; color: var(--muted-2); padding: 5px 0; border-radius: 10px; transition: color 0.13s ease; position: relative; }
+  .mn-item svg { width: 19px; height: 19px; stroke: currentColor; }
+  .mn-item.active { color: var(--crimson); }
+  .mn-badge { position: absolute; top: 0; right: 50%; margin-right: -22px; background: var(--crimson); color: #fff; font-size: 9px; font-weight: 700; min-width: 15px; height: 15px; border-radius: 999px; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
+
+  /* ---- toast ---- */
+  .toast-wrap { position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%); z-index: 300; display: flex; flex-direction: column; gap: 9px; width: min(400px, calc(100% - 32px)); }
+  .toast { background: var(--navy-900); color: #fff; border-radius: 12px; padding: 12px 16px; font-size: 13px; font-weight: 500; box-shadow: 0 12px 30px rgba(15,23,48,0.35); animation: fadeUp 0.2s ease; text-align: center; }
+  .toast b { color: #ffd166; }
+
+  .empty-mini { text-align: center; color: var(--muted-2); font-size: 12.5px; padding: 22px 10px; }
+
+  /* gradients for demo thumbs */
+  .g1 { background: linear-gradient(135deg, #3b6fe0, #16204a); }
+  .g2 { background: linear-gradient(135deg, #e5484d, #7a1f2b); }
+  .g3 { background: linear-gradient(135deg, #16a34a, #0b3d24); }
+  .g4 { background: linear-gradient(135deg, #f0a832, #8a5410); }
+  .g5 { background: linear-gradient(135deg, #7c3aed, #2e1065); }
+  .g6 { background: linear-gradient(135deg, #0ea5e9, #0c4a6e); }
+  .g7 { background: linear-gradient(135deg, #db2777, #831843); }
+  .g8 { background: linear-gradient(135deg, #64748b, #1e293b); }
+</style>
+</head>
+<body>
+<div class="field-app">
+
+  <!-- ============ TOP BAR ============ -->
+  <header class="mj-top">
+    <div class="mj-brand">
+      <div class="mj-mark">U</div>
+      <div>
+        <div class="mj-title">UNB Field</div>
+        <div class="mj-sub">Photo Desk</div>
+      </div>
+    </div>
+    <button class="net-toggle" id="netToggle" title="Toggle network (demo — offline queues your uploads)">
+      <span class="net-dot"></span><span id="netLabel">Online</span>
+    </button>
+    <div class="mj-av">RS</div>
+  </header>
+
+  <main class="mj-main">
+
+    <!-- ============ HOME ============ -->
+    <section class="mj-view active" data-view="home">
+      <div class="mj-hello">Photo desk, Rashed</div>
+      <div class="mj-hello-sub" id="helloClock">Dhaka · —</div>
+
+      <div class="mj-stats">
+        <div class="mj-stat"><b id="statSent">0</b><span>Sent today</span></div>
+        <div class="mj-stat"><b class="green" id="statAppr">0</b><span>Approved</span></div>
+        <div class="mj-stat"><b class="red" id="statRej">0</b><span>Rejected</span></div>
+        <div class="mj-stat"><b id="statDl">0</b><span>Client DLs</span></div>
+      </div>
+
+      <button class="mj-file-cta" id="ctaUpload">
+        <span class="cta-ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
+        <span>
+          <span class="cta-t">Upload a photo batch</span><br>
+          <span class="cta-s">Select frames, caption once, send — desk approves in minutes</span>
+        </span>
+        <span class="cta-arrow">→</span>
+      </button>
+
+      <div id="homeAsg"></div>
+
+      <div class="mj-sec-t">My batches <span class="cnt" id="cntBatches">0</span></div>
+      <div id="batchList"></div>
+    </section>
+
+    <!-- ============ UPLOAD ============ -->
+    <section class="mj-view" data-view="upload">
+      <div class="mj-hello">Upload photos</div>
+      <div class="mj-hello-sub">Batch goes to the photo desk queue. Caption the set once — credit line is automatic.</div>
+
+      <div class="asg-banner" id="asgBanner">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        <span id="asgBannerText">Filing to assignment</span>
+        <button id="asgBannerClear">Clear</button>
+      </div>
+
+      <div class="cmp-card">
+        <div class="cmp-label">Urgency</div>
+        <div class="urg-seg" id="urgSeg">
+          <label class="urg-opt"><input type="radio" name="urg" value="breaking"><span data-u="breaking">🔴 Breaking</span></label>
+          <label class="urg-opt"><input type="radio" name="urg" value="urgent"><span data-u="urgent">🟠 Urgent</span></label>
+          <label class="urg-opt"><input type="radio" name="urg" value="normal" checked><span data-u="normal">Normal</span></label>
+        </div>
+      </div>
+
+      <div class="cmp-card">
+        <div class="cmp-label">Batch details — applies to every frame</div>
+        <input class="cmp-input" id="batchEvent" placeholder="Event / story tag, e.g. BNP rally, Nayapaltan…" style="margin-bottom:9px">
+        <div class="dl-row">
+          <input class="cmp-input" id="dlCity" value="DHAKA" list="dlCities">
+          <datalist id="dlCities">
+            <option value="DHAKA"></option><option value="CHATTOGRAM"></option><option value="RAJSHAHI"></option>
+            <option value="KHULNA"></option><option value="SYLHET"></option><option value="BARISHAL"></option>
+            <option value="RANGPUR"></option><option value="CHANDPUR"></option><option value="COX'S BAZAR"></option>
+          </datalist>
+          <input class="cmp-input" id="dlDate" readonly>
+        </div>
+        <input class="cmp-input" id="batchKw" placeholder="Keywords for the whole set — hilsa, fish market, chandpur…" style="margin-top:9px">
+        <div class="credit-line">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          Every frame carries the credit line <b>Photo: Rashed Sumon / UNB</b> automatically
+        </div>
+      </div>
+
+      <div class="cmp-card">
+        <div class="cmp-label">Frames <span class="cnt" id="cntFrames" style="background:#f3f1ee;color:var(--muted);border-radius:999px;padding:1px 8px;font-size:10px">0</span></div>
+        <div class="ph-grid" id="phGrid"></div>
+        <input type="file" id="photoInput" accept="image/*" multiple hidden>
+        <div style="display:flex;gap:8px;margin-top:11px">
+          <button class="bt-btn" id="demoBtn" style="flex:1">+ Add 3 demo frames</button>
+          <button class="bt-btn" id="capAllBtn" style="flex:1">Copy 1st caption to all</button>
+        </div>
+      </div>
+
+      <div class="cmp-actions">
+        <button class="btn btn-outline" id="queueBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Queue
+        </button>
+        <button class="btn btn-send" id="sendBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+          Send batch to desk
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ STATUS ============ -->
+    <section class="mj-view" data-view="status">
+      <div class="mj-hello">Desk status</div>
+      <div class="mj-hello-sub">What the desk did with each batch — approve, reject, or send back for a fix</div>
+      <div class="mj-sec-t">Batches <span class="cnt" id="cntStatus">0</span></div>
+      <div id="statusList"></div>
+    </section>
+
+    <!-- ============ ASSIGNMENTS ============ -->
+    <section class="mj-view" data-view="assign">
+      <div class="mj-hello">Assignments</div>
+      <div class="mj-hello-sub">Shot lists from the desk — accept to get the deadline reminder</div>
+      <div class="mj-sec-t">Open <span class="cnt" id="cntAssign">0</span></div>
+      <div id="assignList"></div>
+    </section>
+
+    <!-- ============ PROFILE ============ -->
+    <section class="mj-view" data-view="profile">
+      <div class="pf-card">
+        <div class="pf-av">RS</div>
+        <div>
+          <div class="pf-name">Rashed Sumon</div>
+          <div class="pf-sub">Staff Photojournalist · Dhaka &amp; southern beat<br>ID UNB-PJ-012 · since 2019</div>
+        </div>
+      </div>
+
+      <div class="mj-sec-t">This month</div>
+      <div class="pf-list">
+        <div class="pf-row"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Batches uploaded<b id="pfSent">0</b></div>
+        <div class="pf-row"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Frames approved<b id="pfAppr">0</b></div>
+        <div class="pf-row"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Client downloads<b id="pfDl">0</b></div>
+        <div class="pf-row"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Avg desk response<b>14 min</b></div>
+      </div>
+
+      <div class="mj-sec-t">Recently published</div>
+      <div class="pf-list" id="pubList"></div>
+    </section>
+  </main>
+
+  <!-- ============ BOTTOM NAV ============ -->
+  <nav class="mj-nav">
+    <button class="mn-item active" data-view="home">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Home
+    </button>
+    <button class="mn-item" data-view="upload">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      Upload
+    </button>
+    <button class="mn-item" data-view="status">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Status
+      <span class="mn-badge" id="statusBadge" hidden>0</span>
+    </button>
+    <button class="mn-item" data-view="assign">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+      Assign
+      <span class="mn-badge" id="assignBadge" hidden>0</span>
+    </button>
+    <button class="mn-item" data-view="profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </button>
+  </nav>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+  // ============ helpers ============
+  const $ = id => document.getElementById(id);
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+  function toast(html) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.innerHTML = html;
+    $('toastWrap').appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; }, 2300);
+    setTimeout(() => t.remove(), 2700);
+  }
+  function dhakaNow() {
+    const now = new Date();
+    const d = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Dhaka', weekday: 'short', day: 'numeric', month: 'short' }).format(now);
+    const t = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Dhaka', hour: 'numeric', minute: '2-digit', hour12: true }).format(now);
+    return { d, t };
+  }
+  function tickClock() {
+    const { d, t } = dhakaNow();
+    $('helloClock').textContent = 'Dhaka · ' + d + ' · ' + t;
+    $('dlDate').value = d + ' · ' + t;
+  }
+  tickClock(); setInterval(tickClock, 30000);
+
+  function gradientThumb(seed) {
+    const c = document.createElement('canvas'); c.width = 600; c.height = 400;
+    const ctx = c.getContext('2d');
+    const cols = [['#3b6fe0','#16204a'],['#e5484d','#7a1f2b'],['#16a34a','#0b3d24'],['#f0a832','#8a5410'],['#7c3aed','#2e1065'],['#0ea5e9','#0c4a6e'],['#db2777','#831843'],['#64748b','#1e293b']][seed % 8];
+    const g = ctx.createLinearGradient(0, 0, 600, 400);
+    g.addColorStop(0, cols[0]); g.addColorStop(1, cols[1]);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 600, 400);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 2;
+    ctx.strokeRect(268, 158, 64, 64); ctx.beginPath(); ctx.arc(300, 190, 9, 0, 7); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(276, 214); ctx.lineTo(292, 196); ctx.lineTo(306, 210); ctx.lineTo(316, 200); ctx.lineTo(326, 214); ctx.stroke();
+    return c.toDataURL('image/png');
+  }
+
+  // ============ state ============
+  let online = true;
+  let frameSeq = 0;
+  const uploadFrames = [];   // { fid, src, cap }
+  let activeAsg = null;      // assignment id being filed to
+  const STATUS_META = {
+    sending:  { label: 'Uploading', pill: 'st-sending' },
+    queued:   { label: 'Queued (offline)', pill: 'st-queued' },
+    pending:  { label: 'Pending desk review', pill: 'st-pending' },
+    review:   { label: 'Desk is reviewing', pill: 'st-review' },
+    approved: { label: 'Live in UNB Photos', pill: 'st-approved' },
+    reedit:   { label: 'Fix &amp; resend', pill: 'st-reedit' },
+    rejected: { label: 'Rejected', pill: 'st-rejected' },
+  };
+
+  const batches = [
+    { id: 'b1', event: 'Morning fog over the Buriganga', loc: 'SADARGHAT', date: '24 Aug, 06:55', urg: 'normal', kw: 'buriganga, fog, winter',
+      count: 6, seeds: [3, 5, 1], status: 'approved', pkg: 'Standard', dl: 18, note: '', prog: 100 },
+    { id: 'b2', event: 'Hilsa landing at Chandpur station', loc: 'CHANDPUR', date: '24 Aug, 08:10', urg: 'urgent', kw: 'hilsa, fish, chandpur',
+      count: 4, seeds: [6, 4, 0], status: 'pending', pkg: '', dl: 0, note: '', prog: 100 },
+    { id: 'b3', event: 'Eid cattle market setup', loc: 'DHAKA', date: '23 Aug, 17:20', urg: 'normal', kw: 'cattle market, eid, gabtoli',
+      count: 5, seeds: [2, 7, 1], status: 'reedit', pkg: '', dl: 0,
+      note: 'Desk: captions on frames 2 and 4 need trader names. Fix and resend — otherwise usable.', prog: 100 },
+    { id: 'b4', event: 'Tree plantation on the Bishkhali bank', loc: 'BAGERHAT', date: '22 Aug, 16:45', urg: 'normal', kw: 'environment, river, trees',
+      count: 3, seeds: [5, 3, 6], status: 'rejected', pkg: '', dl: 0,
+      note: 'Desk: frames too soft at full size — likely missed focus. Not publishable.', prog: 100 },
+  ];
+
+  const assignments = [
+    { id: 'a1', title: 'Nor\u2019wester aftermath — city damage', brief: 'Overnight kalbaishakhi hit the city. Need wide damage frames + one human-interest portrait. Avoid downed power lines.',
+      loc: 'Dhaka city', deadline: 'Today, 1:00 PM', state: 'pending',
+      shots: ['Fallen trees / billboards, wide', 'Waterlogged street with commuters', 'One portrait — shopkeeper or rickshaw-puller'] },
+    { id: 'a2', title: 'BNP rally buildup at Nayapaltan', brief: 'Stage setup and early crowds ahead of tomorrow\u2019s rally. Party has allowed stage access till 4 PM.',
+      loc: 'Nayapaltan, Dhaka', deadline: 'Today, 4:30 PM', state: 'accepted',
+      shots: ['Stage preparation wide', 'Early crowd frames', 'Banner/flag detail shots'] },
+  ];
+
+  const REJECT_NOTES = [
+    'Desk: frames too soft at full size. Not publishable.',
+    'Desk: horizon tilted and no usable crop. Please re-shoot.',
+    'Desk: duplicates of an earlier set already in the library.',
+  ];
+  const REEDIT_NOTES = [
+    'Desk: add names of people in the captions — fix and resend.',
+    'Desk: crop tighter on the lead frame; captions otherwise fine.',
+    'Desk: one frame has a visible watermark banner — resend without it.',
+  ];
+
+  // ============ nav ============
+  function showView(v) {
+    document.querySelectorAll('.mj-view').forEach(s => s.classList.toggle('active', s.dataset.view === v));
+    document.querySelectorAll('.mn-item').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll('.mn-item').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
+  $('ctaUpload').addEventListener('click', () => showView('upload'));
+
+  // ============ network ============
+  $('netToggle').addEventListener('click', () => {
+    online = !online;
+    $('netToggle').classList.toggle('off', !online);
+    $('netLabel').textContent = online ? 'Online' : 'Offline';
+    if (online) drainQueue();
+  });
+
+  // ============ upload: frames ============
+  function renderFrames() {
+    const grid = $('phGrid');
+    $('cntFrames').textContent = uploadFrames.length;
+    let html = uploadFrames.map(f =>
+      '<div class="ph-card" data-fid="' + f.fid + '">' +
+        '<div class="ph-thumb"><img src="' + f.src + '" alt="">' +
+        '<span class="ph-num">F' + f.fid + '</span>' +
+        '<button class="ph-x" data-x="' + f.fid + '">✕</button></div>' +
+        '<div class="ph-body"><textarea class="ph-cap" data-cap="' + f.fid + '" placeholder="Caption — who, what, where…">' + esc(f.cap) + '</textarea></div>' +
+      '</div>'
+    ).join('');
+    html += '<button class="ph-add" id="phAdd"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add frames</button>';
+    grid.innerHTML = html;
+    grid.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', () => {
+      const i = uploadFrames.findIndex(f => f.fid === +b.dataset.x);
+      if (i > -1) uploadFrames.splice(i, 1);
+      renderFrames();
+    }));
+    grid.querySelectorAll('[data-cap]').forEach(t => t.addEventListener('input', () => {
+      const f = uploadFrames.find(x => x.fid === +t.dataset.cap);
+      if (f) f.cap = t.value;
+    }));
+    $('phAdd').addEventListener('click', () => $('photoInput').click());
+  }
+  $('photoInput').addEventListener('change', e => {
+    [...e.target.files].filter(f => f.type.startsWith('image/')).forEach(f => {
+      uploadFrames.push({ fid: ++frameSeq, src: URL.createObjectURL(f), cap: '' });
+    });
+    e.target.value = '';
+    renderFrames();
+  });
+  $('demoBtn').addEventListener('click', () => {
+    for (let i = 0; i < 3; i++) uploadFrames.push({ fid: ++frameSeq, src: gradientThumb(frameSeq), cap: '' });
+    renderFrames();
+  });
+  $('capAllBtn').addEventListener('click', () => {
+    if (!uploadFrames.length) { toast('Add some frames first'); return; }
+    const first = uploadFrames[0].cap.trim();
+    if (!first) { toast('Write the first frame\u2019s caption first'); return; }
+    uploadFrames.forEach(f => { if (!f.cap.trim()) f.cap = first; });
+    renderFrames();
+    toast('✓ Caption copied to blank frames');
+  });
+
+  // ============ send flow ============
+  function collectBatch(status) {
+    if (!uploadFrames.length) { toast('Add at least one frame first'); return null; }
+    const ev = $('batchEvent').value.trim();
+    if (!ev) { toast('Give the batch an event / story tag'); return null; }
+    const urg = document.querySelector('input[name="urg"]:checked').value;
+    const { d, t } = dhakaNow();
+    return {
+      id: 'b' + Date.now(),
+      event: ev, loc: $('dlCity').value.trim().toUpperCase() || 'DHAKA',
+      date: d.replace(/^\w+, /, '') + ', ' + t,
+      urg, kw: $('batchKw').value.trim(),
+      count: uploadFrames.length,
+      seeds: uploadFrames.slice(0, 3).map(f => f.fid),
+      srcs: uploadFrames.slice(0, 3).map(f => f.src),
+      status, pkg: '', dl: 0, note: '', prog: 0,
+      asg: activeAsg,
+    };
+  }
+  function resetUpload() {
+    uploadFrames.length = 0;
+    $('batchEvent').value = ''; $('batchKw').value = '';
+    document.querySelector('input[name="urg"][value="normal"]').checked = true;
+    activeAsg = null;
+    renderAsgBanner();
+    renderFrames();
+  }
+  function sendBatch(b) {
+    b.status = 'sending'; b.prog = 0;
+    renderAll();
+    const iv = setInterval(() => {
+      b.prog = Math.min(100, b.prog + 8 + Math.random() * 10);
+      renderAll();
+      if (b.prog >= 100) {
+        clearInterval(iv);
+        b.status = 'pending'; b.prog = 100;
+        renderAll();
+        toast('✓ Batch delivered — waiting for desk review');
+        scheduleDesk(b);
+      }
+    }, 300);
+  }
+  function scheduleDesk(b) {
+    setTimeout(() => { if (b.status === 'pending') { b.status = 'review'; renderAll(); } }, 5000);
+    setTimeout(() => {
+      if (b.status !== 'review' && b.status !== 'pending') return;
+      const roll = Math.random();
+      if (roll < 0.62) {
+        b.status = 'approved';
+        b.pkg = b.urg === 'breaking' ? 'Exclusive' : 'Standard';
+        b.dl = 4 + Math.floor(Math.random() * 20);
+        toast('✓ <b>' + esc(b.event) + '</b> approved — live in UNB Photos');
+      } else if (roll < 0.82) {
+        b.status = 'reedit';
+        b.note = REEDIT_NOTES[Math.floor(Math.random() * REEDIT_NOTES.length)];
+        toast('↩ Desk asked for a fix on <b>' + esc(b.event) + '</b>');
+      } else {
+        b.status = 'rejected';
+        b.note = REJECT_NOTES[Math.floor(Math.random() * REJECT_NOTES.length)];
+        toast('✕ <b>' + esc(b.event) + '</b> rejected by the desk');
+      }
+      renderAll();
+    }, 11000);
+  }
+  function drainQueue() {
+    const q = batches.filter(b => b.status === 'queued');
+    if (!q.length) return;
+    toast('Back online — sending ' + q.length + ' queued batch' + (q.length > 1 ? 'es' : ''));
+    q.forEach((b, i) => setTimeout(() => sendBatch(b), 600 + i * 900));
+  }
+
+  $('sendBtn').addEventListener('click', () => {
+    const b = collectBatch(online ? 'sending' : 'queued');
+    if (!b) return;
+    batches.unshift(b);
+    resetUpload();
+    if (online) { sendBatch(b); showView('status'); }
+    else { b.status = 'queued'; showView('status'); toast('Saved to queue — will send when you\u2019re back online'); }
+  });
+  $('queueBtn').addEventListener('click', () => {
+    const b = collectBatch('queued');
+    if (!b) return;
+    batches.unshift(b);
+    resetUpload();
+    showView('status');
+    toast('✓ Batch queued');
+  });
+
+  // ============ renderers ============
+  const URG_LABEL = { breaking: 'Breaking', urgent: 'Urgent', normal: 'Normal' };
+  function thumbHtml(b) {
+    const srcs = b.srcs && b.srcs.length ? b.srcs : b.seeds.map(s => gradientThumb(s));
+    let h = srcs.map(s => '<span class="th"><img src="' + s + '" alt=""></span>').join('');
+    if (b.count > 3) h += '<span class="th more">+' + (b.count - 3) + '</span>';
+    return '<div class="bt-thumbs">' + h + '</div>';
+  }
+  function batchCard(b) {
+    const sm = STATUS_META[b.status];
+    let foot = '';
+    if (b.status === 'sending') foot = '<div class="bt-prog"><span style="width:' + Math.round(b.prog) + '%"></span></div>';
+    if (b.status === 'approved') foot =
+      '<div class="bt-note green"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+      '<span>Live in the ' + esc(b.pkg) + ' package · <b>' + b.dl + '</b> client download' + (b.dl === 1 ? '' : 's') + ' so far</span></div>';
+    if (b.status === 'reedit') foot =
+      '<div class="bt-note blue"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>' +
+      '<span>' + esc(b.note) + '</span></div>' +
+      '<div class="bt-acts"><button class="bt-btn dark" data-resend="' + b.id + '">Fix &amp; resend batch</button></div>';
+    if (b.status === 'rejected') foot =
+      '<div class="bt-note red"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' +
+      '<span>' + esc(b.note) + '</span></div>' +
+      '<div class="bt-acts"><button class="bt-btn" data-archive="' + b.id + '">Archive batch</button></div>';
+    return '<div class="bt-card">' +
+      '<div class="bt-top">' +
+        '<span class="urg-tag ' + b.urg + '">' + URG_LABEL[b.urg] + '</span>' +
+        '<span class="st-pill ' + sm.pill + '"><i></i>' + sm.label + '</span>' +
+        '<span class="bt-time">' + esc(b.date) + '</span>' +
+      '</div>' +
+      '<div class="bt-event">' + esc(b.event) + '</div>' +
+      '<div class="bt-meta">' +
+        '<span><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + esc(b.loc) + '</span>' +
+        '<span><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>' + b.count + ' frames</span>' +
+        (b.kw ? '<span>🏷 ' + esc(b.kw) + '</span>' : '') +
+      '</div>' +
+      thumbHtml(b) +
+      foot +
+    '</div>';
+  }
+  function renderBatches() {
+    const list = batches.slice(0, 4);
+    $('batchList').innerHTML = list.length ? list.map(batchCard).join('') : '<div class="empty-mini">No batches yet — upload your first set.</div>';
+    $('cntBatches').textContent = batches.length;
+    bindBatchActs($('batchList'));
+  }
+  function renderStatus() {
+    $('statusList').innerHTML = batches.length ? batches.map(batchCard).join('') : '<div class="empty-mini">Nothing sent yet.</div>';
+    $('cntStatus').textContent = batches.length;
+    bindBatchActs($('statusList'));
+  }
+  function bindBatchActs(root) {
+    root.querySelectorAll('[data-resend]').forEach(btn => btn.addEventListener('click', () => {
+      const b = batches.find(x => x.id === btn.dataset.resend);
+      if (!b) return;
+      b.status = 'pending'; b.note = '';
+      toast('✓ Fixed batch resent to the desk');
+      scheduleDesk(b);
+      renderAll();
+    }));
+    root.querySelectorAll('[data-archive]').forEach(btn => btn.addEventListener('click', () => {
+      const i = batches.findIndex(x => x.id === btn.dataset.archive);
+      if (i > -1) batches.splice(i, 1);
+      toast('Batch archived');
+      renderAll();
+    }));
+  }
+
+  function renderAssign() {
+    const open = assignments.filter(a => a.state !== 'declined');
+    $('assignList').innerHTML = open.length ? open.map(a =>
+      '<div class="as-card ' + a.state + '">' +
+        '<div class="bt-top"><span class="as-state ' + a.state + '">' + a.state + '</span><span class="bt-time">Due ' + esc(a.deadline) + '</span></div>' +
+        '<div class="as-title">' + esc(a.title) + '</div>' +
+        '<div class="as-brief">' + esc(a.brief) + '</div>' +
+        '<ul class="shot-list">' + a.shots.map(s => '<li>' + esc(s) + '</li>').join('') + '</ul>' +
+        '<div class="as-meta"><span><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + esc(a.loc) + '</span></div>' +
+        '<div class="as-acts">' +
+          (a.state === 'pending'
+            ? '<button class="as-btn yes" data-acc="' + a.id + '">Accept</button><button class="as-btn no" data-dec="' + a.id + '">Can\u2019t do it</button>'
+            : '<button class="as-btn file" data-file="' + a.id + '">Upload frames for this</button>') +
+        '</div>' +
+      '</div>'
+    ).join('') : '<div class="empty-mini">No open assignments — the desk will ping you here.</div>';
+    $('cntAssign').textContent = open.length;
+    $('assignBadge').hidden = !assignments.some(a => a.state === 'pending');
+    $('assignBadge').textContent = assignments.filter(a => a.state === 'pending').length;
+    $('assignList').querySelectorAll('[data-acc]').forEach(b => b.addEventListener('click', () => {
+      assignments.find(a => a.id === b.dataset.acc).state = 'accepted';
+      toast('✓ Assignment accepted — deadline reminder set');
+      renderAll();
+    }));
+    $('assignList').querySelectorAll('[data-dec]').forEach(b => b.addEventListener('click', () => {
+      assignments.find(a => a.id === b.dataset.dec).state = 'declined';
+      toast('Desk notified you can\u2019t take it');
+      renderAll();
+    }));
+    $('assignList').querySelectorAll('[data-file]').forEach(b => b.addEventListener('click', () => {
+      const a = assignments.find(x => x.id === b.dataset.file);
+      activeAsg = a.id;
+      $('batchEvent').value = a.title;
+      $('dlCity').value = a.loc.split(',')[0].toUpperCase();
+      renderAsgBanner();
+      showView('upload');
+    }));
+  }
+  function renderAsgBanner() {
+    const a = assignments.find(x => x.id === activeAsg);
+    $('asgBanner').classList.toggle('show', !!a);
+    if (a) $('asgBannerText').textContent = 'Filing to assignment: ' + a.title + ' · due ' + a.deadline;
+  }
+  $('asgBannerClear').addEventListener('click', () => { activeAsg = null; renderAsgBanner(); });
+
+  function renderHomeAsg() {
+    const a = assignments.find(x => x.state === 'accepted');
+    $('homeAsg').innerHTML = a
+      ? '<div class="asg-banner show" style="cursor:pointer" id="homeAsgCard">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>' +
+        '<span>Active assignment: ' + esc(a.title) + ' · due ' + esc(a.deadline) + '</span>' +
+        '<button id="homeAsgGo">Upload</button></div>'
+      : '';
+    const go = $('homeAsgGo');
+    if (go) go.addEventListener('click', e => {
+      e.stopPropagation();
+      activeAsg = a.id;
+      $('batchEvent').value = a.title;
+      $('dlCity').value = a.loc.split(',')[0].toUpperCase();
+      renderAsgBanner();
+      showView('upload');
+    });
+  }
+
+  function renderStats() {
+    const sentToday = batches.filter(b => b.date.startsWith('24 Aug') || b.date.startsWith('25 Aug')).length;
+    const approved = batches.filter(b => b.status === 'approved');
+    $('statSent').textContent = sentToday;
+    $('statAppr').textContent = approved.length;
+    $('statRej').textContent = batches.filter(b => b.status === 'rejected').length;
+    $('statDl').textContent = approved.reduce((s, b) => s + b.dl, 0) + 96;
+    $('pfSent').textContent = batches.length + 11;
+    $('pfAppr').textContent = approved.reduce((s, b) => s + b.count, 0) + 52;
+    $('pfDl').textContent = approved.reduce((s, b) => s + b.dl, 0) + 214;
+    const att = batches.filter(b => ['pending', 'review', 'reedit', 'rejected'].includes(b.status)).length;
+    $('statusBadge').hidden = att === 0;
+    $('statusBadge').textContent = att;
+  }
+
+  function renderProfile() {
+    const pubs = batches.filter(b => b.status === 'approved');
+    $('pubList').innerHTML = pubs.length
+      ? pubs.map(b =>
+          '<div class="byl-row"><div class="byl-head">' + esc(b.event) + '</div>' +
+          '<div class="byl-meta">' + esc(b.loc) + ' · ' + b.count + ' frames · ' + esc(b.pkg) + ' package · ' + b.dl + ' client downloads</div></div>'
+        ).join('')
+      : '<div class="empty-mini">Approved batches will show up here with their credit line.</div>';
+  }
+
+  function renderAll() {
+    renderBatches(); renderStatus(); renderAssign(); renderHomeAsg(); renderStats(); renderProfile();
+  }
+
+  renderFrames();
+  renderAll();
+</script>
+
+</body>
+</html>

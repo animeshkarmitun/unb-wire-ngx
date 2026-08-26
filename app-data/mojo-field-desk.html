@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNB Field — MoJo Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@6..72,400;6..72,600;6..72,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy-900: #0f1730;
+    --navy-800: #16204a;
+    --crimson: #e5484d;
+    --crimson-dark: #d13438;
+    --crimson-soft: #fdecec;
+    --amber: #f0a832;
+    --paper: #faf9f6;
+    --panel: #ffffff;
+    --border: #eceae5;
+    --ink: #1c1f2e;
+    --muted: #7c7f8c;
+    --muted-2: #b0b2bc;
+    --green: #16a34a;
+    --green-bg: #e5f6ec;
+    --blue: #3b6fe0;
+    --blue-bg: #e9f0fd;
+    --purple: #7c3aed;
+    --purple-bg: #f3eafe;
+    --serif: "Source Serif 4", Georgia, serif;
+    --sans: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--sans); background: #efece6; color: var(--ink); -webkit-font-smoothing: antialiased; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ============ FIELD APP SHELL ============ */
+  .field-app { max-width: 680px; margin: 0 auto; min-height: 100vh; background: var(--paper); box-shadow: 0 0 60px rgba(15,23,48,0.08); display: flex; flex-direction: column; }
+
+  /* ---- top bar ---- */
+  .mj-top {
+    position: sticky; top: 0; z-index: 50;
+    background: linear-gradient(135deg, var(--navy-800), var(--navy-900));
+    padding: 14px 18px; display: flex; align-items: center; gap: 12px;
+  }
+  .mj-top::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--crimson), var(--amber)); }
+  .mj-brand { display: flex; align-items: center; gap: 10px; }
+  .mj-mark { width: 34px; height: 34px; border-radius: 10px; background: var(--crimson); color: #fff; font-family: "Fraunces", Georgia, serif; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+  .mj-title { color: #fff; font-family: "Fraunces", Georgia, serif; font-size: 16px; font-weight: 600; line-height: 1.15; }
+  .mj-sub { color: #8f9cc7; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 1px; }
+  .net-toggle {
+    margin-left: auto; display: flex; align-items: center; gap: 7px;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 999px; padding: 5px 12px 5px 7px; cursor: pointer; font-family: var(--sans);
+    color: #cdd5ee; font-size: 11px; font-weight: 700; transition: all 0.15s ease;
+  }
+  .net-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px rgba(22,163,74,0.8); }
+  .net-toggle.off { border-color: rgba(229,72,77,0.5); color: #ff9d9f; }
+  .net-toggle.off .net-dot { background: var(--crimson); box-shadow: 0 0 8px rgba(229,72,77,0.8); }
+  .mj-av { width: 34px; height: 34px; border-radius: 50%; background: var(--amber); color: var(--navy-900); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+
+  /* ---- views ---- */
+  .mj-main { flex: 1; padding: 18px 16px 110px; }
+  .mj-view { display: none; }
+  .mj-view.active { display: block; animation: fadeUp 0.2s ease; }
+  .mj-hello { font-family: "Fraunces", Georgia, serif; font-size: 23px; font-weight: 600; letter-spacing: -0.01em; }
+  .mj-hello-sub { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+
+  /* ---- stats ---- */
+  .mj-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin: 16px 0 18px; }
+  .mj-stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 11px 10px; text-align: center; }
+  .mj-stat b { display: block; font-family: "Fraunces", Georgia, serif; font-size: 21px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .mj-stat b.green { color: var(--green); }
+  .mj-stat b.red { color: var(--crimson-dark); }
+  .mj-stat span { font-size: 9.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* ---- big file CTA ---- */
+  .mj-file-cta {
+    display: flex; align-items: center; gap: 14px; width: 100%;
+    background: linear-gradient(135deg, var(--crimson), var(--crimson-dark));
+    border: none; border-radius: 16px; padding: 18px; cursor: pointer;
+    color: #fff; text-align: left; font-family: var(--sans);
+    box-shadow: 0 10px 26px rgba(229,72,77,0.35); transition: transform 0.14s ease;
+    margin-bottom: 18px;
+  }
+  .mj-file-cta:hover { transform: translateY(-2px); }
+  .mj-file-cta:active { transform: scale(0.985); }
+  .mj-file-cta .cta-ic { width: 46px; height: 46px; border-radius: 13px; background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .mj-file-cta .cta-ic svg { width: 21px; height: 21px; stroke: #fff; }
+  .cta-t { font-size: 16.5px; font-weight: 700; font-family: "Fraunces", Georgia, serif; }
+  .cta-s { font-size: 11.5px; opacity: 0.85; margin-top: 2px; }
+  .cta-arrow { margin-left: auto; font-size: 19px; font-weight: 700; }
+
+  /* ---- section titles ---- */
+  .mj-sec-t { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-2); margin: 20px 2px 10px; display: flex; align-items: center; gap: 8px; }
+  .mj-sec-t .cnt { background: #f3f1ee; color: var(--muted); border-radius: 999px; padding: 1px 8px; font-size: 10px; }
+
+  /* ---- template chips ---- */
+  .tpl-row { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px; scrollbar-width: none; }
+  .tpl-row::-webkit-scrollbar { display: none; }
+  .tpl-chip { flex-shrink: 0; border: 1px solid #e3e1da; background: var(--panel); border-radius: 12px; padding: 10px 14px; cursor: pointer; font-family: var(--sans); transition: all 0.13s ease; text-align: left; }
+  .tpl-chip:hover { border-color: var(--crimson); }
+  .tpl-chip.sel { border-color: var(--crimson); background: var(--crimson-soft); }
+  .tpl-chip b { display: block; font-size: 12.5px; font-weight: 700; color: var(--ink); }
+  .tpl-chip span { font-size: 10.5px; color: var(--muted-2); }
+
+  /* ---- submission cards ---- */
+  .sub-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 14px 15px; margin-bottom: 10px; }
+  .sub-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+  .urg-tag { font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 5px; }
+  .urg-tag.breaking { background: var(--crimson); color: #fff; }
+  .urg-tag.urgent { background: #fdf3e0; color: #b7791f; }
+  .urg-tag.normal { background: #f3f1ee; color: var(--muted); }
+  .sub-time { font-size: 10.5px; color: var(--muted-2); margin-left: auto; font-variant-numeric: tabular-nums; }
+  .sub-head { font-family: var(--serif); font-size: 15.5px; font-weight: 600; line-height: 1.4; }
+  .sub-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; font-size: 11px; color: var(--muted-2); }
+  .sub-media-ic { display: inline-flex; align-items: center; gap: 4px; }
+  .sub-media-ic svg { width: 12px; height: 12px; stroke: var(--muted-2); }
+  .st-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 700; padding: 4px 11px; border-radius: 999px; }
+  .st-pill i { width: 6px; height: 6px; border-radius: 50%; }
+  .st-sending { background: var(--blue-bg); color: var(--blue); } .st-sending i { background: var(--blue); }
+  .st-queued { background: #f3f1ee; color: var(--muted); } .st-queued i { background: var(--muted-2); }
+  .st-sent { background: var(--blue-bg); color: var(--blue); } .st-sent i { background: var(--blue); }
+  .st-received { background: var(--purple-bg); color: var(--purple); } .st-received i { background: var(--purple); }
+  .st-review { background: #fdf3e0; color: #b7791f; } .st-review i { background: var(--amber); }
+  .st-published { background: var(--green-bg); color: var(--green); } .st-published i { background: var(--green); }
+  .st-returned { background: var(--crimson-soft); color: var(--crimson-dark); } .st-returned i { background: var(--crimson); }
+  .sub-prog { height: 4px; border-radius: 3px; background: var(--border); overflow: hidden; margin-top: 10px; }
+  .sub-prog span { display: block; height: 100%; background: var(--blue); transition: width 0.2s linear; }
+  .sub-note { display: flex; gap: 8px; background: var(--crimson-soft); border-radius: 9px; padding: 9px 11px; margin-top: 10px; font-size: 12px; color: var(--crimson-dark); line-height: 1.5; }
+  .sub-note svg { width: 13px; height: 13px; stroke: var(--crimson-dark); flex-shrink: 0; margin-top: 2px; }
+  .sub-pub { display: flex; gap: 8px; background: var(--green-bg); border-radius: 9px; padding: 9px 11px; margin-top: 10px; font-size: 12px; color: var(--green); line-height: 1.5; }
+  .sub-thumbs { display: flex; gap: 6px; margin-top: 10px; }
+  .sub-thumbs img { width: 46px; height: 46px; border-radius: 8px; object-fit: cover; }
+
+  /* ---- compose (File view) ---- */
+  .cmp-card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+  .cmp-label { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted-2); margin-bottom: 8px; }
+  .urg-seg { display: flex; gap: 6px; }
+  .urg-opt { position: relative; flex: 1; }
+  .urg-opt input { position: absolute; opacity: 0; pointer-events: none; }
+  .urg-opt span { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 6px; border-radius: 10px; border: 1px solid #e3e1da; background: #fff; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; transition: all 0.13s ease; user-select: none; }
+  .urg-opt input:checked + span[data-u="breaking"] { background: var(--crimson); border-color: var(--crimson); color: #fff; }
+  .urg-opt input:checked + span[data-u="urgent"] { background: var(--amber); border-color: var(--amber); color: #fff; }
+  .urg-opt input:checked + span[data-u="normal"] { background: var(--navy-800); border-color: var(--navy-800); color: #fff; }
+  .cmp-input { width: 100%; border: 1px solid #e3e1da; border-radius: 11px; padding: 12px 14px; font-size: 14px; font-family: var(--sans); color: var(--ink); background: var(--paper); outline: none; transition: border 0.13s ease, background 0.13s ease; }
+  .cmp-input:focus { border-color: var(--crimson); background: #fff; }
+  .cmp-head { font-family: var(--serif); font-size: 17px; font-weight: 600; }
+  .cmp-body { min-height: 150px; resize: vertical; line-height: 1.7; }
+  .dl-row { display: flex; gap: 9px; }
+  .dl-row .cmp-input:first-child { max-width: 150px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.04em; }
+  .dl-auto { font-size: 10.5px; color: var(--muted-2); margin-top: 7px; display: flex; align-items: center; gap: 5px; }
+  .dl-auto svg { width: 11px; height: 11px; stroke: var(--green); }
+
+  .media-row { display: flex; gap: 9px; flex-wrap: wrap; }
+  .md-thumb { position: relative; width: 74px; height: 74px; border-radius: 11px; overflow: hidden; border: 1px solid var(--border); }
+  .md-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .md-thumb .md-x { position: absolute; top: 4px; right: 4px; width: 19px; height: 19px; border-radius: 50%; border: none; background: rgba(15,23,48,0.7); color: #fff; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .md-add { width: 74px; height: 74px; border-radius: 11px; border: 1.5px dashed #d8d5cd; background: #fcfbf8; color: var(--muted-2); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 9.5px; font-weight: 600; font-family: var(--sans); transition: all 0.13s ease; }
+  .md-add:hover { border-color: var(--crimson); color: var(--crimson-dark); background: var(--crimson-soft); }
+  .md-add svg { width: 18px; height: 18px; stroke: currentColor; }
+  .voice-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--purple-bg); color: var(--purple); border-radius: 999px; padding: 8px 8px 8px 13px; font-size: 12px; font-weight: 700; }
+  .voice-chip button { border: none; background: rgba(124,58,237,0.15); color: var(--purple); width: 20px; height: 20px; border-radius: 50%; cursor: pointer; font-size: 10px; }
+  .voice-btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #e3e1da; background: #fff; border-radius: 999px; padding: 9px 15px; font-size: 12.5px; font-weight: 600; color: #4b4e5c; cursor: pointer; font-family: var(--sans); transition: all 0.13s ease; }
+  .voice-btn svg { width: 14px; height: 14px; stroke: currentColor; }
+  .voice-btn.rec { background: var(--crimson); border-color: var(--crimson); color: #fff; animation: recPulse 1.2s ease infinite; }
+  @keyframes recPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(229,72,77,0.4); } 50% { box-shadow: 0 0 0 7px rgba(229,72,77,0); } }
+
+  .cmp-actions { display: flex; gap: 10px; position: sticky; bottom: 86px; z-index: 20; }
+  .btn { font-family: var(--sans); font-size: 14px; font-weight: 600; padding: 13px 18px; border-radius: 12px; cursor: pointer; border: 1px solid transparent; transition: all 0.14s ease; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn svg { width: 15px; height: 15px; stroke: currentColor; }
+  .btn-outline { background: var(--panel); border-color: #e3e1da; color: var(--ink); }
+  .btn-outline:hover { border-color: var(--navy-800); }
+  .btn-send { flex: 1; background: var(--crimson); color: #fff; font-size: 15px; box-shadow: 0 8px 22px rgba(229,72,77,0.35); }
+  .btn-send:hover { background: var(--crimson-dark); }
+
+  /* ---- assignments ---- */
+  .as-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 15px; margin-bottom: 11px; }
+  .as-card.pending { border-left: 4px solid var(--amber); }
+  .as-card.accepted { border-left: 4px solid var(--green); }
+  .as-card.declined { border-left: 4px solid var(--muted-2); opacity: 0.75; }
+  .as-title { font-family: var(--serif); font-size: 15.5px; font-weight: 600; line-height: 1.4; }
+  .as-brief { font-size: 12.5px; color: var(--muted); line-height: 1.6; margin-top: 5px; }
+  .as-meta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 9px; font-size: 11px; color: var(--muted-2); }
+  .as-meta svg { width: 11px; height: 11px; stroke: var(--muted-2); vertical-align: -1px; margin-right: 3px; }
+  .as-acts { display: flex; gap: 8px; margin-top: 12px; }
+  .as-btn { flex: 1; border-radius: 9px; padding: 9px; font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: var(--sans); border: 1px solid #e3e1da; background: #fff; color: #4b4e5c; transition: all 0.13s ease; }
+  .as-btn.yes { background: var(--green); border-color: var(--green); color: #fff; }
+  .as-btn.yes:hover { background: #128a3e; }
+  .as-btn.no:hover { border-color: var(--crimson); color: var(--crimson-dark); }
+  .as-btn.file { background: var(--navy-800); border-color: var(--navy-800); color: #fff; }
+  .as-state { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 9px; border-radius: 5px; }
+  .as-state.pending { background: #fdf3e0; color: #b7791f; }
+  .as-state.accepted { background: var(--green-bg); color: var(--green); }
+  .as-state.declined { background: #f3f1ee; color: var(--muted); }
+
+  /* ---- profile ---- */
+  .pf-card { background: linear-gradient(135deg, var(--navy-800), var(--navy-900)); border-radius: 16px; padding: 20px; color: #fff; display: flex; gap: 15px; align-items: center; }
+  .pf-av { width: 58px; height: 58px; border-radius: 50%; background: var(--amber); color: var(--navy-900); font-size: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .pf-name { font-family: "Fraunces", Georgia, serif; font-size: 19px; font-weight: 600; }
+  .pf-sub { font-size: 11.5px; color: #8f9cc7; margin-top: 3px; }
+  .pf-list { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .pf-row { display: flex; align-items: center; gap: 11px; padding: 13px 16px; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+  .pf-row:last-child { border-bottom: none; }
+  .pf-row svg { width: 15px; height: 15px; stroke: var(--muted-2); }
+  .pf-row b { margin-left: auto; font-weight: 700; }
+  .byl-row { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .byl-row:last-child { border-bottom: none; }
+  .byl-head { font-family: var(--serif); font-size: 13.5px; font-weight: 600; line-height: 1.45; }
+  .byl-meta { font-size: 10.5px; color: var(--muted-2); margin-top: 3px; }
+
+  /* ---- bottom nav ---- */
+  .mj-nav {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: min(680px, 100%); z-index: 60;
+    background: rgba(255,255,255,0.96); backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border);
+    display: flex; padding: 8px 6px 12px;
+  }
+  .mn-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; border: none; background: none; cursor: pointer; font-family: var(--sans); font-size: 10px; font-weight: 600; color: var(--muted-2); padding: 5px 0; border-radius: 10px; transition: color 0.13s ease; position: relative; }
+  .mn-item svg { width: 19px; height: 19px; stroke: currentColor; }
+  .mn-item.active { color: var(--crimson); }
+  .mn-badge { position: absolute; top: 0; right: 50%; margin-right: -22px; background: var(--crimson); color: #fff; font-size: 9px; font-weight: 700; min-width: 15px; height: 15px; border-radius: 999px; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
+
+  /* ---- toast ---- */
+  .toast-wrap { position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%); z-index: 300; display: flex; flex-direction: column; gap: 9px; width: min(400px, calc(100% - 32px)); }
+  .toast { background: var(--navy-900); color: #fff; border-radius: 12px; padding: 12px 16px; font-size: 13px; font-weight: 500; box-shadow: 0 12px 30px rgba(15,23,48,0.35); animation: fadeUp 0.2s ease; text-align: center; }
+  .toast b { color: #ffd166; }
+
+  .empty-mini { text-align: center; color: var(--muted-2); font-size: 12.5px; padding: 22px 10px; }
+</style>
+</head>
+<body>
+<div class="field-app">
+
+  <!-- ============ TOP BAR ============ -->
+  <header class="mj-top">
+    <div class="mj-brand">
+      <div class="mj-mark">U</div>
+      <div>
+        <div class="mj-title">UNB Field</div>
+        <div class="mj-sub">MoJo Desk</div>
+      </div>
+    </div>
+    <button class="net-toggle" id="netToggle" title="Toggle network (demo — offline queues your sends)">
+      <span class="net-dot"></span><span id="netLabel">Online</span>
+    </button>
+    <div class="mj-av">RH</div>
+  </header>
+
+  <main class="mj-main">
+
+    <!-- ============ HOME ============ -->
+    <section class="mj-view active" data-view="home">
+      <div class="mj-hello">Field desk, Rahimul</div>
+      <div class="mj-hello-sub" id="helloClock">Dhaka · —</div>
+
+      <div class="mj-stats">
+        <div class="mj-stat"><b id="statSent">0</b><span>Sent today</span></div>
+        <div class="mj-stat"><b class="green" id="statPub">0</b><span>Published</span></div>
+        <div class="mj-stat"><b class="red" id="statRet">0</b><span>Returned</span></div>
+        <div class="mj-stat"><b id="statResp">22m</b><span>Avg desk reply</span></div>
+      </div>
+
+      <button class="mj-file-cta" id="ctaFile">
+        <span class="cta-ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
+        <span>
+          <span class="cta-t">File a story</span><br>
+          <span class="cta-s">Headline + short report + photos — desk gets it in seconds</span>
+        </span>
+        <span class="cta-arrow">→</span>
+      </button>
+
+      <div class="mj-sec-t">Quick templates</div>
+      <div class="tpl-row" id="tplRowHome"></div>
+
+      <div class="mj-sec-t">My submissions <span class="cnt" id="cntSubs">0</span></div>
+      <div id="subList"></div>
+    </section>
+
+    <!-- ============ FILE ============ -->
+    <section class="mj-view" data-view="file">
+      <div class="mj-hello">File a story</div>
+      <div class="mj-hello-sub">Raw is fine — the desk will shape it. Speed matters more than polish.</div>
+
+      <div class="mj-sec-t">Template</div>
+      <div class="tpl-row" id="tplRowFile"></div>
+
+      <div class="cmp-card">
+        <div class="cmp-label">Urgency</div>
+        <div class="urg-seg" id="urgSeg">
+          <label class="urg-opt"><input type="radio" name="urg" value="breaking"><span data-u="breaking">🔴 Breaking</span></label>
+          <label class="urg-opt"><input type="radio" name="urg" value="urgent"><span data-u="urgent">🟠 Urgent</span></label>
+          <label class="urg-opt"><input type="radio" name="urg" value="normal" checked><span data-u="normal">Normal</span></label>
+        </div>
+        <div class="dl-auto" style="margin-top:9px" id="urgHint">Breaking pings the desk editor's phone instantly</div>
+      </div>
+
+      <div class="cmp-card">
+        <div class="cmp-label">Dateline</div>
+        <div class="dl-row">
+          <input class="cmp-input" id="dlCity" value="DHAKA" list="dlCities">
+          <datalist id="dlCities">
+            <option value="DHAKA"></option><option value="CHATTOGRAM"></option><option value="RAJSHAHI"></option>
+            <option value="KHULNA"></option><option value="SYLHET"></option><option value="BARISHAL"></option>
+            <option value="RANGPUR"></option><option value="MYMENSINGH"></option><option value="COX'S BAZAR"></option>
+          </datalist>
+          <input class="cmp-input" id="dlDate" readonly>
+        </div>
+        <div class="dl-auto">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Auto-tagged from your location — tap the city to correct it
+        </div>
+      </div>
+
+      <div class="cmp-card">
+        <div class="cmp-label">Headline</div>
+        <input class="cmp-input cmp-head" id="cmpHead" placeholder="What happened, in one line…">
+      </div>
+
+      <div class="cmp-card">
+        <div class="cmp-label">Report</div>
+        <textarea class="cmp-input cmp-body" id="cmpBody" placeholder="Short raw report — who, what, where, when. Desk handles the rest."></textarea>
+      </div>
+
+      <div class="cmp-card">
+        <div class="cmp-label">Photos &amp; video</div>
+        <div class="media-row" id="mediaRow"></div>
+        <input type="file" id="mediaInput" accept="image/*,video/*" multiple hidden>
+      </div>
+
+      <div class="cmp-card">
+        <div class="cmp-label">Voice note (optional)</div>
+        <div id="voiceRow">
+          <button class="voice-btn" id="voiceBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+            <span id="voiceLabel">Record voice note</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="cmp-actions">
+        <button class="btn btn-outline" id="queueBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Queue
+        </button>
+        <button class="btn btn-send" id="sendBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+          Send to desk
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ QUEUE ============ -->
+    <section class="mj-view" data-view="queue">
+      <div class="mj-hello">Send queue</div>
+      <div class="mj-hello-sub" id="queueSub">Everything here uploads automatically when you're online</div>
+      <div class="mj-sec-t">Waiting <span class="cnt" id="cntQueue">0</span></div>
+      <div id="queueList"></div>
+    </section>
+
+    <!-- ============ ASSIGNMENTS ============ -->
+    <section class="mj-view" data-view="assign">
+      <div class="mj-hello">Assignments</div>
+      <div class="mj-hello-sub">From the desk — accept to get the briefing and a deadline reminder</div>
+      <div class="mj-sec-t">Open <span class="cnt" id="cntAssign">0</span></div>
+      <div id="assignList"></div>
+    </section>
+
+    <!-- ============ PROFILE ============ -->
+    <section class="mj-view" data-view="profile">
+      <div class="pf-card">
+        <div class="pf-av">RH</div>
+        <div>
+          <div class="pf-name">Rahimul Haque</div>
+          <div class="pf-sub">Mobile Journalist · Dhaka metro beat<br>ID UNB-MJ-041 · since 2023</div>
+        </div>
+      </div>
+
+      <div class="mj-sec-t">This month</div>
+      <div class="pf-list">
+        <div class="pf-row"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>Stories filed<b id="pfFiled">0</b></div>
+        <div class="pf-row"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Published with byline<b id="pfPub">0</b></div>
+        <div class="pf-row"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Photos used by clients<b>63</b></div>
+        <div class="pf-row"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Avg desk response<b>22 min</b></div>
+      </div>
+
+      <div class="mj-sec-t">Recent bylines</div>
+      <div class="pf-list" id="bylineList"></div>
+    </section>
+  </main>
+
+  <!-- ============ BOTTOM NAV ============ -->
+  <nav class="mj-nav">
+    <button class="mn-item active" data-view="home">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Home
+    </button>
+    <button class="mn-item" data-view="file">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      File
+    </button>
+    <button class="mn-item" data-view="queue">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16l-4-4-4 4"/><path d="M12 12v9"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+      Queue
+      <span class="mn-badge" id="queueBadge" hidden>0</span>
+    </button>
+    <button class="mn-item" data-view="assign">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6"/><path d="M9 16h6"/></svg>
+      Tasks
+      <span class="mn-badge" id="assignBadge" hidden>0</span>
+    </button>
+    <button class="mn-item" data-view="profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Me
+    </button>
+  </nav>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+  // ================= DATA =================
+  const TEMPLATES = [
+    { id: 'blank', name: 'Blank', hint: 'Start empty', body: '' },
+    { id: 'accident', name: 'Accident', hint: 'Crash, fire, capsize…', body: 'What happened: \nWhere: \nWhen: \nCasualties / injuries: \nRescue status: \nQuote (official / witness): \n' },
+    { id: 'rally', name: 'Rally / protest', hint: 'March, blockade…', body: 'Who: \nWhere (route / venue): \nCrowd size (est.): \nDemands / slogans: \nPolice / traffic situation: \n' },
+    { id: 'weather', name: 'Weather', hint: 'Storm, flood, heatwave…', body: 'Area affected: \nIntensity / damage: \nCasualties (if any): \nLocal administration response: \nMet office quote: \n' },
+    { id: 'court', name: 'Court', hint: 'Verdict, hearing…', body: 'Case: \nCourt / bench: \nWhat the court said: \nNext date: \nLawyer quote: \n' },
+    { id: 'presser', name: 'Presser', hint: 'Press conference…', body: 'Who briefed: \nWhere: \nKey announcement: \nNotable quotes: \n' }
+  ];
+
+  const RETURN_NOTES = [
+    'Add a quote from an eyewitness and resend.',
+    'Photo is too dark — resend one wide shot in daylight.',
+    'Confirm the casualty figure with police and update.',
+    'Needs the official version — call the DC office and add their line.'
+  ];
+
+  const STATUS = {
+    sending:   { label: 'Sending…',      cls: 'st-sending' },
+    queued:    { label: 'In queue',      cls: 'st-queued' },
+    sent:      { label: 'Sent',          cls: 'st-sent' },
+    received:  { label: 'Desk received', cls: 'st-received' },
+    review:    { label: 'Under review',  cls: 'st-review' },
+    published: { label: 'Published',     cls: 'st-published' },
+    returned:  { label: 'Returned',      cls: 'st-returned' }
+  };
+
+  const GRADS = ['linear-gradient(135deg,#3b6fe0,#16204a)','linear-gradient(135deg,#e5484d,#7a1f2b)','linear-gradient(135deg,#16a34a,#0b3d24)','linear-gradient(135deg,#f0a832,#8a5410)','linear-gradient(135deg,#7c3aed,#2e1065)','linear-gradient(135deg,#0ea5e9,#0c4a6e)'];
+
+  function gradientThumb(i, w, h) {
+    w = w || 200; h = h || 200;
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    const cols = [['#3b6fe0','#16204a'],['#e5484d','#7a1f2b'],['#16a34a','#0b3d24'],['#f0a832','#8a5410'],['#7c3aed','#2e1065'],['#0ea5e9','#0c4a6e']][i % 6];
+    const g = ctx.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, cols[0]); g.addColorStop(1, cols[1]);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    return c.toDataURL('image/jpeg', 0.85);
+  }
+
+  let subs = [
+    { id: 1, head: 'Launch capsize in Buriganga, 12 rescued', urg: 'breaking', dl: 'DHAKA', status: 'published', time: '2 hrs ago', media: [gradientThumb(1), gradientThumb(3)], voice: 24, note: null, pubNote: 'Live on the wire — 31 clients downloaded' },
+    { id: 2, head: 'Road crash on Dhaka–Ctg highway kills 3', urg: 'urgent', dl: 'NARAYANGANJ', status: 'review', time: '40 min ago', media: [gradientThumb(4)], voice: null, note: null },
+    { id: 3, head: 'Hilsa price soars at Karwan Bazar', urg: 'normal', dl: 'DHAKA', status: 'returned', time: 'Yesterday', media: [gradientThumb(0)], voice: null, note: 'Add a quote from a trader and one wide photo of the stalls.' },
+    { id: 4, head: "Nor'wester lashes Rajshahi, power out in wards", urg: 'urgent', dl: 'RAJSHAHI', status: 'received', time: '15 min ago', media: [], voice: 11, note: null }
+  ];
+
+  let assignments = [
+    { id: 1, title: 'Cover BNP rally at Nayapaltan', brief: 'Crowd estimate, slogans, any scuffle. Photos: wide crowd shot + stage. File by 5:30 PM.', from: 'Ruma (Bangla desk)', deadline: 'Today 5:30 PM', place: 'Nayapaltan, Dhaka', state: 'pending' },
+    { id: 2, title: 'Waterlogging shots after evening rain', brief: 'Mirpur-10, Kazipara, Shewrapara. 4–6 photos, people wading + stranded vehicles. File tonight if it rains.', from: 'Shohel (English desk)', deadline: 'Tonight, if rain', place: 'Mirpur, Dhaka', state: 'accepted' }
+  ];
+
+  let online = true;
+  let publishedThisMonth = 17;
+  let filedThisMonth = 21;
+
+  // compose state
+  let draftMedia = [];
+  let voiceSecs = 0;
+  let curTemplate = 'blank';
+  let subSeq = 5;
+
+  // ================= HELPERS =================
+  function toast(html) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.innerHTML = html;
+    document.getElementById('toastWrap').appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function fmtVoice(s) { return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+
+  // ================= NAV =================
+  document.querySelectorAll('.mn-item').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
+  function showView(v) {
+    document.querySelectorAll('.mn-item').forEach(x => x.classList.toggle('active', x.dataset.view === v));
+    document.querySelectorAll('.mj-view').forEach(x => x.classList.toggle('active', x.dataset.view === v));
+    window.scrollTo({ top: 0 });
+  }
+
+  // ================= CLOCK =================
+  function tickClock() {
+    const now = new Date();
+    const d = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Dhaka', weekday: 'short', day: 'numeric', month: 'short' }).format(now);
+    const t = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Dhaka', hour: 'numeric', minute: '2-digit', hour12: true }).format(now);
+    document.getElementById('helloClock').textContent = 'Dhaka · ' + d + ' · ' + t;
+    document.getElementById('dlDate').value = d.replace(/^\w+ /, '');
+  }
+  tickClock();
+  setInterval(tickClock, 30000);
+
+  // ================= NETWORK TOGGLE (offline demo) =================
+  const netToggle = document.getElementById('netToggle');
+  netToggle.addEventListener('click', () => {
+    online = !online;
+    netToggle.classList.toggle('off', !online);
+    document.getElementById('netLabel').textContent = online ? 'Online' : 'Offline';
+    if (online) {
+      toast('<b>Back online</b> — sending queued items…');
+      drainQueue();
+    } else {
+      toast('<b>Offline mode</b> — sends will queue and auto-upload later');
+    }
+    renderAll();
+  });
+
+  // ================= TEMPLATES =================
+  function renderTemplates() {
+    const html = TEMPLATES.map(t =>
+      '<button class="tpl-chip' + (t.id === curTemplate ? ' sel' : '') + '" data-t="' + t.id + '"><b>' + t.name + '</b><span>' + t.hint + '</span></button>'
+    ).join('');
+    document.getElementById('tplRowHome').innerHTML = html;
+    document.getElementById('tplRowFile').innerHTML = html;
+    document.querySelectorAll('.tpl-chip').forEach(c => c.addEventListener('click', () => applyTemplate(c.dataset.t)));
+  }
+  function applyTemplate(id) {
+    curTemplate = id;
+    const t = TEMPLATES.find(x => x.id === id);
+    if (t.body) {
+      const body = document.getElementById('cmpBody');
+      if (!body.value.trim() || TEMPLATES.some(x => x.body && x.body === body.value)) body.value = t.body;
+    }
+    renderTemplates();
+    showView('file');
+  }
+  document.getElementById('ctaFile').addEventListener('click', () => showView('file'));
+
+  // ================= URGENCY HINT =================
+  document.getElementById('urgSeg').addEventListener('change', e => {
+    const hints = {
+      breaking: 'Breaking pings the desk editor\'s phone instantly',
+      urgent: 'Urgent jumps to the top of the desk queue',
+      normal: 'Normal goes into the regular desk queue'
+    };
+    document.getElementById('urgHint').textContent = hints[e.target.value];
+  });
+
+  // ================= MEDIA ATTACH =================
+  const mediaRow = document.getElementById('mediaRow');
+  const mediaInput = document.getElementById('mediaInput');
+  function renderMediaRow() {
+    mediaRow.innerHTML = draftMedia.map((m, i) =>
+      '<div class="md-thumb"><img src="' + m.src + '" alt=""><button class="md-x" data-i="' + i + '" title="Remove">✕</button></div>'
+    ).join('') +
+    '<label class="md-add" for="mediaInput">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>' +
+      'Camera / gallery</label>';
+    mediaRow.querySelectorAll('.md-x').forEach(b => b.addEventListener('click', e => {
+      e.preventDefault();
+      draftMedia.splice(+b.dataset.i, 1);
+      renderMediaRow();
+    }));
+  }
+  mediaInput.addEventListener('change', function () {
+    [...this.files].forEach(f => draftMedia.push({ src: URL.createObjectURL(f), name: f.name }));
+    this.value = '';
+    renderMediaRow();
+  });
+
+  // ================= VOICE NOTE =================
+  let recTimer = null;
+  const voiceBtn = document.getElementById('voiceBtn');
+  voiceBtn.addEventListener('click', () => {
+    if (recTimer) { // stop
+      clearInterval(recTimer);
+      recTimer = null;
+      renderVoice();
+      toast('Voice note attached — <b>' + fmtVoice(voiceSecs) + '</b>');
+    } else {
+      voiceSecs = 0;
+      voiceBtn.classList.add('rec');
+      recTimer = setInterval(() => {
+        voiceSecs++;
+        document.getElementById('voiceLabel').textContent = '● Recording… ' + fmtVoice(voiceSecs) + ' — tap to stop';
+      }, 1000);
+      document.getElementById('voiceLabel').textContent = '● Recording… 0:00 — tap to stop';
+    }
+  });
+  function renderVoice() {
+    const row = document.getElementById('voiceRow');
+    if (voiceSecs > 0 && !recTimer) {
+      row.innerHTML = '<span class="voice-chip">🎙 Voice note · ' + fmtVoice(voiceSecs) +
+        ' <button id="voiceDel" title="Remove">✕</button></span>';
+      document.getElementById('voiceDel').addEventListener('click', () => { voiceSecs = 0; renderVoice(); });
+    } else {
+      row.innerHTML = '';
+      row.appendChild(voiceBtn);
+      voiceBtn.classList.remove('rec');
+      document.getElementById('voiceLabel').textContent = 'Record voice note';
+    }
+  }
+
+  // ================= SEND FLOW =================
+  function collectDraft() {
+    const head = document.getElementById('cmpHead').value.trim();
+    if (!head) { toast('Add a <b>headline</b> first — one line is enough'); showView('file'); return null; }
+    return {
+      id: subSeq++,
+      head,
+      urg: document.querySelector('input[name="urg"]:checked').value,
+      dl: (document.getElementById('dlCity').value.trim() || 'DHAKA').toUpperCase(),
+      body: document.getElementById('cmpBody').value.trim(),
+      media: draftMedia.map(m => m.src),
+      voice: voiceSecs || null,
+      status: 'queued',
+      progress: 0,
+      time: 'Just now',
+      note: null
+    };
+  }
+  function clearDraft() {
+    document.getElementById('cmpHead').value = '';
+    document.getElementById('cmpBody').value = '';
+    draftMedia = []; renderMediaRow();
+    voiceSecs = 0; renderVoice();
+    curTemplate = 'blank'; renderTemplates();
+    document.querySelector('input[name="urg"][value="normal"]').checked = true;
+  }
+
+  document.getElementById('sendBtn').addEventListener('click', () => {
+    const sub = collectDraft();
+    if (!sub) return;
+    subs.unshift(sub);
+    filedThisMonth++;
+    clearDraft();
+    if (online) sendSubmission(sub);
+    else toast('<b>Queued</b> — will send when you\'re back online');
+    showView('home');
+    renderAll();
+  });
+  document.getElementById('queueBtn').addEventListener('click', () => {
+    const sub = collectDraft();
+    if (!sub) return;
+    subs.unshift(sub);
+    filedThisMonth++;
+    clearDraft();
+    toast('<b>Queued</b> — send it from the Queue tab');
+    showView('queue');
+    renderAll();
+  });
+
+  function sendSubmission(sub) {
+    if (sub.status !== 'queued') return;
+    sub.status = 'sending';
+    sub.progress = 0;
+    renderAll();
+    const speed = sub.media.length ? 6 : 14; // photos take longer
+    const t = setInterval(() => {
+      sub.progress = Math.min(100, sub.progress + speed + Math.random() * 6);
+      const bar = document.querySelector('[data-prog="' + sub.id + '"]');
+      if (bar) bar.style.width = sub.progress + '%';
+      if (sub.progress >= 100) {
+        clearInterval(t);
+        sub.status = 'sent';
+        sub.time = 'Just now';
+        renderAll();
+        toast('<b>Sent to desk</b> — ' + (sub.urg === 'breaking' ? 'breaking alert pinged the editor' : 'in the desk queue'));
+        scheduleDesk(sub);
+      }
+    }, 220);
+  }
+  function scheduleDesk(sub) {
+    setTimeout(() => { if (sub.status === 'sent') { sub.status = 'received'; renderAll(); } }, 4000);
+    setTimeout(() => { if (sub.status === 'received') { sub.status = 'review'; renderAll(); } }, 10000);
+    setTimeout(() => {
+      if (sub.status !== 'review') return;
+      if (Math.random() < 0.72) {
+        sub.status = 'published';
+        sub.pubNote = 'Live on the wire — clients notified';
+        publishedThisMonth++;
+        toast('🎉 <b>Published!</b> "' + esc(sub.head.slice(0, 40)) + '…" is on the wire');
+      } else {
+        sub.status = 'returned';
+        sub.note = RETURN_NOTES[Math.floor(Math.random() * RETURN_NOTES.length)];
+        toast('<b>Returned by desk</b> — check the note on your story');
+      }
+      renderAll();
+    }, 18000);
+  }
+  function drainQueue() {
+    subs.filter(s => s.status === 'queued').forEach((s, i) => setTimeout(() => sendSubmission(s), i * 600));
+  }
+
+  // ================= RENDER =================
+  function subCard(s, extraFooter) {
+    const st = STATUS[s.status];
+    return '<div class="sub-card">' +
+      '<div class="sub-top">' +
+        '<span class="urg-tag ' + s.urg + '">' + (s.urg === 'breaking' ? '🔴 ' : s.urg === 'urgent' ? '🟠 ' : '') + s.urg + '</span>' +
+        '<span class="st-pill ' + st.cls + '"><i></i>' + st.label + '</span>' +
+        '<span class="sub-time">' + s.time + '</span>' +
+      '</div>' +
+      '<div class="sub-head">' + esc(s.head) + '</div>' +
+      '<div class="sub-meta">' +
+        '<span>📍 ' + esc(s.dl) + '</span>' +
+        (s.media.length ? '<span class="sub-media-ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>' + s.media.length + ' photo' + (s.media.length > 1 ? 's' : '') + '</span>' : '') +
+        (s.voice ? '<span>🎙 ' + fmtVoice(s.voice) + '</span>' : '') +
+      '</div>' +
+      (s.media.length ? '<div class="sub-thumbs">' + s.media.slice(0, 5).map(m => '<img src="' + m + '" alt="">').join('') + '</div>' : '') +
+      (s.status === 'sending' ? '<div class="sub-prog"><span data-prog="' + s.id + '" style="width:' + (s.progress || 0) + '%"></span></div>' : '') +
+      (s.status === 'queued' ? '<div class="sub-note" style="background:#f3f1ee;color:var(--muted)">⏳ ' + (online ? 'Tap send — or it goes automatically' : 'Waiting for network — auto-sends when online') + '</div>' : '') +
+      (s.note ? '<div class="sub-note"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><div><b>Desk note:</b> ' + esc(s.note) + '</div></div>' : '') +
+      (s.pubNote ? '<div class="sub-pub">✓ ' + esc(s.pubNote) + '</div>' : '') +
+      (extraFooter || '') +
+    '</div>';
+  }
+
+  function renderSubs() {
+    const list = document.getElementById('subList');
+    list.innerHTML = subs.length ? subs.map(subCard).join('') : '<div class="empty-mini">Nothing filed yet — hit "File a story" when news breaks.</div>';
+    document.getElementById('cntSubs').textContent = subs.length;
+  }
+
+  function renderQueue() {
+    const q = subs.filter(s => s.status === 'queued' || s.status === 'sending');
+    const list = document.getElementById('queueList');
+    list.innerHTML = q.length ? q.map(s =>
+      subCard(s, (s.status === 'queued' && online)
+        ? '<div class="as-acts"><button class="as-btn file" data-send="' + s.id + '">Send now</button></div>'
+        : '')
+    ).join('') : '<div class="empty-mini">Queue is empty — nice, everything reached the desk.</div>';
+    document.getElementById('cntQueue').textContent = q.length;
+    const badge = document.getElementById('queueBadge');
+    badge.hidden = !q.length;
+    badge.textContent = q.length;
+    list.querySelectorAll('[data-send]').forEach(b => b.addEventListener('click', () => sendSubmission(subs.find(s => s.id === +b.dataset.send))));
+  }
+
+  function renderAssign() {
+    const open = assignments.filter(a => a.state !== 'declined');
+    document.getElementById('cntAssign').textContent = open.length;
+    const badge = document.getElementById('assignBadge');
+    const pending = assignments.filter(a => a.state === 'pending').length;
+    badge.hidden = !pending;
+    badge.textContent = pending;
+    document.getElementById('assignList').innerHTML = assignments.map(a =>
+      '<div class="as-card ' + a.state + '">' +
+        '<div class="sub-top"><span class="as-state ' + a.state + '">' + a.state + '</span><span class="sub-time">' + esc(a.deadline) + '</span></div>' +
+        '<div class="as-title">' + esc(a.title) + '</div>' +
+        '<div class="as-brief">' + esc(a.brief) + '</div>' +
+        '<div class="as-meta">' +
+          '<span><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' + esc(a.from) + '</span>' +
+          '<span><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + esc(a.place) + '</span>' +
+        '</div>' +
+        (a.state === 'pending'
+          ? '<div class="as-acts"><button class="as-btn yes" data-acc="' + a.id + '">Accept</button><button class="as-btn no" data-dec="' + a.id + '">Can\'t do it</button></div>'
+          : a.state === 'accepted'
+            ? '<div class="as-acts"><button class="as-btn file" data-file="' + a.id + '">File this story →</button></div>'
+            : '')
+      + '</div>'
+    ).join('');
+    document.querySelectorAll('[data-acc]').forEach(b => b.addEventListener('click', () => {
+      const a = assignments.find(x => x.id === +b.dataset.acc);
+      a.state = 'accepted';
+      toast('<b>Accepted</b> — briefing saved, deadline reminder set');
+      renderAssign();
+    }));
+    document.querySelectorAll('[data-dec]').forEach(b => b.addEventListener('click', () => {
+      const a = assignments.find(x => x.id === +b.dataset.dec);
+      a.state = 'declined';
+      toast('Declined — the desk was notified');
+      renderAssign();
+    }));
+    document.querySelectorAll('[data-file]').forEach(b => b.addEventListener('click', () => {
+      const a = assignments.find(x => x.id === +b.dataset.file);
+      document.getElementById('cmpHead').value = a.title;
+      const city = a.place.split(',').pop().trim().toUpperCase();
+      document.getElementById('dlCity').value = city === 'DHAKA' ? 'DHAKA' : city;
+      showView('file');
+      toast('Briefing loaded — <b>file when ready</b>');
+    }));
+  }
+
+  function renderProfile() {
+    document.getElementById('pfFiled').textContent = filedThisMonth;
+    document.getElementById('pfPub').textContent = publishedThisMonth;
+    const pubs = subs.filter(s => s.status === 'published');
+    document.getElementById('bylineList').innerHTML = (pubs.length ? pubs.map(s =>
+      '<div class="byl-row"><div class="byl-head">' + esc(s.head) + '</div><div class="byl-meta">' + esc(s.dl) + ' · ' + s.time + ' · by Rahimul Haque/UNB</div></div>'
+    ).join('') : '<div class="empty-mini">Published stories will show up here with your byline.</div>') +
+    '<div class="byl-row"><div class="byl-head">Farmers in Kurigram count losses as floodwater recedes</div><div class="byl-meta">KURIGRAM · Aug 21 · by Rahimul Haque/UNB</div></div>' +
+    '<div class="byl-row"><div class="byl-head">Metro rail MRT-6 extension work begins at Agargaon</div><div class="byl-meta">DHAKA · Aug 19 · by Rahimul Haque/UNB</div></div>';
+  }
+
+  function renderStats() {
+    document.getElementById('statSent').textContent = subs.filter(s => s.time === 'Just now' || s.time.includes('min') || s.time.includes('hr')).length;
+    document.getElementById('statPub').textContent = publishedThisMonth;
+    document.getElementById('statRet').textContent = subs.filter(s => s.status === 'returned').length;
+  }
+
+  function renderAll() { renderSubs(); renderQueue(); renderAssign(); renderProfile(); renderStats(); }
+
+  // ================= INIT =================
+  renderTemplates();
+  renderMediaRow();
+  renderAll();
+</script>
+
+</body>
+</html>

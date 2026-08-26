@@ -1,0 +1,13 @@
+---
+description: Never mention Cursor, AI agents, or tool branding in git commits, PRs, or branch names
+alwaysApply: true
+---
+
+# Clean Git & PR Hygiene
+
+Never include tool-specific branding (e.g. Cursor, AI assistant, IDE artifacts) in git history, commit messages, branch names, or PR text.
+
+## Rules
+- Use Conventional Commits with ACT-DP Task IDs: `feat(wire): add webhook dispatcher [WIRE-002]`.
+- Feature branches: `feature/<scope>-<slug>` (e.g., `feature/wire-feed-api`).
+- Keep diffs focused exclusively on the product deliverables.
