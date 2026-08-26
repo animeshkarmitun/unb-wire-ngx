@@ -30,7 +30,7 @@
 
 | Task ID | Title | Dependencies | Status | Review | Completed |
 |---------|-------|--------------|--------|--------|-----------|
-| `M1-BOOT-001` | Laravel modular monolith scaffold + base admin chrome | M0-TOOL-001/002 | ⏳ | — | — |
+| `M1-BOOT-001` | Laravel modular monolith scaffold + base admin chrome | M0-TOOL-001/002 | ✅ | — | 2026-08-26 |
 
 ---
 

@@ -31,3 +31,14 @@ yarn-error.log
 /.vscode
 .DS_Store
 Thumbs.db
+
+# Laravel skeleton additions (M1-BOOT-001)
+*.log
+.phpactor.json
+/.nova
+/.zed
+/.phpunit.cache
+/public/storage
+/storage/pail
+Homestead.json
+Homestead.yaml
