@@ -26,7 +26,15 @@
 
 ---
 
-## 3. Product Tasks Board
+## 3. Foundation Milestone (`M1-BOOT`)
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M1-BOOT-001` | Laravel modular monolith scaffold + base admin chrome | M0-TOOL-001/002 | ⏳ | — | — |
+
+---
+
+## 4. Product Tasks Board
 
 *UI prototypes & requirements received in `app-data/` (2026-08-26). Decompose per `docs/task-decomposition-protocol.md` — build order: DB design §10 migration tasks, then prototype conversion order (app-data README §11).*
 ***Deferred:** field apps (MoJo / Photo desk PWA), FR-FLD-001…010, `Modules/Field` — see `DEC-008`.*
@@ -37,7 +45,7 @@
 
 ---
 
-## 4. How to Add a Task
+## 5. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.
