@@ -47,6 +47,7 @@
 | `M2-DB-004` | Stories core: stories, versions, notes, events, story_tag | M2-DB-003 | ✅ | — | 2026-08-27 |
 | `M2-DB-005` | Media core: media_batches, media_assets, media_reviews, media_tag, story_media | M2-DB-004 | ✅ | — | 2026-08-27 |
 | `M2-DB-006` | Field ops: upload_sessions (assignments deferred) | M2-DB-005 | ✅ | — | 2026-08-27 |
+| `M2-DB-007` | Distribution: packages, package_media, client_packages, client_channels, deliveries | M2-DB-006 | ✅ | — | 2026-08-27 |
 
 ---
 
