@@ -45,6 +45,7 @@
 | `M2-DB-002` | Clients: clients, client_users, client_api_keys | M2-DB-001 | ✅ | — | 2026-08-27 |
 | `M2-DB-003` | Taxonomy: categories, tags | M2-DB-002 | ✅ | — | 2026-08-27 |
 | `M2-DB-004` | Stories core: stories, versions, notes, events, story_tag | M2-DB-003 | ✅ | — | 2026-08-27 |
+| `M2-DB-005` | Media core: media_batches, media_assets, media_reviews, media_tag, story_media | M2-DB-004 | ✅ | — | 2026-08-27 |
 
 ---
 
