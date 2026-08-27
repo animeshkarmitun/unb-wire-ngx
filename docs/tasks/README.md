@@ -42,7 +42,7 @@
 | Task ID | Title | Dependencies | Status | Review | Completed |
 |---------|-------|--------------|--------|--------|-----------|
 | `M2-DB-001` | Auth base: roles, permissions, users, devices, tokens | M1-BOOT-001 | ✅ | — | 2026-08-27 |
-| — | *Next: M2-DB-002 clients (clients, client_users, client_api_keys) per design §10.2* | — | ⏳ | — | — |
+| `M2-DB-002` | Clients: clients, client_users, client_api_keys | M2-DB-001 | ✅ | — | 2026-08-27 |
 
 ---
 
