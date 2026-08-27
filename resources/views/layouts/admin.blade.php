@@ -15,12 +15,21 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="font-sans bg-paper text-ink antialiased">
+<body class="font-sans bg-paper text-ink antialiased" x-data="{ sidebarOpen: false }">
     {{-- Brand strip across the very top --}}
     <div class="fixed top-0 inset-x-0 h-1 z-50 bg-[linear-gradient(90deg,#e5484d_0%,#f0a832_45%,#16204a_100%)]"></div>
 
     <div class="grid lg:grid-cols-[240px_1fr] min-h-screen pt-1">
-        <x-sidebar />
+        <div class="hidden lg:block">
+            <x-sidebar />
+        </div>
+
+        <div x-show="sidebarOpen" x-transition.opacity.duration.200ms x-cloak class="fixed inset-0 z-[70] lg:hidden" @click="sidebarOpen = false">
+            <div class="absolute inset-0 bg-navy-900/50 backdrop-blur-sm"></div>
+            <div class="absolute left-0 top-0 bottom-0 w-[260px] overflow-y-auto bg-gradient-to-b from-navy-800 to-navy-900 shadow-2xl" @click.stop>
+                <x-sidebar />
+            </div>
+        </div>
 
         <div class="min-w-0">
             <x-topnav />

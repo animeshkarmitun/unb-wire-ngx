@@ -12,17 +12,17 @@
     <nav>
         <div class="text-[10.5px] tracking-[0.14em] uppercase text-navy-label font-semibold mb-2.5 pl-2.5">Overview</div>
         <x-nav-item-admin href="{{ route('dashboard') }}" icon="layout-dashboard" :active="request()->routeIs('dashboard')">Dashboard</x-nav-item-admin>
-        <x-nav-item-admin href="#" icon="pen-line" badge="4" badge-variant="red">Content pipeline</x-nav-item-admin>
-        <x-nav-item-admin href="#" icon="users">Clients</x-nav-item-admin>
+        <x-nav-item-admin href="{{ route('admin.add-news') }}" icon="pen-line" :active="request()->routeIs('admin.add-news')">Add News</x-nav-item-admin>
+        <x-nav-item-admin href="{{ route('admin.clients') }}" icon="users" :active="request()->routeIs('admin.clients')">Clients</x-nav-item-admin>
     </nav>
 
     {{-- Newsroom --}}
     <nav>
         <div class="text-[10.5px] tracking-[0.14em] uppercase text-navy-label font-semibold mb-2.5 pl-2.5">Newsroom</div>
-        <x-nav-item-admin href="#" icon="newspaper">English News</x-nav-item-admin>
-        <x-nav-item-admin href="#" icon="book-open">Bangla News</x-nav-item-admin>
-        <x-nav-item-admin href="#" icon="camera">UNB Photos</x-nav-item-admin>
-        <x-nav-item-admin href="#" icon="image">AP Photo Manager</x-nav-item-admin>
+        <x-nav-item-admin href="{{ route('admin.news', 'en') }}" icon="newspaper" :active="request()->routeIs('admin.news') && request()->route('language')==='en'">English News</x-nav-item-admin>
+        <x-nav-item-admin href="{{ route('admin.news', 'bn') }}" icon="book-open" :active="request()->routeIs('admin.news') && request()->route('language')==='bn'">Bangla News</x-nav-item-admin>
+        <x-nav-item-admin href="{{ route('admin.photos') }}" icon="camera" :active="request()->routeIs('admin.photos')">UNB Photos</x-nav-item-admin>
+        <x-nav-item-admin href="{{ route('admin.ap-photos') }}" icon="image" :active="request()->routeIs('admin.ap-photos')">AP Photo Manager</x-nav-item-admin>
     </nav>
 
     {{-- Field apps (separate surfaces — open in new tabs) --}}
@@ -35,18 +35,18 @@
     {{-- Distribution --}}
     <nav>
         <div class="text-[10.5px] tracking-[0.14em] uppercase text-navy-label font-semibold mb-2.5 pl-2.5">Distribution</div>
-        <x-nav-item-admin href="#" icon="activity">Distribution log</x-nav-item-admin>
-        <x-nav-item-admin href="#" icon="monitor" badge="3" badge-variant="green">Client FTP</x-nav-item-admin>
-        <x-nav-item-admin href="#" icon="tag">Packages</x-nav-item-admin>
-        <x-nav-item-admin href="#" icon="send">English Service</x-nav-item-admin>
-        <x-nav-item-admin href="#" icon="rss">Bangla Service</x-nav-item-admin>
+        <x-nav-item-admin href="{{ route('admin.distribution') }}" icon="activity" :active="request()->routeIs('admin.distribution')">Distribution log</x-nav-item-admin>
+        <x-nav-item-admin href="{{ route('admin.clients') }}" icon="monitor" badge="3" badge-variant="green">Client FTP</x-nav-item-admin>
+        <x-nav-item-admin href="{{ route('admin.packages') }}" icon="tag" :active="request()->routeIs('admin.packages')">Packages</x-nav-item-admin>
+        <x-nav-item-admin href="{{ route('admin.service','en') }}" icon="send" :active="request()->routeIs('admin.service') && request()->route('service')==='en'">English Service</x-nav-item-admin>
+        <x-nav-item-admin href="{{ route('admin.service','bn') }}" icon="rss" :active="request()->routeIs('admin.service') && request()->route('service')==='bn'">Bangla Service</x-nav-item-admin>
     </nav>
 
     {{-- Settings --}}
     <nav>
         <div class="text-[10.5px] tracking-[0.14em] uppercase text-navy-label font-semibold mb-2.5 pl-2.5">Settings</div>
-        <x-nav-item-admin href="#" icon="shield-check">Roles &amp; access</x-nav-item-admin>
-        <x-nav-item-admin href="#" icon="sparkles">AI settings</x-nav-item-admin>
-        <x-nav-item-admin href="#" icon="settings">Preferences</x-nav-item-admin>
+        <x-nav-item-admin href="{{ route('admin.roles') }}" icon="shield-check" :active="request()->routeIs('admin.roles')">Roles &amp; access</x-nav-item-admin>
+        <x-nav-item-admin href="{{ route('admin.ai-settings') }}" icon="sparkles" :active="request()->routeIs('admin.ai-settings')">AI settings</x-nav-item-admin>
+        <x-nav-item-admin href="{{ route('admin.preferences') }}" icon="settings" :active="request()->routeIs('admin.preferences')">Preferences</x-nav-item-admin>
     </nav>
 </aside>

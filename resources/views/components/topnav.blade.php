@@ -1,4 +1,7 @@
 <header class="sticky top-1 z-40 flex items-center gap-4 px-4 lg:px-[38px] py-[11px] bg-white/90 backdrop-blur border-b border-border">
+    <button type="button" class="lg:hidden w-9 h-9 rounded-[9px] border border-border bg-white flex items-center justify-center text-ink hover:border-navy-800" @click="sidebarOpen = !sidebarOpen" aria-label="Toggle navigation">
+        <x-lucide-menu class="w-[18px] h-[18px]" stroke-width="1.8" />
+    </button>
     {{-- Search ("/" focuses) --}}
     <div class="flex-1 max-w-[400px] flex items-center gap-[9px] bg-paper border border-border rounded-[10px] px-[13px] py-[9px] transition-colors focus-within:border-navy-800">
         <x-lucide-search class="w-[15px] h-[15px] shrink-0 text-muted-2" stroke-width="1.8" />
@@ -19,35 +22,26 @@
         </a>
 
         {{-- Notifications --}}
+        @php $notifs = Auth::user()->notifications()->latest()->limit(5)->get(); $unread = Auth::user()->unreadNotifications()->count(); @endphp
         <div class="relative" x-data="{ open: false }" @click.outside="open = false">
             <button type="button" @click="open = !open" title="Notifications" class="relative w-[38px] h-[38px] rounded-[10px] border border-border bg-white text-[#4b4e5c] flex items-center justify-center transition-colors hover:border-navy-800 hover:text-navy-800">
                 <x-lucide-bell class="w-[17px] h-[17px]" stroke-width="1.8" />
-                <span class="absolute -top-[5px] -right-[5px] min-w-[17px] h-[17px] px-1 rounded-full bg-crimson text-white text-[10px] font-bold flex items-center justify-center border-2 border-white">3</span>
+                @if($unread>0)<span class="absolute -top-[5px] -right-[5px] min-w-[17px] h-[17px] px-1 rounded-full bg-crimson text-white text-[10px] font-bold flex items-center justify-center border-2 border-white">{{ $unread }}</span>@endif
             </button>
-            <div x-show="open" x-transition.opacity.duration.150ms x-cloak class="absolute right-0 top-[calc(100%+8px)] w-[310px] bg-white border border-border rounded-xl shadow-[0_14px_34px_rgba(15,23,48,0.14)] p-1.5 z-[60]">
-                <div class="text-[11px] uppercase tracking-[0.07em] text-muted-2 font-semibold px-[11px] pt-2 pb-[5px]">Notifications</div>
-                <div class="flex gap-2.5 items-center px-[11px] py-[9px] rounded-lg text-[13px] text-ink">
-                    <span class="w-2 h-2 rounded-full mt-[5px] shrink-0 self-start bg-green"></span>
+            <div x-show="open" x-transition.opacity.duration.150ms x-cloak class="absolute right-0 top-[calc(100%+8px)] w-[320px] bg-white border border-border rounded-xl shadow-[0_14px_34px_rgba(15,23,48,0.14)] p-1.5 z-[60]">
+                <div class="text-[11px] uppercase tracking-[0.07em] text-muted-2 font-semibold px-[11px] pt-2 pb-[5px]">Notifications @if($unread>0)<span class="bg-crimson text-white px-1.5 rounded-full text-[10px]">{{ $unread }} new</span>@endif</div>
+                @forelse($notifs as $n)
+                <div class="flex gap-2.5 items-center px-[11px] py-[9px] rounded-lg text-[13px] text-ink {{ is_null($n->read_at)?'bg-paper':'' }}">
+                    <span class="w-2 h-2 rounded-full mt-[5px] shrink-0 self-start {{ $n->data['event']==='review_requested'?'bg-amber':($n->data['event']==='published'?'bg-green':'bg-blue') }}"></span>
                     <div>
-                        <div class="text-[12.5px] leading-[1.45]">Distribution complete — 12 stories pushed to 47 clients</div>
-                        <div class="text-[11px] text-muted-2 mt-0.5">10 min ago</div>
+                        <div class="text-[12.5px] leading-[1.45]">{{ $n->data['data']['headline'] ?? $n->data['event'] }}</div>
+                        <div class="text-[11px] text-muted-2 mt-0.5">{{ $n->created_at->diffForHumans() }}</div>
                     </div>
                 </div>
-                <div class="flex gap-2.5 items-center px-[11px] py-[9px] rounded-lg text-[13px] text-ink">
-                    <span class="w-2 h-2 rounded-full mt-[5px] shrink-0 self-start bg-blue"></span>
-                    <div>
-                        <div class="text-[12.5px] leading-[1.45]">Daily Star downloaded 3 photos from the archive</div>
-                        <div class="text-[11px] text-muted-2 mt-0.5">32 min ago</div>
-                    </div>
-                </div>
-                <div class="flex gap-2.5 items-center px-[11px] py-[9px] rounded-lg text-[13px] text-ink">
-                    <span class="w-2 h-2 rounded-full mt-[5px] shrink-0 self-start bg-crimson"></span>
-                    <div>
-                        <div class="text-[12.5px] leading-[1.45]">FTP upload failed for Jugantor — retry needed</div>
-                        <div class="text-[11px] text-muted-2 mt-0.5">1 hr ago</div>
-                    </div>
-                </div>
-                <a href="#" class="block text-center text-[12px] text-crimson font-semibold px-2 pt-[9px] pb-[7px] mt-1 border-t border-border hover:underline">View distribution log</a>
+                @empty
+                <div class="text-xs text-muted p-3 text-center">No notifications — burst-collapsed per thread per 5 min.</div>
+                @endforelse
+                <a href="{{ route('admin.distribution') }}" class="block text-center text-[12px] text-crimson font-semibold px-2 pt-[9px] pb-[7px] mt-1 border-t border-border hover:underline">View distribution log</a>
             </div>
         </div>
 
