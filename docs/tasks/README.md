@@ -41,7 +41,8 @@
 
 | Task ID | Title | Dependencies | Status | Review | Completed |
 |---------|-------|--------------|--------|--------|-----------|
-| — | *Awaiting task decomposition from app-data contracts* | — | ⏳ | — | — |
+| `M2-DB-001` | Auth base: roles, permissions, users, devices, tokens | M1-BOOT-001 | ✅ | — | 2026-08-27 |
+| — | *Next: M2-DB-002 clients (clients, client_users, client_api_keys) per design §10.2* | — | ⏳ | — | — |
 
 ---
 
