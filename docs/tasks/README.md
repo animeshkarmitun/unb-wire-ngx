@@ -44,6 +44,7 @@
 | `M2-DB-001` | Auth base: roles, permissions, users, devices, tokens | M1-BOOT-001 | ✅ | — | 2026-08-27 |
 | `M2-DB-002` | Clients: clients, client_users, client_api_keys | M2-DB-001 | ✅ | — | 2026-08-27 |
 | `M2-DB-003` | Taxonomy: categories, tags | M2-DB-002 | ✅ | — | 2026-08-27 |
+| `M2-DB-004` | Stories core: stories, versions, notes, events, story_tag | M2-DB-003 | ✅ | — | 2026-08-27 |
 
 ---
 
