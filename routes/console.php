@@ -37,3 +37,5 @@ Schedule::call(function(){
 Schedule::call(function(){
     \Illuminate\Support\Facades\DB::table('upload_sessions')->where('expires_at','<', now())->delete();
 })->daily()->name('upload-janitor');
+Schedule::command('monitor:outbox-lag')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('horizon:snapshot')->everyFiveMinutes();
