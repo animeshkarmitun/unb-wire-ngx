@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+[x-cloak] {
+    display: none !important;
+}
+
+@layer components {
+    .g1 { background: linear-gradient(135deg, #3b6fe0, #16204a); }
+    .g2 { background: linear-gradient(135deg, #e5484d, #7a1f2b); }
+    .g3 { background: linear-gradient(135deg, #16a34a, #0b3d24); }
+    .g4 { background: linear-gradient(135deg, #f0a832, #8a5410); }
+    .g5 { background: linear-gradient(135deg, #7c3aed, #2e1065); }
+    .g6 { background: linear-gradient(135deg, #0ea5e9, #0c4a6e); }
+    .g7 { background: linear-gradient(135deg, #db2777, #831843); }
+    .g8 { background: linear-gradient(135deg, #64748b, #1e293b); }
+}

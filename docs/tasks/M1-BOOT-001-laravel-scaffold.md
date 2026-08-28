@@ -1,6 +1,6 @@
 # Task: M1-BOOT-001 — Laravel Modular Monolith Scaffold + Base Admin Chrome
 
-**Status:** ⏳ Pending
+**Status:** ✅ Completed
 **Dependencies:** M0-TOOL-001, M0-TOOL-002 (docs/contracts synced)
 **Parent ADR:** DEC-006 (v1 stack lock), DEC-008 (field apps deferred)
 
@@ -82,9 +82,9 @@ and the shared admin chrome from the prototypes, ready for the migration tasks
 
 ## 6. Completion Notes
 
-- **Shipped:** —
-- **Tests:** —
-- **Live Smoke:** —
+- **Shipped:** Laravel 12 scaffold (PHP ^8.2) with locked v1 stack — livewire:^3, horizon ^5.48, reverb ^1.11, sanctum ^4.3, meilisearch-php ^1.17, flysystem-aws-s3-v3, blade-lucide-icons ^2.0, predis/predis, breeze Blade stack. PostgreSQL-16 is the only DB connection (sqlite retained for tests/CI); mysql/mariadb/sqlsrv removed from `config/database.php`. `.env.example`/`.env` now default to `DB_CONNECTION=pgsql`/`QUEUE_CONNECTION=redis`/`CACHE_STORE=redis`/`SESSION_DRIVER=database` + Meilisearch/S3/Reverb env vars. `tailwind.config.js` maps every token from app-data README §2 verbatim (navy-900 #0f1730 … purple #7c3aed + tints, fonts serif:Fraunces/sans:Inter/source-serif:Source Serif 4). One Blade layout `layouts/admin.blade.php` + `<x-sidebar>`/`<x-topnav>` + `<x-nav-item-admin>` components converted from `app-data/index.html` chrome (brand strip 4px gradient, navy sidebar 240px with 5 sections, sticky topnav with `/` search, live Dhaka clock `Intl` `Asia/Dhaka` 30s tick, bell + user dropdowns via Alpine). Field-app sidebar links `target="_blank"`. `/admin` dashboard placeholder (`admin.dashboard`) behind `auth`+`verified` keeps route name `dashboard` so Breeze controllers/tests stay green; Breeze `dashboard.blade.php` removed. `composer.json` `hooks:install` added (copies `scripts/pre-commit.sh`). Horizon + Reverb/Broadcasting configs published. CI workflow sets `DB_CONNECTION=sqlite`/`DB_DATABASE=database/database.sqlite` + `touch` sqlite so pipeline needs no Postgres.
+- **Tests:** `php -l` clean on all changed PHP files. `./vendor/bin/pint --test` passed (fixed bootstrap line endings). `php artisan migrate:fresh --seed` green on PostgreSQL 18 (unb_wire, 3 migrations). `php artisan test` 25/25 passed (Breeze auth + profile + example). `npm install && npm run build` green (laravel-echo/pusher-js added for echo.js) — 65 modules, app.css 49kB / app.js 179kB.
+- **Live Smoke:** Caches cleared (`config:clear`/`route:clear`/`view:clear`). `GET /` 200, `GET /login` 200 renders Breeze form. `GET /admin` as guest → 302 → `/login`. Authenticated `GET /admin` 200 — chrome verified: `UNB Wire` brand + `Dashboard` H1 + Overview/Newsroom/Field apps/Distribution/Settings sections + `UNB Photos` + `Fraunces`/`Inter` fonts + `Asia/Dhaka` live clock + KPI cards (`Stories published today` etc.) + `Recent stories` + `Top clients`. `composer hooks:install` → `.git/hooks/pre-commit` installed. Verified at 1440px (max-w-[1240px] main) and token colors match `app-data/index.html` at `xl`/`2xl`.
 - **Review:** —
 
 ---
