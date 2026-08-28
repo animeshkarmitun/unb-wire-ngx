@@ -24,11 +24,12 @@ Route::prefix('v1/portal')->group(function () {
     })->middleware('throttle:60,1');
 
     Route::get('/feed', function (Request $request) {
-        $stories = Story::with('category')->where('status', 'published')->orderByDesc('published_at')->limit(20)->get()->map(fn($s)=>[
+        $key = 'portal:feed:'.md5($request->fullUrl());
+        $stories = \Illuminate\Support\Facades\Cache::remember($key, 60, fn()=> Story::with('category')->where('status', 'published')->orderByDesc('published_at')->limit(20)->get()->map(fn($s)=>[
             'public_id' => $s->public_id, 'headline' => $s->headline, 'sub_head' => $s->sub_head, 'brief' => $s->brief, 'body_html' => $s->body_html,
             'category' => $s->category->name_en ?? '—', 'language' => $s->language, 'published_at' => $s->published_at?->toIso8601String(), 'status' => $s->status, 'is_breaking' => $s->is_breaking,
-        ]);
-        return response()->json(['data' => $stories]);
+        ]));
+        return response()->json(['data' => $stories])->header('Cache-Control','public, max-age=60');
     });
 
     Route::get('/story/{publicId}', function (string $publicId) {

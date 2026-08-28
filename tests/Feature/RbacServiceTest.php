@@ -71,7 +71,7 @@ class RbacServiceTest extends TestCase
         $user = $this->makeUser('Business Team');
         $this->actingAs($user);
         $resp = $this->get('/admin/add-news');
-        $resp->assertStatus(200);
+        $resp->assertStatus(403);
         $this->assertFalse(app(RbacService::class)->can($user, 'stories', 'publish'));
     }
 

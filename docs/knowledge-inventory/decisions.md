@@ -173,5 +173,43 @@ in the current build scope.
 ### Consequences
 - Migration task list (DB design §10) drops `assignments`; `devices` moves out of
   the auth-base task.
-- No field-app notification recipients; editorial notifications scope to desk
-  staff only.
+ - No field-app notification recipients; editorial notifications scope to desk
+   staff only.
+
+---
+
+## `DEC-009`: M4-M5 Feature Completion — Editorial Hardening, Search, Media, API, Billing, Portal, AI, Ops
+
+### Context
+v1 required RBAC/editorial 409+state machine, Meilisearch tenant-token with single entitlement source, S3/tus/derivatives+CDN presigned, scoped/rotatable/rate-limited client API keys with cursor feed, MRR/invoices, portal graceful degradation, AI kill-switch+budgets+auto-publish allowlist, and Horizon/embargo/archival ops.
+
+### Decision
+- `StoryService` with optimistic `version` 409, `TRANSITIONS` map, AI/embargo gates, `take_over` chain-of-custody, `index_outbox` transaction.
+- `EntitlementResolver`+`TenantTokenIssuer` (HS256 JWT, 30m, searchRules main/archive/media, Cache 5m).
+- `PresignedUrlService`+`GenerateDerivatives` (thumb/preview/large webp) + `TusController` (Upload-Offset/Length).
+- `ApiKeyService` issue/rotate/revoke (sha256, two-key overlap) + `EnsureClientApiKey` (scope+60rpm→429) + cursor `?since` ISO feed.
+- `BillingService` MRR + idempotent `invoices`/`invoice_lines` per client per month.
+- Portal `search.ts` 5s timeout fallback to feed ISR (60s Cache-Control, STALE-IF-ERROR).
+- `AiService` desk toggle + monthlyCap sum guard, `StoryService` autoCats allowlist.
+- Horizon queues [default,outbox,fanout,derivatives,billing], `preventLazyLoading` in prod, `embargo-lift`/`archive-sweep` write `index_outbox` with fanout.
+
+### Consequences
+- Single entitlement source drives delivery+portal+search; no drift.
+- AI publish blocked unless breaking or allowlisted routine cats.
+- Feed tag-cache invalidated on publish; N+1 blocked in prod.
+
+---
+
+## `DEC-010`: v1 Perf & Security Lock
+
+### Context
+Admin routes lacked server-side RBAC; audit was append-only in spec but not enforced; perf had N+1 risks on feed.
+
+### Decision
+- All `/admin/*` now `rbac:module,action` (EnsureRbac alias) + global `preventLazyLoading` / `preventAccessingMissingAttributes` / `prohibitDestructiveCommands` in prod.
+- `audit_logs` append-only (no UPDATE/DELETE grants on pgsql, app only INSERT).
+- Feed portal + v1 feed use `Cache::remember` 60s with `Cache-Control public max-age=60`; Horizon `withoutOverlapping` on schedulers.
+
+### Consequences
+- UI hides buttons but API still 403; pgsql grants enforce audit immutability.
+- FE CDN caches feed; schedulers never overlap.
