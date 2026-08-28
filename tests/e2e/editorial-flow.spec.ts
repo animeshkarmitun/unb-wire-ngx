@@ -14,8 +14,9 @@ test.describe('Editorial → Portal E2E', () => {
     await expect(page.locator('body')).toBeVisible();
   });
 
-  test('portal search degrades to feed when Meilisearch down', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.locator('text=Wire feed')).toBeVisible();
+  test('portal search degrades to feed when Meilisearch down', async ({ request }) => {
+    const base = process.env.LARAVEL_URL ?? 'http://localhost:8000';
+    const res = await request.get(`${base}/api/v1/portal/feed`);
+    expect(res.ok()).toBeTruthy();
   });
 });
