@@ -15,6 +15,16 @@ class AiService
         if(!empty($cfg['killed'])){
             return ['error'=>'AI kill switch is ON'];
         }
+        $deskKey = ($payload['language'] ?? 'en') === 'bn' ? 'preeditBn' : 'preeditEn';
+        if(isset($cfg[$deskKey]) && ! $cfg[$deskKey]){
+            return ['error'=>'AI disabled for this desk'];
+        }
+        $cap = (int)($cfg['monthlyCap'] ?? 500000);
+        $monthStart = now()->startOfMonth()->toDateString();
+        $used = (int) DB::table('ai_token_usage_daily')->where('date','>=',$monthStart)->sum('tokens');
+        if($used >= $cap){
+            return ['error'=>'Monthly AI token budget exceeded'];
+        }
 
         $pack = match($kind){
             'preedit' => ['headline'=>$payload['headline']??'AI: '.$payload['text']??Str::limit($payload['text']??'',60).' — polished','brief'=>'AI brief — '.$payload['text']??'','category'=>['name'=>'Business'],'tags'=>['economy','bangladesh'],'body'=>'<p>AI polished body for: '.e($payload['text']??'').'</p>'],

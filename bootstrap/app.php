@@ -13,7 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'rbac' => \App\Http\Middleware\EnsureRbac::class,
+            'client.api' => \App\Http\Middleware\EnsureClientApiKey::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

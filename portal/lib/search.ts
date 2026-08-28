@@ -24,6 +24,15 @@ export async function getSearchClient(): Promise<{ client: Meilisearch; token: s
 export async function searchStories(query: string, filter?: string) {
   const ctx = await getSearchClient();
   if (!ctx) return null;
-  const index = ctx.client.index(process.env.NEXT_PUBLIC_MEILISARCH_INDEX ?? "main");
-  return index.search(query, { filter, limit: 20 });
+  try {
+    const index = ctx.client.index(process.env.NEXT_PUBLIC_MEILISARCH_INDEX ?? "main");
+    const res = await Promise.race([
+      index.search(query, { filter, limit: 20 }),
+      new Promise<null>((_, rej) => setTimeout(() => rej(new Error("timeout")), 5000)),
+    ]) as any;
+    return res;
+  } catch {
+    client = null; tenantToken = null;
+    return null;
+  }
 }

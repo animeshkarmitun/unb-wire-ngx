@@ -23,13 +23,26 @@ class FanoutStory implements ShouldQueue
         $story = Story::find($this->storyId);
         if(!$story || $story->status!=='published') return;
 
-        $clients = DB::table('client_packages')
-            ->join('packages','packages.id','=','client_packages.package_id')
-            ->where('client_packages.status','active')
-            ->where(function($q) use($story){
-                $q->whereRaw("(packages.entitlement_filter->>'languages')::jsonb ? ?", [$story->language]);
-            })
-            ->select('client_packages.client_id','packages.entitlement_filter')->get();
+        $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+        if ($isSqlite) {
+            $raw = DB::table('client_packages')
+                ->join('packages','packages.id','=','client_packages.package_id')
+                ->where('client_packages.status','active')
+                ->select('client_packages.client_id','packages.entitlement_filter')->get();
+            $clients = $raw->filter(function ($r) use ($story) {
+                $f = is_string($r->entitlement_filter) ? json_decode($r->entitlement_filter, true) : $r->entitlement_filter;
+                $langs = $f['languages'] ?? [];
+                return in_array($story->language, (array) $langs, true);
+            })->values();
+        } else {
+            $clients = DB::table('client_packages')
+                ->join('packages','packages.id','=','client_packages.package_id')
+                ->where('client_packages.status','active')
+                ->where(function($q) use($story){
+                    $q->whereRaw("(packages.entitlement_filter->>'languages')::jsonb ? ?", [$story->language]);
+                })
+                ->select('client_packages.client_id','packages.entitlement_filter')->get();
+        }
 
         foreach($clients as $row){
             $channels = DB::table('client_channels')->where('client_id',$row->client_id)->where('status','active')->get();
