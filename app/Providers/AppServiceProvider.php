@@ -13,8 +13,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Model::preventLazyLoading(! app()->isProduction());
-        Model::preventAccessingMissingAttributes(! app()->isProduction());
-        Model::preventSilentlyDiscardingAttributes(! app()->isProduction());
         DB::prohibitDestructiveCommands(app()->isProduction());
     }
 }

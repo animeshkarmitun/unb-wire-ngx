@@ -164,7 +164,7 @@ class RolesManager extends Component
 
     public function render()
     {
-        $roles = Role::with(['permissions'])->withCount('users')->get();
+        $roles = Role::with(['permissions','users'])->withCount('users')->get();
         $people = User::with('role')->orderBy('name')->get();
         $audits = DB::table('audit_logs')->orderByDesc('created_at')->limit(10)->get();
         $pending = $people->where('status', 'invited')->count();

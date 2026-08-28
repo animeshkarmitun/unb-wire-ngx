@@ -46,4 +46,14 @@ class Client extends Model
     {
         return $this->hasMany(ClientApiKey::class);
     }
+
+    public function clientChannels(): HasMany
+    {
+        return $this->hasMany(ClientChannel::class);
+    }
+
+    public function clientPackages(): HasMany
+    {
+        return $this->hasMany(ClientPackage::class);
+    }
 }
