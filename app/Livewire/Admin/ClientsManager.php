@@ -88,10 +88,10 @@ class ClientsManager extends Component
     public function render()
     {
         $query = Client::with(['clientPackages.package'])->withCount('clientChannels');
-        if($this->search!==''){ $s='%'.$this->search.'%'; $query->where(fn($q)=>$q->where('name','ilike',$s)->orWhere('code','ilike',$s)); }
+        if($this->search!==''){ $s='%'.$this->search.'%'; $query->where(fn($q)=>$q->where('name','like',$s)->orWhere('code','like',$s)); }
         if($this->statusFilter!=='all'){ $map=['active'=>'active','paused'=>'suspended','deactivated'=>'closed']; $query->where('status',$map[$this->statusFilter]??$this->statusFilter); }
         if($this->tierFilter!=='all'){
-            $query->whereHas('clientPackages.package', fn($q)=>$q->where('name','ilike','%'.$this->tierFilter.'%'));
+            $query->whereHas('clientPackages.package', fn($q)=>$q->where('name','like','%'.$this->tierFilter.'%'));
         }
         if($this->sort==='renewal'){ $query->orderBy('created_at','desc'); } else { $query->orderBy('name'); }
         $clients = $query->paginate(12);

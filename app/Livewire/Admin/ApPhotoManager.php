@@ -19,7 +19,7 @@ class ApPhotoManager extends Component
     public function render(){
         $q=MediaAsset::where('source','ap');
         if($this->status!=='all') $q->where('status',$this->status);
-        if($this->search!=='') $q->where('title','ilike','%'.$this->search.'%');
+        if($this->search!=='') $q->where('title','like','%'.$this->search.'%');
         $assets=$q->orderByDesc('created_at')->paginate(24);
         $selected=$this->selectedId?MediaAsset::find($this->selectedId):null;
         return view('livewire.admin.ap-photo-manager', compact('assets','selected'));

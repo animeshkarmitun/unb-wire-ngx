@@ -32,6 +32,10 @@ yarn-error.log
 .DS_Store
 Thumbs.db
 
+# Test artifacts
+/test-results
+/playwright-report
+/playwright/.cache
 # Laravel skeleton additions (M1-BOOT-001)
 *.log
 .phpactor.json

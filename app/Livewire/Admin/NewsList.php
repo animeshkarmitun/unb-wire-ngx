@@ -35,7 +35,7 @@ class NewsList extends Component
         $query = Story::with(['category','owner','notes'])->where('language', $this->language);
         if ($this->status !== 'all') $query->where('status', $this->status);
         if ($this->category !== 'all') $query->where('category_id', $this->category);
-        if ($this->search !== '') $query->where('headline', 'ilike', '%'.$this->search.'%');
+        if ($this->search !== '') $query->where('headline', 'like', '%'.$this->search.'%');
         $stories = $query->orderByDesc('updated_at')->paginate(15);
         $categories = Category::whereNull('parent_id')->orderBy('sort_order')->get();
         $selected = $this->selectedId ? Story::with(['category','owner','assignedEditor','lockedBy','notes.user','events'])->find($this->selectedId) : null;

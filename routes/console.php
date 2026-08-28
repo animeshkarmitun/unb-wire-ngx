@@ -11,10 +11,12 @@ use Illuminate\Support\Facades\Schedule;
 
 Schedule::job(new \App\Jobs\ProcessIndexOutbox)->everyMinute()->withoutOverlapping();
 Schedule::call(function(){
-    \App\Models\Story::where('embargo_until','<=', now())->where('status','approved')->each(function($s){
+    \App\Models\Story::where('embargo_until','<=', now())->where('status','approved')->cursor()->each(function($s){
         \Illuminate\Support\Facades\DB::transaction(function() use($s){
             $s->update(['status'=>'published','published_at'=>now()]);
             \Illuminate\Support\Facades\DB::table('index_outbox')->insert(['index_name'=>'main','op'=>'upsert','document_id'=>$s->public_id,'status'=>'pending','attempts'=>0,'created_at'=>now()]);
+            \Illuminate\Support\Facades\Cache::forget('portal:feed:*');
+            \Illuminate\Support\Facades\Cache::forget('feed:v1:*');
         });
         dispatch(new \App\Jobs\FanoutStory($s->id));
         dispatch(new \App\Jobs\ProcessIndexOutbox());

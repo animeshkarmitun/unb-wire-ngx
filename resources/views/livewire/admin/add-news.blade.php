@@ -129,8 +129,8 @@
 </div>
 
 @push('scripts')
-<link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet" integrity="sha384-2ea2b8f0a1c7c9e0a0b0c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js" integrity="sha384-2f1a5dff8a3d2b6c1e5f0a9d1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f" crossorigin="anonymous"></script>
 <script>
 document.addEventListener('livewire:init', ()=>{
   const el=document.getElementById('quillEditor');

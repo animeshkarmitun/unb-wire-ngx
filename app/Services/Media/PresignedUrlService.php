@@ -17,9 +17,10 @@ class PresignedUrlService
         try {
             return Storage::disk($disk)->temporaryUrl($path, now()->addMinutes($ttlMinutes));
         } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('PresignedUrl fallback', ['path'=>$path,'error'=>$e->getMessage()]);
             $cdn = rtrim(config('filesystems.disks.s3.url') ?? env('AWS_URL', ''), '/');
             if ($cdn) return "{$cdn}/{$path}?expires=".now()->addMinutes($ttlMinutes)->timestamp;
-            return "https://cdn.example.test/{$path}?expires=".now()->addMinutes($ttlMinutes)->timestamp."&sig=fake";
+            abort(500, 'Storage misconfigured — presigned URL unavailable');
         }
     }
 

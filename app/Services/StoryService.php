@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
+use App\Services\HtmlSanitizer;
 
 class StoryService
 {
@@ -22,12 +23,13 @@ class StoryService
 
     public function createDraft(array $data, User $actor): Story
     {
+        if (isset($data['body_html'])) $data['body_html'] = HtmlSanitizer::clean($data['body_html']);
         $data = array_merge($data, [
             'status' => 'draft',
             'owner_id' => $actor->id,
             'created_by' => $actor->id,
             'version' => 1,
-            'body_text' => strip_tags($data['body_html'] ?? ''),
+            'body_text' => HtmlSanitizer::text($data['body_html'] ?? ''),
         ]);
         return DB::transaction(function () use ($data, $actor) {
             $story = Story::create($data);
@@ -53,7 +55,8 @@ class StoryService
             throw new ConflictHttpException('Version conflict — stale save');
         }
         if (isset($data['body_html'])) {
-            $data['body_text'] = strip_tags($data['body_html']);
+            $data['body_html'] = HtmlSanitizer::clean($data['body_html']);
+            $data['body_text'] = HtmlSanitizer::text($data['body_html']);
             if (! empty($story->ai_touched['body']) && $data['body_html'] !== $story->body_html) {
                 $ai = $story->ai_touched;
                 unset($ai['body']);
@@ -126,6 +129,8 @@ class StoryService
                 'from_status' => $from,
                 'to_status' => $to,
             ]);
+            \Illuminate\Support\Facades\Cache::forget('portal:feed:*');
+            \Illuminate\Support\Facades\Cache::forget('feed:v1:*');
             if ($to === 'published') {
                 DB::table('index_outbox')->insert([
                     'index_name' => 'main',

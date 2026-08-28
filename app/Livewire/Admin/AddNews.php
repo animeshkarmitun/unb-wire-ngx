@@ -6,7 +6,10 @@ use App\Models\Category;
 use App\Models\MediaAsset;
 use App\Models\Story;
 use App\Services\AiService;
+use App\Services\HtmlSanitizer;
 use App\Services\NotificationService;
+use App\Services\RbacService;
+use App\Services\StoryService;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
@@ -56,7 +59,7 @@ class AddNews extends Component
     public function updatedBodyHtml(): void { if(isset($this->aiTouched['body'])) unset($this->aiTouched['body']); }
     public function updatedHeadline(): void { if(isset($this->aiTouched['headline'])) unset($this->aiTouched['headline']); }
 
-    public function syncBody(string $html): void { $this->bodyHtml=$html; if(isset($this->aiTouched['body'])) unset($this->aiTouched['body']); }
+    public function syncBody(string $html): void { $this->bodyHtml=HtmlSanitizer::clean($html); if(isset($this->aiTouched['body'])) unset($this->aiTouched['body']); }
 
     public function toggleMedia(int $id): void {
         if(in_array($id,$this->selectedMediaIds)) $this->selectedMediaIds=array_values(array_diff($this->selectedMediaIds,[$id]));
@@ -66,7 +69,7 @@ class AddNews extends Component
 
     public function callAi(string $kind, AiService $svc): void {
         $this->aiLoading=true;
-        $payload=['headline'=>$this->headline,'brief'=>$this->brief,'text'=>strip_tags($this->bodyHtml) ?: $this->brief,'category'=>$this->categoryId];
+        $payload=['headline'=>$this->headline,'brief'=>$this->brief,'text'=>HtmlSanitizer::text($this->bodyHtml) ?: $this->brief,'category'=>$this->categoryId];
         $pack=$svc->call($kind, $payload, auth()->id(), $this->storyId);
         if(isset($pack['error'])){ $this->dispatch('toast', message:$pack['error']); $this->aiLoading=false; return; }
         $this->aiPack=$pack;
@@ -78,62 +81,59 @@ class AddNews extends Component
         if(!$this->aiPack) return;
         if($field==='headline' && isset($this->aiPack['headline'])){ $this->headline=$this->aiPack['headline']; $this->aiTouched['headline']=true; }
         if($field==='brief' && isset($this->aiPack['brief'])){ $this->brief=$this->aiPack['brief']; $this->aiTouched['brief']=true; }
-        if($field==='body' && isset($this->aiPack['body'])){ $this->bodyHtml=$this->aiPack['body']; $this->aiTouched['body']=true; }
+        if($field==='body' && isset($this->aiPack['body'])){ $this->bodyHtml=HtmlSanitizer::clean($this->aiPack['body']); $this->aiTouched['body']=true; }
         if($field==='category' && isset($this->aiPack['category']['name'])){
-            $cat=Category::where('name_en','ilike',$this->aiPack['category']['name'])->first();
+            $cat=Category::where('name_en','like',$this->aiPack['category']['name'])->first();
             if($cat) $this->categoryId=(string)$cat->id;
             $this->aiTouched['category']=true;
         }
         $this->dispatch('toast', message:'Applied '.$field);
     }
 
-    public function autosave(): void {
+    public function autosave(RbacService $rbac, StoryService $stories): void {
+        $rbac->assertCan(auth()->user(), 'stories', 'edit');
+        $cleanHtml = HtmlSanitizer::clean($this->bodyHtml ?: '<p></p>');
+        $this->bodyHtml = $cleanHtml;
+        $embargo = $this->embargoUntil ? $this->parseEmbargo($this->embargoUntil) : null;
         $data=[
-            'language'=>$this->language,'headline'=>$this->headline ?: 'Untitled','sub_head'=>$this->subHead?:null,'brief'=>$this->brief ?: '—','body_html'=>$this->bodyHtml ?: '<p></p>','body_text'=>strip_tags($this->bodyHtml),'category_id'=>$this->categoryId?:Category::first()->id,'sub_category_id'=>$this->subCategoryId?:null,'dateline_city'=>$this->datelineCity?:null,'dateline_at'=>$this->datelineAt?:null,'is_breaking'=>$this->isBreaking,'priority'=>$this->priority,'embargo_until'=>$this->embargoUntil?:null,'ai_touched'=>$this->aiTouched?:null,'owner_id'=>auth()->id(),'created_by'=>auth()->id(),'status'=>'draft','version'=>1,
+            'language'=>$this->language,'headline'=>$this->headline ?: 'Untitled','sub_head'=>$this->subHead?:null,'brief'=>$this->brief ?: '—','body_html'=>$cleanHtml,'body_text'=>HtmlSanitizer::text($cleanHtml),'category_id'=>$this->categoryId?:Category::first()->id,'sub_category_id'=>$this->subCategoryId?:null,'dateline_city'=>$this->datelineCity?:null,'dateline_at'=>$this->datelineAt?:null,'is_breaking'=>$this->isBreaking,'priority'=>$this->priority,'embargo_until'=>$embargo,'ai_touched'=>$this->aiTouched?:null,
         ];
-        DB::transaction(function() use($data){
-            if($this->storyId){
-                $s=Story::find($this->storyId);
-                $s->update(array_merge($data,['version'=>$s->version+1]));
-                $s->versions()->create(['version'=>$s->version,'snapshot'=>['headline'=>$this->headline,'brief'=>$this->brief,'body_html'=>$this->bodyHtml],'created_by'=>auth()->id(),'created_at'=>now()]);
-            } else {
-                $s=Story::create($data);
-                $this->storyId=$s->id;
-                $s->versions()->create(['version'=>1,'snapshot'=>['headline'=>$this->headline,'brief'=>$this->brief,'body_html'=>$this->bodyHtml],'created_by'=>auth()->id(),'created_at'=>now()]);
+        if($this->storyId){
+            $s=Story::findOrFail($this->storyId);
+            $stories->updateDraft($s, $data, $s->version, auth()->user());
+            DB::table('story_media')->where('story_id',$this->storyId)->delete();
+            foreach($this->selectedMediaIds as $idx=>$aid){
+                DB::table('story_media')->insert(['story_id'=>$this->storyId,'asset_id'=>$aid,'role'=>'inline','sort_order'=>$idx]);
             }
-            if($this->storyId){
-                DB::table('story_media')->where('story_id',$this->storyId)->delete();
-                foreach($this->selectedMediaIds as $idx=>$aid){
-                    DB::table('story_media')->insert(['story_id'=>$this->storyId,'asset_id'=>$aid,'role'=>'inline','sort_order'=>$idx]);
-                }
+        } else {
+            $s=$stories->createDraft($data, auth()->user());
+            $this->storyId=$s->id;
+            foreach($this->selectedMediaIds as $idx=>$aid){
+                DB::table('story_media')->insert(['story_id'=>$this->storyId,'asset_id'=>$aid,'role'=>'inline','sort_order'=>$idx]);
             }
-        });
+        }
     }
 
-    public function sendToReview(NotificationService $notifs): void {
+    private function parseEmbargo(string $input): ?string
+    {
+        try { return \Carbon\Carbon::parse($input, 'Asia/Dhaka')->utc()->toDateTimeString(); } catch (\Throwable $e) { return $input; }
+    }
+
+    public function sendToReview(NotificationService $notifs, RbacService $rbac, StoryService $svc): void {
+        $rbac->assertCan(auth()->user(), 'stories', 'edit');
         $this->validate(['headline'=>'required','brief'=>'required','categoryId'=>'required','bodyHtml'=>'required']);
-        $this->autosave();
-        $s=Story::find($this->storyId);
-        DB::transaction(function() use($s){
-            $s->update(['status'=>'in_review','assigned_editor_id'=>null]);
-            $s->events()->create(['actor_id'=>auth()->id(),'action'=>'sent_to_review','from_status'=>'draft','to_status'=>'in_review']);
-        });
+        $this->autosave($rbac, $svc);
+        $s=Story::findOrFail($this->storyId);
+        $svc->transition($s, 'in_review', auth()->user());
         $notifs->notifyReviewRequested($s->id, $s->headline, auth()->id());
         $this->dispatch('toast', message:'Sent to review');
         $this->step=4;
     }
 
-    public function publish(NotificationService $notifs): void {
+    public function publish(NotificationService $notifs, RbacService $rbac, StoryService $svc): void {
+        $rbac->assertCan(auth()->user(), 'stories', 'publish');
         $s=Story::findOrFail($this->storyId);
-        if(!empty($this->aiTouched) && !$this->isBreaking){
-            $this->dispatch('toast', message:'AI-touched fields — review required before publish');
-            return;
-        }
-        DB::transaction(function() use($s){
-            $s->update(['status'=>'published','published_at'=>now()]);
-            $s->events()->create(['actor_id'=>auth()->id(),'action'=>'published','from_status'=>$s->status,'to_status'=>'published']);
-            DB::table('index_outbox')->insert(['index_name'=>'main','op'=>'upsert','document_id'=>$s->public_id,'status'=>'pending','attempts'=>0,'created_at'=>now(),'processed_at'=>null]);
-        });
+        $svc->transition($s, 'published', auth()->user());
         dispatch(new \App\Jobs\FanoutStory($s->id));
         dispatch(new \App\Jobs\ProcessIndexOutbox());
         $notifs->notifyStatusChange($s->id, 'published', auth()->id());

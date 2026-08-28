@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\TusCreateRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class TusController extends Controller
 {
-    public function create(Request $request)
+    public function create(TusCreateRequest $request)
     {
-        $request->validate(['upload_length' => 'required|integer|min:1', 'metadata' => 'nullable|string']);
         $id = (string) Str::uuid();
         DB::table('upload_sessions')->insert([
             'id' => $id,

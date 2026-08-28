@@ -48,7 +48,7 @@ class PhotoManager extends Component
         $libraryQuery = MediaAsset::with(['category'])->where('status','!=','archived');
         if($this->tab==='field') $libraryQuery->whereNotNull('batch_id');
         else $libraryQuery->where('status','library');
-        if($this->search!=='') $libraryQuery->where('title','ilike','%'.$this->search.'%');
+        if($this->search!=='') $libraryQuery->where('title','like','%'.$this->search.'%');
         $assets = $libraryQuery->orderByDesc('created_at')->paginate(24);
 
         $fieldBatches = null;

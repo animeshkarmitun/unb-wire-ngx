@@ -36,10 +36,12 @@ class TenantTokenIssuer
                 $uid = substr(hash('sha256', $key), 0, 8);
                 $token = $clientMs->generateTenantToken($uid, $searchRules, ['expiresAt' => $expiresAt]);
             } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('TenantTokenIssuer fallback', ['error'=>$e->getMessage()]);
                 $token = $this->fallbackToken($filter, $expiresAt, $key);
             }
         } else {
-            $token = $this->fallbackToken($filter, $expiresAt, 'fallback-secret');
+            \Illuminate\Support\Facades\Log::warning('TenantTokenIssuer missing key — using insecure fallback');
+            $token = $this->fallbackToken($filter, $expiresAt, config('app.key').'-fallback');
         }
 
         return [
