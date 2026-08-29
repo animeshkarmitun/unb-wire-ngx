@@ -5,7 +5,7 @@
         <h1 class="font-serif text-3xl font-semibold tracking-[-0.01em] text-ink">Dashboard</h1>
         <div class="flex gap-3">
             <button type="button" class="text-sm font-medium px-5 py-[11px] rounded-[10px] bg-panel border border-[#e3e1da] text-ink shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:border-navy-800 hover:text-navy-800">Export report</button>
-            <a href="#" class="text-sm font-medium px-5 py-[11px] rounded-[10px] bg-crimson text-white shadow-[0_2px_8px_rgba(229,72,77,0.3)] transition-colors hover:bg-crimson-dark">+ New story</a>
+            <a href="{{ route('admin.add-news') }}" class="text-sm font-medium px-5 py-[11px] rounded-[10px] bg-crimson text-white shadow-[0_2px_8px_rgba(229,72,77,0.3)] transition-colors hover:bg-crimson-dark">+ New story</a>
         </div>
     </div>
 
@@ -18,10 +18,10 @@
                     <x-lucide-newspaper class="w-[17px] h-[17px] text-white" stroke-width="2" />
                 </div>
             </div>
-            <div class="font-serif text-[34px] font-semibold tracking-[-0.01em] my-2 mb-2.5 text-ink">12</div>
+            <div class="font-serif text-[34px] font-semibold tracking-[-0.01em] my-2 mb-2.5 text-ink">{{ $publishedToday ?? 12 }}</div>
             <div class="flex items-center gap-[5px] text-[13px] font-semibold text-green">
                 <x-lucide-arrow-up class="w-[11px] h-[11px]" stroke-width="2" />
-                +3 from yesterday
+                live today
             </div>
         </div>
 
@@ -32,10 +32,10 @@
                     <x-lucide-users class="w-[17px] h-[17px] text-white" stroke-width="2" />
                 </div>
             </div>
-            <div class="font-serif text-[34px] font-semibold tracking-[-0.01em] my-2 mb-2.5 text-ink">47</div>
+            <div class="font-serif text-[34px] font-semibold tracking-[-0.01em] my-2 mb-2.5 text-ink">{{ $activeClients ?? 47 }}</div>
             <div class="flex items-center gap-[5px] text-[13px] font-semibold text-green">
                 <x-lucide-arrow-up class="w-[11px] h-[11px]" stroke-width="2" />
-                +2 this week
+                total active
             </div>
         </div>
 
@@ -46,10 +46,10 @@
                     <x-lucide-activity class="w-[17px] h-[17px] text-white" stroke-width="2" />
                 </div>
             </div>
-            <div class="font-serif text-[34px] font-semibold tracking-[-0.01em] my-2 mb-2.5 text-ink">98.4%</div>
-            <div class="flex items-center gap-[5px] text-[13px] font-semibold text-red">
-                <x-lucide-arrow-down class="w-[11px] h-[11px]" stroke-width="2" />
-                -0.3% from last week
+            <div class="font-serif text-[34px] font-semibold tracking-[-0.01em] my-2 mb-2.5 text-ink">{{ $successRate ?? 98.4 }}%</div>
+            <div class="flex items-center gap-[5px] text-[13px] font-semibold text-green">
+                <x-lucide-activity class="w-[11px] h-[11px]" stroke-width="2" />
+                deliveries
             </div>
         </div>
 
@@ -60,7 +60,7 @@
                     <x-lucide-star class="w-[17px] h-[17px] text-white" stroke-width="2" />
                 </div>
             </div>
-            <div class="font-serif text-[34px] font-semibold tracking-[-0.01em] my-2 mb-2.5 text-ink">8</div>
+            <div class="font-serif text-[34px] font-semibold tracking-[-0.01em] my-2 mb-2.5 text-ink">{{ $exclusiveToday ?? 8 }}</div>
             <div class="flex items-center gap-[5px] text-[13px] font-semibold text-green">
                 <x-lucide-arrow-up class="w-[11px] h-[11px]" stroke-width="2" />
                 +5 from yesterday

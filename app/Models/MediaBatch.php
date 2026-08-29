@@ -12,6 +12,7 @@ class MediaBatch extends Model
     protected $fillable = [
         'public_id',
         'uploader_id',
+        'assignment_id',
         'event_label',
         'urgency',
         'status',
@@ -32,6 +33,11 @@ class MediaBatch extends Model
                 $batch->public_id = (string) Str::ulid();
             }
         });
+    }
+
+    public function assignment(): BelongsTo
+    {
+        return $this->belongsTo(Assignment::class, 'assignment_id');
     }
 
     public function uploader(): BelongsTo

@@ -1,4 +1,10 @@
-<div>
+<div x-data="{ dragOver: false }" @dragover.prevent="dragOver=true" @dragleave.prevent="dragOver=false" @drop.prevent="dragOver=false">
+<div x-show="dragOver" x-cloak class="fixed inset-0 z-[200] bg-navy-900/55 backdrop-blur-[3px] flex items-center justify-center">
+  <div class="border-[2.5px] dashed border-white/70 rounded-[20px] px-16 py-14 text-center text-white">
+    <div class="font-serif text-2xl font-semibold">Drop photos to upload</div>
+    <div class="text-sm opacity-80 mt-2">JPG, PNG, WebP up to 10MB</div>
+  </div>
+</div>
 <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
 <div>
 <div class="text-xs text-muted-2 mb-1"><a href="{{ route('dashboard') }}" class="hover:text-crimson-dark">Home</a> / UNB Photos</div>
@@ -8,7 +14,11 @@
 <div class="flex items-center gap-2 bg-panel border border-border rounded-lg px-3 py-1.5">
 <x-lucide-search class="w-4 h-4 text-muted-2"/><input wire:model.live.debounce.300ms="search" placeholder="Search photos…" class="outline-none text-sm bg-transparent w-40">
 </div>
-<x-btn variant="outline" size="sm">Upload</x-btn>
+<label class="inline-flex items-center justify-center px-4 py-1.5 rounded-lg bg-panel border border-[#e3e1da] text-sm font-medium cursor-pointer hover:border-navy-800">
+  <input type="file" wire:model="uploads" multiple accept="image/*" class="hidden">
+  <span wire:loading.remove wire:target="uploads">Upload</span>
+  <span wire:loading wire:target="uploads">Uploading…</span>
+</label>
 </div>
 </div>
 

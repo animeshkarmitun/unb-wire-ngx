@@ -4,21 +4,47 @@ namespace App\Livewire\Admin;
 
 use App\Models\MediaAsset;
 use App\Models\MediaBatch;
+use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 class PhotoManager extends Component
 {
-    use WithPagination;
+    use WithFileUploads, WithPagination;
 
     public string $tab = 'library';
     public string $search = '';
     public ?int $selectedId = null;
     public array $selectedIds = [];
     public string $fieldStatus = 'pending';
+    public $uploads = [];
 
     public function updatedSearch(): void { $this->resetPage(); }
+
+    public function updatedUploads(): void { $this->handleUploads(); }
+
+    public function handleUploads(): void
+    {
+        $this->validate(['uploads.*' => 'image|mimes:jpg,jpeg,png,webp|max:10240']);
+        $count = count($this->uploads);
+        foreach ($this->uploads as $file) {
+            $path = $file->store('media/library', 'public');
+            MediaAsset::create([
+                'title' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+                'kind' => 'photo',
+                'status' => 'library',
+                'mime' => $file->getMimeType(),
+                'size_bytes' => $file->getSize(),
+                'storage_disk' => 'public',
+                'original_path' => $path,
+                'uploaded_by' => auth()->id(),
+            ]);
+        }
+        $this->uploads = [];
+        $this->dispatch('toast', message: 'Uploaded '.$count.' photos');
+    }
     public function updatedTab(): void { $this->resetPage(); $this->selectedId=null; $this->selectedIds=[]; }
 
     public function select(int $id): void { $this->selectedId = $this->selectedId===$id ? null : $id; }
