@@ -4,7 +4,7 @@
 <div class="text-xs text-muted-2 mb-1"><a href="{{ route('dashboard') }}" class="hover:text-crimson-dark">Home</a> / {{ $language==='bn'?'Bangla News':'English News' }}</div>
 <h1 class="font-serif text-[28px] font-semibold">{{ $language==='bn'?'Bangla News':'English News' }}</h1>
 </div>
-<a href="#" class="px-5 py-2.5 rounded-[10px] bg-crimson text-white text-sm font-medium hover:bg-crimson-dark">+ New story</a>
+<a href="{{ route('admin.add-news') }}" class="px-5 py-2.5 rounded-[10px] bg-crimson text-white text-sm font-medium hover:bg-crimson-dark">+ New story</a>
 </div>
 
 <div class="flex flex-wrap gap-2 mb-4 items-center">

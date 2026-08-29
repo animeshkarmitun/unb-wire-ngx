@@ -62,9 +62,9 @@ export default {
                 },
             },
             fontFamily: {
-                sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', ...defaultTheme.fontFamily.sans],
+                sans: ['Inter', '"Noto Sans Bengali"', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', ...defaultTheme.fontFamily.sans],
                 serif: ['Fraunces', 'Georgia', ...defaultTheme.fontFamily.serif],
-                'serif-body': ['"Source Serif 4"', 'Georgia', 'Times New Roman', ...defaultTheme.fontFamily.serif],
+                'serif-body': ['"Source Serif 4"', '"Noto Serif Bengali"', 'Georgia', 'Times New Roman', ...defaultTheme.fontFamily.serif],
             },
         },
     },
