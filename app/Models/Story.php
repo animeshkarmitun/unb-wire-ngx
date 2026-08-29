@@ -51,6 +51,8 @@ class Story extends Model
         'deleted_at' => 'datetime',
         'is_breaking' => 'boolean',
         'ai_touched' => 'array',
+        'version' => 'integer',
+        'word_count' => 'integer',
     ];
 
     protected static function booted(): void

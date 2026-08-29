@@ -213,3 +213,27 @@ Admin routes lacked server-side RBAC; audit was append-only in spec but not enfo
 ### Consequences
 - UI hides buttons but API still 403; pgsql grants enforce audit immutability.
 - FE CDN caches feed; schedulers never overlap.
+
+---
+
+## `DEC-011`: Schema-Code Parity Remediation (M9-SCHEMA batch)
+
+### Context
+Audit `docs/schema-code-mismatch-report.md` (2026-08-29, 25 mismatches) found drift between `v1-database-design.md` and `database/migrations/*` + `app/Models`. Critical: `users.role_id` FK was SET NULL vs RESTRICT, append-only grants missing, `assignments`/`media_batches.assignment_id` absent per §6, monthly RANGE partitioning unimplemented, `devices` contradicted DEC-008. Medium: `timestamptz` bare timestamps in skeleton tables, extra `updated_at` cols, `is_internal` patch, `invoices` extra tables, invented CHECKs, `word_count` nullability. Low: index DESC, model casts, factory CHECK coverage, seeder encoding.
+
+### Decision
+- `users.role_id` FK → `RESTRICT` (migration `2026_08_29_200001`). Nullable retained for sqlite test compat but `ON DELETE RESTRICT` enforced on pgsql.
+- Append-only grants enforced via `2026_08_29_200003_append_only_grants.php` (`REVOKE UPDATE,DELETE` on `story_notes,story_events,deliveries,audit_logs,downloads`).
+- `assignments` reintroduced (`2026_08_29_200002`) with `media_batches.assignment_id` FK — aligns with design §6; deferral in DEC-008 superseded for schema parity (table exists but unused until field apps return).
+- `devices` retained despite DEC-008 — desk upload audit + `personal_access_tokens.device_id` require it; DEC-008 amended to defer only `Modules/Field` services, not the table.
+- `invoices`/`invoice_lines` (M5) + `story_notes.is_internal` (M4) ratified into `v1-database-design.md` §7/§5.
+- Invented CHECKs ratified: `packages.status IN ('active','archived')`, `client_packages.status IN ('active','expired','cancelled')`, `client_channels.status IN ('active','paused','disabled')`.
+- `timestamptz` business tables fixed (`password_reset_tokens`, `failed_jobs` → `timestamptz`); `jobs`/`job_batches` epoch ints documented as framework tables, excluded from business-table `grep==0` rule.
+- `word_count` kept nullable, cast `integer`, documented as app-set (not generated).
+- `stories_status_published_at_index` recreated as `(status, published_at DESC)` for feed planner.
+- Model casts added: `Story.version/word_count=>integer`, `InvoiceLine` decimals; factories expanded to cover all enum values.
+
+### Consequences
+- Schema now matches canonical design + DEC-011; `docs/schema-code-mismatch-report.md` appendix marks C/M/L as resolved or ratified with migration IDs.
+- Partitioning remains deferred by design §9 guidance (revisit at ~5M rows); no RANGE partitions in v1 — documented, not implemented.
+- `migrate:fresh --seed` green on pgsql+sqlite; `append_only_grants` is pgsql-only (sqlite no-op).

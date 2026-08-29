@@ -84,17 +84,17 @@
 | `M8-DASH-001` | Dashboard faithful (KPIs + stories + clients + FAB) | M8-FOUND-002 | ✅ | — | 2026-08-29 |
 | `M8-NEWS-001` | News list faithful (en+bn) | M8-UI-002 | ✅ | — | 2026-08-29 |
 | `M8-NEWS-002` | Workflow drawer (status flow + take-over + notes) | M8-NEWS-001 | ✅ | — | 2026-08-29 |
-| `M8-PHOTO-001` | UNB Photo Manager faithful | M8-UI-002 | ? | � | 2026-08-29 |
-| `M8-PHOTO-002` | Field intake approval queue | M8-PHOTO-001 | ? | � | 2026-08-29 |
+| `M8-PHOTO-001` | UNB Photo Manager faithful | M8-UI-002 | ? | � | 2026-08-29 |
+| `M8-PHOTO-002` | Field intake approval queue | M8-PHOTO-001 | ? | � | 2026-08-29 |
 | `M8-SIMPLE-001` | Simple pages chrome-faithful (clients/packages/roles/ai-settings/service) | M8-UI-002 | ✅ | — | 2026-08-29 |
 | `M8-WIZ-001` | Wizard shell (stepper + sticky nav + autosave) | M8-UI-002 | ✅ | — | 2026-08-29 |
 | `M8-WIZ-002` | Body: Quill wire toolbar + find bar + fullscreen | M8-WIZ-001 | ✅ | — | 2026-08-29 |
-| `M8-WIZ-003` | Media: featured 1200x630 + attach grid + drop + doc-import | M8-WIZ-001 | ? | � | 2026-08-29 |
-| `M8-WIZ-004` | Tags/type/seg-control/distribution + live preview | M8-WIZ-001 | ? | � | 2026-08-29 |
-| `M8-WIZ-005` | Desk workflow strip + internal notes | M8-WIZ-001 | ? | � | 2026-08-29 |
-| `M8-WIZ-006` | AI desk faithful (drawer + diff + gate + kill-switch) | M8-WIZ-001 | ? | � | 2026-08-29 |
-| `M8-E2E-001` | Wizard E2E (draft?publish + fan-out) | M8-WIZ-006 | ? | � | 2026-08-29 |
-| `M8-QA-001` | A11y + Bangla/NFC + perf (N+1/cache) | M8-E2E-001 | ? | � | 2026-08-29 |
+| `M8-WIZ-003` | Media: featured 1200x630 + attach grid + drop + doc-import | M8-WIZ-001 | ? | � | 2026-08-29 |
+| `M8-WIZ-004` | Tags/type/seg-control/distribution + live preview | M8-WIZ-001 | ? | � | 2026-08-29 |
+| `M8-WIZ-005` | Desk workflow strip + internal notes | M8-WIZ-001 | ? | � | 2026-08-29 |
+| `M8-WIZ-006` | AI desk faithful (drawer + diff + gate + kill-switch) | M8-WIZ-001 | ? | � | 2026-08-29 |
+| `M8-E2E-001` | Wizard E2E (draft?publish + fan-out) | M8-WIZ-006 | ? | � | 2026-08-29 |
+| `M8-QA-001` | A11y + Bangla/NFC + perf (N+1/cache) | M8-E2E-001 | ? | � | 2026-08-29 |
 
 ---
 
@@ -102,9 +102,18 @@
 
 > Hotfix P0 done (Upload wired). P1–P8 in progress one-by-one with interaction E2E + live smoke gates.
 
+## 7. Schema-Code Parity (`M9-SCHEMA`) — 2026-08-29 `docs/schema-code-mismatch-report.md` → `DEC-011`
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M9-SCHEMA-001` | Critical: FK restrict, grants, assignments | M8-QA-001 | ✅ | — | 2026-08-29 |
+| `M9-SCHEMA-002` | Timestamptz sweep + nullability | M9-SCHEMA-001 | ✅ | — | 2026-08-29 |
+| `M9-SCHEMA-003` | Indexes, casts, factories, encoding | M9-SCHEMA-002 | ✅ | — | 2026-08-29 |
+| `M9-SCHEMA-004` | Docs ratification (invoices, is_internal, CHECKs, partitions) | M9-SCHEMA-003 | ✅ | — | 2026-08-29 |
+
 ---
 
-## 7. How to Add a Task
+## 8. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.

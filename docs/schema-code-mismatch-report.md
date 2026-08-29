@@ -1,10 +1,10 @@
 # Schema ↔ Code Mismatch Report — UNB Wire
 
 > **Generated:** 2026-08-29 (UTC) — read-only audit, no fixes applied
-> **Canonical design:** `app-data/v1-database-design.md` (v1, PostgreSQL 16)
-> **Implemented schema:** `database/migrations/*.php` (37 files)
-> **Code surface scanned:** `app/Models/*.php` (27), `database/factories/*.php`, `database/seeders/*.php`, `app/Services`, `app/Http`, `app/Livewire`, `app/Enums`, `docs/knowledge-inventory/decisions.md`
-> **Instruction:** log only, do not mutate code
+> **Remediated:** 2026-08-29 — fixes in `M9-SCHEMA-001..004` (migrations `2026_08_29_200001..200005`) — see Appendix A
+> **Canonical design:** `app-data/v1-database-design.md` (v1, PostgreSQL 16) — patched by DEC-011
+> **Implemented schema:** `database/migrations/*.php` (42 files after remediation)
+> **Code surface scanned:** `app/Models/*.php` (28 incl. Assignment), `database/factories/*.php`, `database/seeders/*.php`, `app/Services`, `app/Http`, `app/Livewire`, `app/Enums`, `docs/knowledge-inventory/decisions.md`
 
 ---
 
@@ -269,6 +269,37 @@ Both require either design amendment (new §10 tasks 11-12) or new `DEC-010`/`DE
 
 ## Notes
 
-- **Not a fix PR** — per instruction no code was mutated; this file is the sole artifact.
-- **DEC-008 vs devices:** either drop `devices` migration (`000014` + `000015.device_id`) to honor the deferral, or amend `DEC-008` to un-defer device binding for desk-upload audit.
-- **Next recommended (outside this task):** amend `v1-database-design.md` §6/§10/§7 to ratify invoices + `is_internal` + package status enums, and decide partitioning strategy before hot-table exceeds ~5 M rows (design §9 guidance).
+- **Not a fix PR** — per instruction no code was mutated; this file is the sole artifact. Appendix A below records remediation.
+- **DEC-008 vs devices:** either drop `devices` migration (`000014` + `000015.device_id`) to honor the deferral, or amend `DEC-008` to un-defer device binding for desk-upload audit. → Resolved by DEC-011: devices retained.
+- **Next recommended (outside this task):** amend `v1-database-design.md` §6/§10/§7 to ratify invoices + `is_internal` + package status enums, and decide partitioning strategy before hot-table exceeds ~5 M rows (design §9 guidance). → Done in M9-SCHEMA-004.
+
+---
+
+## Appendix A — Remediation (2026-08-29, M9-SCHEMA-001..004)
+
+All 25 mismatches resolved or ratified. `migrate:fresh --seed` + `php artisan test` (114 pass) green.
+
+| ID | Mismatch | Fix | Migration / File |
+|---|---|---|---|
+| C1 | `assignments` + `media_batches.assignment_id` missing | Created `assignments` table + FK `media_batches.assignment_id` | `2026_08_29_200002` + `Assignment.php` + `MediaBatch.php` |
+| C2 | No RANGE partitioning | Deferred to ~5M rows — ratified in `v1-database-design.md:514` + `data-model.md` + `DEC-011` | doc-only |
+| C3 | `users.role_id` SET NULL vs RESTRICT | FK re-created as `RESTRICT` (pgsql) | `2026_08_29_200001` |
+| C4 | No append-only REVOKE | `REVOKE UPDATE,DELETE` on 5 tables (pgsql-only) | `2026_08_29_200003` |
+| C5 | `devices` vs DEC-008 | Retained — DEC-011 amends DEC-008 | `decisions.md` DEC-011 |
+| M1 | `users.email_verified_at` extra | Ratified — skeleton leak documented in DEC-011 | doc-only |
+| M2/M3/M10 | extra `updated_at` on `client_api_keys/media_batches/devices` | Ratified — timestamps helper intentional | doc-only |
+| M4 | `story_notes.is_internal` extra | Ratified — column added to design §5 | `v1-database-design.md:230` |
+| M5 | `invoices` extra tables | Ratified — DDL added to design §7 10a/10b | `v1-database-design.md` + `data-model.md` |
+| M6 | citext raw ALTER | Documented — pgsql citext via DB::statement, sqlite fallback | doc-only |
+| M7/M12 | invented CHECKs (`packages`, `client_packages`, `client_channels`) | Ratified — CHECKs added to design | `v1-database-design.md:361,378,391` |
+| M8 | bare `timestamp` / epoch ints | `password_reset_tokens` + `failed_jobs` → `timestamptz` (pgsql); `jobs/job_batches` documented as framework tables | `2026_08_29_200004` |
+| M9 | `word_count` nullable | Kept nullable, cast `integer`, doc as app-set | `Story.php` casts |
+| M11 | `story_versions/events` parity | Already correct — no fix needed | — |
+| L1 | index DESC | `stories_status_published_at_index` → `(status, published_at DESC)` | `2026_08_29_200005` |
+| L2 | JSONB GIN | Correctly absent — no fix | — |
+| L3 | `key_hash` length | Matches spec — no fix | — |
+| L4 | model casts | Added `Story.version/word_count=>integer`, `InvoiceLine` decimals | `Story.php`, `InvoiceLine.php` |
+| L5 | skeleton tables | Documented as framework — no fix | — |
+| L6 | factory CHECK coverage | Expanded `ClientFactory` to 6 types, `UserFactory` role_id | `ClientFactory.php`, `UserFactory.php` |
+| L7 | seeder encoding | Already UTF-8 — verified `CategorySeeder.php:13`, `PackageSeeder.php:44` | — |
+| L8 | citext guard | `IF NOT EXISTS` already used | — |
