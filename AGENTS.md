@@ -161,6 +161,7 @@ Before considering any task done:
 - [ ] Wire feeds and public portal render correctly.
 - [ ] **Runtime changes live-smoked** per `docs/workflow/live-test-runbook.md` (caches cleared, routes hit as relevant role) and recorded in Completion Notes.
 - [ ] Code follows existing style and touches only requested files.
+- [ ] **Schema parity gate** — `php scripts/schema-parity-check.php` passes (FKs/CHECKs/timestamptz/indexes/models match `app-data/v1-database-design.md` + `DEC-011`) per `docs/workflow.md` §6.
 
 ---
 

@@ -33,6 +33,9 @@ jobs:
       - name: Migrate and seed
         run: php artisan migrate:fresh --seed
 
+      - name: Schema parity
+        run: php scripts/schema-parity-check.php
+
       - name: Lint (Pint)
         run: ./vendor/bin/pint --test
         continue-on-error: true

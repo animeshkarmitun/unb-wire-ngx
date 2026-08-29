@@ -122,3 +122,15 @@ Docs must be updated **in the same commit as code**:
 - Architecture decisions → `docs/knowledge-inventory/decisions.md`
 - API contracts → `docs/knowledge-inventory/architecture.md`
 - Schema changes → `docs/knowledge-inventory/data-model.md`
+
+---
+
+## 6. Schema Parity Gate (prevents M9-SCHEMA drift)
+
+Every PR that touches `database/migrations/*`, `app/Models/*`, `database/factories/*`, `app-data/v1-database-design.md` or `docs/knowledge-inventory/decisions.md` must pass:
+
+1. `php scripts/schema-parity-check.php` — checks FK `RESTRICT` vs `SET NULL`, `timestamptz` bare-timestamp == 0 (business tables), CHECK enums, `assignments`/`invoices`/`is_internal` presence, indexes `DESC`, model `$casts` coverage. See `docs/workflow/schema-parity-runbook.md`.
+2. `php artisan migrate:fresh --seed` on sqlite (CI) + pgsql (reviewer manual if pgsql available).
+3. `DEC-NNN` required for any new table/column/CHECK invented outside `v1-database-design.md` — auto-fail if migration adds a table not in design without a DEC patch in same PR.
+
+Coder must run `php scripts/schema-parity-check.php` locally before push; CI job `schema-parity` blocks merge on fail.
