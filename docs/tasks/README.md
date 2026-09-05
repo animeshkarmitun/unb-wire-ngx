@@ -86,6 +86,7 @@
 | `M8-NEWS-002` | Workflow drawer (status flow + take-over + notes) | M8-NEWS-001 | ✅ | — | 2026-08-29 |
 | `M8-PHOTO-001` | UNB Photo Manager faithful | M8-UI-002 | ✅ | — | 2026-09-05 |
 | `M8-PHOTO-002` | Field intake approval queue | M8-PHOTO-001 | ✅ | — | 2026-09-05 |
+| `M8-PHOTO-003` | AP Photo Manager faithful | M8-UI-002, M8-PHOTO-001 | ✅ | — | 2026-09-05 |
 | `M8-SIMPLE-001` | Simple pages chrome-faithful (clients/packages/roles/ai-settings/service) | M8-UI-002 | ✅ | — | 2026-08-29 |
 | `M8-WIZ-001` | Wizard shell (stepper + sticky nav + autosave) | M8-UI-002 | ✅ | — | 2026-08-29 |
 | `M8-WIZ-002` | Body: Quill wire toolbar + find bar + fullscreen | M8-WIZ-001 | ✅ | — | 2026-08-29 |

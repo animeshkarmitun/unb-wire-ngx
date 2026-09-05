@@ -1,6 +1,7 @@
 @import './add-news-wizard.css';
 @import './news-desk.css';
 @import './photo-manager.css';
+@import './ap-photo-manager.css';
 
 @tailwind base;
 @tailwind components;

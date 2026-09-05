@@ -123,4 +123,9 @@ class Story extends Model
     {
         return $this->hasMany(Delivery::class, 'deliverable_id')->where('deliverable_type', 'story');
     }
+
+    public function media(): BelongsToMany
+    {
+        return $this->belongsToMany(MediaAsset::class, 'story_media', 'story_id', 'asset_id')->withPivot(['role', 'sort_order', 'caption_override']);
+    }
 }
