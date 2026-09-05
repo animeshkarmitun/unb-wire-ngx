@@ -390,6 +390,21 @@ class ClientSeeder extends Seeder
                     'created_at' => now(),
                 ]);
             }
+
+            // Seed Add-on Subscriptions
+            foreach ($c['addons'] as $addonName) {
+                $addonPkg = Package::where('name', $addonName)->first();
+                if ($addonPkg) {
+                    DB::table('client_packages')->insert([
+                        'client_id' => $clientId,
+                        'package_id' => $addonPkg->id,
+                        'starts_at' => Carbon::now()->subMonths(6),
+                        'ends_at' => $c['renewal_date'],
+                        'status' => $c['status'] === 'closed' ? 'expired' : 'active',
+                        'created_at' => now(),
+                    ]);
+                }
+            }
         }
     }
 }
