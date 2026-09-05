@@ -2,6 +2,7 @@
 @import './news-desk.css';
 @import './photo-manager.css';
 @import './ap-photo-manager.css';
+@import './clients-manager.css';
 
 @tailwind base;
 @tailwind components;
