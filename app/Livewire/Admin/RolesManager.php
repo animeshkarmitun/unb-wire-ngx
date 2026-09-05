@@ -599,6 +599,7 @@ class RolesManager extends Component
         $role = Role::findOrFail((int) $this->invRole);
 
         $user = User::create([
+            'public_id' => (string) Str::ulid(),
             'name' => trim($this->invName),
             'email' => trim($this->invEmail),
             'desk' => $this->invDesk,

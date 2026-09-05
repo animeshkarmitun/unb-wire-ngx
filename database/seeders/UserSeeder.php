@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
@@ -24,6 +25,7 @@ class UserSeeder extends Seeder
         User::firstOrCreate(
             ['email' => 'test@example.com'],
             [
+                'public_id' => (string) Str::ulid(),
                 'name' => 'Test User',
                 'password' => Hash::make('password'),
                 'role_id' => $adminRole?->id,
@@ -106,6 +108,7 @@ class UserSeeder extends Seeder
             User::firstOrCreate(
                 ['email' => $m['email']],
                 [
+                    'public_id' => (string) Str::ulid(),
                     'name' => $m['name'],
                     'password' => Hash::make('password'),
                     'role_id' => $m['role_id'],
