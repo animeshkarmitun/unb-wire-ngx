@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -22,11 +23,15 @@ class DatabaseSeeder extends Seeder
             ClientSeeder::class,
         ]);
 
-        $adminRole = \App\Models\Role::where('name', 'Admin')->first();
+        $adminRole = Role::where('name', 'Admin')->first();
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
             'role_id' => $adminRole?->id,
+        ]);
+
+        $this->call([
+            MediaSeeder::class,
         ]);
     }
 }

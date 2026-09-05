@@ -19,8 +19,7 @@ class NoteService
         }
 
         if (! $kind) {
-            $roleCode = strtolower($author->role?->code ?? $author->role?->name ?? 'sub');
-            $kind = str_contains($roleCode, 'editor') || str_contains($roleCode, 'admin') ? 'editor' : 'sub';
+            $kind = 'note';
         }
 
         return $story->notes()->create([
