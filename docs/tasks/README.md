@@ -88,6 +88,7 @@
 | `M8-PHOTO-002` | Field intake approval queue | M8-PHOTO-001 | ✅ | — | 2026-09-05 |
 | `M8-PHOTO-003` | AP Photo Manager faithful | M8-UI-002, M8-PHOTO-001 | ✅ | — | 2026-09-05 |
 | `M8-CLIENT-001` | Clients Manager faithful (5-stat, bulk bar, 4-channel, drawer, modals, wizard) | M8-UI-002, M2-DB-002 | ✅ | — | 2026-09-05 |
+| `M8-PACK-001` | Packages & Add-ons Manager faithful (4-stat, cards, add-on table, editor preview, archive) | M8-UI-002, M2-DB-007 | ✅ | — | 2026-09-05 |
 | `M8-SIMPLE-001` | Simple pages chrome-faithful (clients/packages/roles/ai-settings/service) | M8-UI-002 | ✅ | — | 2026-08-29 |
 | `M8-WIZ-001` | Wizard shell (stepper + sticky nav + autosave) | M8-UI-002 | ✅ | — | 2026-08-29 |
 | `M8-WIZ-002` | Body: Quill wire toolbar + find bar + fullscreen | M8-WIZ-001 | ✅ | — | 2026-08-29 |
