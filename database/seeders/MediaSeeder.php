@@ -36,6 +36,7 @@ class MediaSeeder extends Seeder
             $photographers[$name] = User::firstOrCreate(
                 ['email' => $email],
                 [
+                    'public_id' => (string) Str::ulid(),
                     'name' => $name,
                     'password' => bcrypt('password'),
                     'role_id' => $uploaderRole?->id,
