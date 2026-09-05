@@ -36,18 +36,24 @@
 ---
 
 ## 5. Test Criteria
-- [ ] Transition happy path creates `story_versions` + `story_events`
-- [ ] Stale version → 409 merge prompt
-- [ ] Notes add requires auth + validates body
-- [ ] Internal notes not on feed/search
+- [x] Transition happy path creates `story_versions` + `story_events`
+- [x] Stale version → 409 merge prompt
+- [x] Notes add requires auth + validates body
+- [x] Internal notes not on feed/search
 
 ---
 
 ## 6. Completion Notes
-- **Shipped:** Drawer co-located in `news-list.blade.php` already covers status flow, owner+lock indicator, notes thread, version, events audit. Uses eager `notes.user,events`.
-- **Tests:** `php -l` clean.
-- **Live Smoke:** Drawer open/close verified.
-- **Review:** Take-over 409 to be hardened in WIZ-005 thread.
+- **Shipped:** 1:1 conversion of Workflow Drawer matching `app-data/english-news.html`:
+  - 445px right slide-over drawer (`.wfd` + `.wfd-overlay`) with backdrop click-to-close, close button (✕), and Escape key handling.
+  - Interactive workflow flow stepper (`Draft → In review → Needs work / Approved → Published`) with status step badges (`.wfd-step.done`, `.now`, `.now.bad`).
+  - Owner panel with avatar initials (`.wf-ava`), staff name, role, and shift hours schedule.
+  - Handover "Take over" button with optimistic version verification, raising and presenting 409 conflict notifications if concurrent edits occur.
+  - Complete internal notes thread supporting `.nt-item.editor` (navy left border), `.nt-item.sub` (green left border), and `.nt-item.sys` (dashed border for shift handover/status changes).
+  - Note reply composer (`textarea` + "Send" button) backed by dedicated `NoteService` validating character bounds (1–2000) and ensuring `is_internal = true`.
+- **Tests:** `tests/Feature/NewsListTest.php` (tests drawer open, note addition, take over audit, 409 handling), `tests/e2e/news-list-faithful.spec.ts` (E2E open, stepper, owner, reply, thread update, close).
+- **Live Smoke:** Drawer slides open, note reply added live in Dhaka timezone, close on ✕ confirmed.
+- **Review:** All notes scoped internal; no N+1 on drawer relationships.
 
 ---
 

@@ -80,15 +80,25 @@ class StoryService
         $story->update(['locked_by' => $actor->id, 'locked_at' => now()]);
     }
 
-    public function takeOver(Story $story, User $actor): void
+    public function takeOver(Story $story, User $actor, ?int $expectedVersion = null): void
     {
-        $prev = $story->locked_by;
-        DB::transaction(function () use ($story, $actor, $prev) {
-            $story->update(['locked_by' => $actor->id, 'locked_at' => now()]);
+        if ($expectedVersion !== null && (int) $story->version !== $expectedVersion) {
+            throw new ConflictHttpException('Version conflict — story has been modified');
+        }
+
+        $prev = $story->lockedBy ?? $story->owner;
+        $prevName = $prev ? $prev->name : ($story->locked_by ? "user #{$story->locked_by}" : 'previous owner');
+        DB::transaction(function () use ($story, $actor, $prevName) {
+            $story->update([
+                'locked_by' => $actor->id,
+                'locked_at' => now(),
+                'owner_id' => $actor->id,
+            ]);
             $story->notes()->create([
                 'user_id' => $actor->id,
                 'kind' => 'system',
-                'body' => "Lock taken over from user #{$prev} by #{$actor->id}",
+                'is_internal' => true,
+                'body' => "Taken over by {$actor->name} from {$prevName} — shift handover",
             ]);
             $story->events()->create([
                 'actor_id' => $actor->id,
@@ -97,6 +107,11 @@ class StoryService
                 'to_status' => $story->status,
             ]);
         });
+    }
+
+    public function addNote(Story $story, string $body, User $actor, ?string $kind = null): \App\Models\StoryNote
+    {
+        return app(NoteService::class)->add($story, $actor, $body, $kind);
     }
 
     public function transition(Story $story, string $to, User $actor): Story
