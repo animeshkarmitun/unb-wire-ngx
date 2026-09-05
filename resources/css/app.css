@@ -4,6 +4,7 @@
 @import './ap-photo-manager.css';
 @import './clients-manager.css';
 @import './packages-manager.css';
+@import './roles-manager.css';
 
 @tailwind base;
 @tailwind components;

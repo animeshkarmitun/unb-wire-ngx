@@ -49,27 +49,48 @@ class RoleSeeder extends Seeder
             ],
         ];
 
+        $canonicalNames = array_column($roles, 'name');
+        $extraRoles = DB::table('roles')->whereNotIn('name', $canonicalNames)->get();
+        foreach ($extraRoles as $extra) {
+            if (DB::table('users')->where('role_id', $extra->id)->count() === 0) {
+                DB::table('role_permissions')->where('role_id', $extra->id)->delete();
+                DB::table('roles')->where('id', $extra->id)->delete();
+            }
+        }
+
         foreach ($roles as $roleData) {
-            $roleId = DB::table('roles')->insertGetId([
-                'name' => $roleData['name'],
-                'type' => $roleData['type'],
-                'description' => $roleData['description'],
-                'is_locked' => $roleData['is_locked'],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            $existing = DB::table('roles')->where('name', $roleData['name'])->first();
+            if ($existing) {
+                $roleId = $existing->id;
+                DB::table('roles')->where('id', $roleId)->update([
+                    'type' => $roleData['type'],
+                    'description' => $roleData['description'],
+                    'is_locked' => $roleData['is_locked'],
+                    'updated_at' => now(),
+                ]);
+            } else {
+                $roleId = DB::table('roles')->insertGetId([
+                    'name' => $roleData['name'],
+                    'type' => $roleData['type'],
+                    'description' => $roleData['description'],
+                    'is_locked' => $roleData['is_locked'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
 
             foreach ($modules as $module) {
                 $p = $perms[$roleData['name']][$module] ?? [0, 0, 0, 0, 0];
-                DB::table('role_permissions')->insert([
-                    'role_id' => $roleId,
-                    'module' => $module,
-                    'can_view' => $p[0],
-                    'can_create' => $p[1],
-                    'can_edit' => $p[2],
-                    'can_publish' => $p[3],
-                    'can_delete' => $p[4],
-                ]);
+                DB::table('role_permissions')->updateOrInsert(
+                    ['role_id' => $roleId, 'module' => $module],
+                    [
+                        'can_view' => (bool) $p[0],
+                        'can_create' => (bool) $p[1],
+                        'can_edit' => (bool) $p[2],
+                        'can_publish' => (bool) $p[3],
+                        'can_delete' => (bool) $p[4],
+                    ]
+                );
             }
         }
     }
