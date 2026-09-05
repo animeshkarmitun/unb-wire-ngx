@@ -309,7 +309,9 @@
                         @php
                             $kind = $note->kind;
                             $isSys = $kind === 'sys' || $kind === 'system';
-                            $itemClass = $isSys ? 'sys' : ($kind === 'editor' ? 'editor' : 'sub');
+                            $roleName = strtolower($note->user?->role?->name ?? '');
+                            $isEditor = str_contains($roleName, 'editor') || str_contains($roleName, 'admin');
+                            $itemClass = $isSys ? 'sys' : ($isEditor ? 'editor' : 'sub');
                         @endphp
                         <div class="nt-item {{ $itemClass }}">
                             @if($isSys)
@@ -319,7 +321,7 @@
                             @else
                                 <div class="nt-head">
                                     <b>{{ $note->user?->name ?? 'Staff' }}</b>
-                                    <span class="nt-role {{ $kind === 'sub' ? 'sub' : '' }}">{{ $note->user?->role?->name ?? 'Newsroom' }}</span>
+                                    <span class="nt-role {{ !$isEditor ? 'sub' : '' }}">{{ $note->user?->role?->name ?? 'Newsroom' }}</span>
                                     <span class="nt-time">{{ $note->created_at?->timezone('Asia/Dhaka')->format('D · g:i A') }}</span>
                                 </div>
                                 <div class="nt-body">{{ $note->body }}</div>
@@ -332,7 +334,7 @@
 
                 <!-- Note Reply Composer -->
                 <div class="nt-reply">
-                    <textarea wire:model="noteText" rows="2" placeholder="Reply — visible to the newsroom only…"></textarea>
+                    <textarea wire:model.live="noteText" rows="2" placeholder="Reply — visible to the newsroom only…"></textarea>
                     <button type="button" wire:click="addNote" class="btn btn-navy">Send</button>
                 </div>
                 @error('noteText')

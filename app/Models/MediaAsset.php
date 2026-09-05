@@ -104,4 +104,9 @@ class MediaAsset extends Model
     {
         return $this->belongsToMany(Story::class, 'story_media', 'asset_id', 'story_id')->withPivot(['role', 'sort_order', 'caption_override']);
     }
+
+    public function packages(): BelongsToMany
+    {
+        return $this->belongsToMany(Package::class, 'package_media', 'asset_id', 'package_id')->withPivot('added_at');
+    }
 }
