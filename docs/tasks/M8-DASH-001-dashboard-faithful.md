@@ -38,10 +38,10 @@
 ---
 
 ## 5. Test Criteria
-- [ ] KPIs are live (not hardcoded)
-- [ ] No N+1 on story list (`preventLazyLoading` passes)
-- [ ] `/admin` 200 for all staff roles
-- [ ] Visual 1440/1920 matches prototype
+- [x] KPIs are live (not hardcoded)
+- [x] No N+1 on story list (`preventLazyLoading` passes)
+- [x] `/admin` 200 for all staff roles
+- [x] Visual 1440/1920 matches prototype
 
 ---
 

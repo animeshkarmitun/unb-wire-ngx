@@ -127,7 +127,7 @@ class PackagesManager extends Component
         $packages = Package::withCount('clientPackages')->orderBy('name')->get();
         $live = $packages->where('status', 'active')->count();
         $clientsCovered = DB::table('client_packages')->where('status', 'active')->distinct('client_id')->count('client_id');
-        $mrr = $packages->where('status', 'active')->sum(function ($p) { return (float) $p->price_monthly * $p->clientPackages_count; });
+        $mrr = $packages->where('status', 'active')->sum(function ($p) { return (float) $p->price_monthly * ($p->client_packages_count ?? 0); });
         return view('livewire.admin.packages-manager', compact('packages', 'live', 'clientsCovered', 'mrr'));
     }
 }

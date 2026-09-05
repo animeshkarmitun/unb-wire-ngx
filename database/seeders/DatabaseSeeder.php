@@ -22,9 +22,11 @@ class DatabaseSeeder extends Seeder
             ClientSeeder::class,
         ]);
 
+        $adminRole = \App\Models\Role::where('name', 'Admin')->first();
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'role_id' => $adminRole?->id,
         ]);
     }
 }

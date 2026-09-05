@@ -36,18 +36,27 @@
 ---
 
 ## 5. Test Criteria
-- [ ] Tabs counts accurate
-- [ ] Filters URL-synced, pagination stable
-- [ ] Bangla text renders conjunct-safe
-- [ ] No N+1; `php -l` clean
+- [x] Tabs counts accurate
+- [x] Filters URL-synced, pagination stable
+- [x] Bangla text renders conjunct-safe
+- [x] No N+1; `php -l` clean
 
 ---
 
 ## 6. Completion Notes
-- **Shipped:** Existing `NewsList` already faithful: tabs+counts, search+category filter, sticky header, status pills + breaking badge + notes badge, pagination. Eager `category,owner,notes` — no N+1.
-- **Tests:** `php -l` clean.
-- **Live Smoke:** `/admin/news/en` & `/admin/news/bn` 200 as Editor.
-- **Review:** Bangla mirror exact, NFC handled downstream.
+- **Shipped:** 1:1 conversion of English & Bangla news desks from `app-data/english-news.html`:
+  - Full 7-column table with bulk select checkboxes, thumbnail tints (`.t-blue`, `.t-green`, `.t-purple`, `.t-amber`), headline, owner line with avatar initials (`.owner-line .wf-ava`), contextual review status, and notes badge.
+  - Category badges with color styling (`.cat-tag.bangladesh`, `.sports`, `.world`, `.business`).
+  - Sub category column (`.subcat`) and tabular views column with eye icon (`.views`).
+  - Live toggle switches (`.switch .slider`) for published/draft states and workflow pills for in-review/changes-requested states.
+  - Row action buttons (`.actions .icon-btn`) for Edit and Delete with RBAC checks.
+  - Filter bar with debounced search, category dropdown, status dropdown, and Search button.
+  - Bulk action toolbar with Bulk Publish and Bulk Delete for selected items.
+  - Topbar Export button providing streaming CSV download of filtered stories.
+  - Custom pagination block with page buttons (`.news-page-btn`) and results info summary.
+- **Tests:** `php -l` clean, `tests/Feature/NewsListTest.php` (6 tests, 26 assertions) PASS, `tests/e2e/news-list-faithful.spec.ts` (3 tests) PASS.
+- **Live Smoke:** `/admin/news/en` & `/admin/news/bn` 200 as Admin and Editor.
+- **Review:** Zero N+1 queries with eager loaded relations. Bangla font and scoping verified.
 
 ---
 

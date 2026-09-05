@@ -1,4 +1,5 @@
 @import './add-news-wizard.css';
+@import './news-desk.css';
 
 @tailwind base;
 @tailwind components;

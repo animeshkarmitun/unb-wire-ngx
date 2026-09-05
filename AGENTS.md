@@ -162,6 +162,9 @@ Before considering any task done:
 - [ ] **Runtime changes live-smoked** per `docs/workflow/live-test-runbook.md` (caches cleared, routes hit as relevant role) and recorded in Completion Notes.
 - [ ] Code follows existing style and touches only requested files.
 - [ ] **Schema parity gate** — `php scripts/schema-parity-check.php` passes (FKs/CHECKs/timestamptz/indexes/models match `app-data/v1-database-design.md` + `DEC-011`) per `docs/workflow.md` §6.
+- [ ] **No fake success** — persistent state changes (publish, status transitions, notes, media) show success only after server confirms (`$successState`/`$status` re-render or API 200). E2E must assert DB/API (`/admin/news/en` + `/api/v1/portal/feed`), not just DOM.
+- [ ] **No `wire:ignore` overwrite without wrapper** — JS `innerHTML` sync (e.g., live preview) is allowed only inside an explicit `wire:ignore` wrapper; otherwise Livewire morph will be overwritten — see `docs/workflow.md` §8.
+- [ ] **CI-required checks green** — branch protection requires `php artisan test` + `npx playwright test --workers=2` + `npm run build` + `php scripts/schema-parity-check.php` all green before merge. No `Alpine.start()` duplicate — `Alpine` is started by Livewire.
 
 ---
 
