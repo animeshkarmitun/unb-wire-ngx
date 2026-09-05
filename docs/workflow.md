@@ -94,11 +94,24 @@ Coder implements the Prompt section. Before touching code, states the 3-step ver
 ### Step 5: Self-Test & Quality Gates
 Coder verifies `php -l`, runs tests, clears caches, and conducts live smoke testing per `docs/workflow/live-test-runbook.md`.
 
+**Mandatory checks (CI-enforced, see `AGENTS.md` §10):**
+
+```
+php artisan test                          # 114+ must pass
+npx playwright test --workers=2           # 11+ must pass — every wire:click that mutates DB must have DB/API assertion
+npm run build                             # Vite must compile clean
+php scripts/schema-parity-check.php       # FKs/CHECKs/timestamptz/$casts must match design
+```
+
+- Every persistent state change (publish, `in_review`/`approved`, notes, media) must assert server truth — e.g., after publish, assert headline in `/admin/news/en` **and** in `/api/v1/portal/feed`, not just `.success-card.show`.
+- E2E must run against built assets (`npm run build` first) to catch Alpine/Livewire bundling drift.
+- `storage/logs/laravel.log` must contain zero `ViewException`/`MissingAttributeException` (`role->code` etc.).
+
 ### Step 6: Independent Review
-Reviewer subagent (`unb-wire-reviewer`) reviews the diff against `AGENTS.md` and generates review report.
+Reviewer subagent (`unb-wire-reviewer`) reviews the diff against `AGENTS.md` and generates review report. Reviewer re-runs the 4 CI checks in isolation and fails the PR if any check was skipped.
 
 ### Step 7: Git Handoff
-Commit with task ID (`feat(wire): add rss feed generator [WIRE-001]`), push branch, open PR.
+Commit with task ID (`feat(wire): add rss feed generator [WIRE-001]`), push branch, open PR. Branch protection blocks merge until the 4 CI checks are green.
 
 ---
 
@@ -122,3 +135,37 @@ Docs must be updated **in the same commit as code**:
 - Architecture decisions → `docs/knowledge-inventory/decisions.md`
 - API contracts → `docs/knowledge-inventory/architecture.md`
 - Schema changes → `docs/knowledge-inventory/data-model.md`
+
+---
+
+## 6. Schema Parity Gate (prevents M9-SCHEMA drift)
+
+Every PR that touches `database/migrations/*`, `app/Models/*`, `database/factories/*`, `app-data/v1-database-design.md` or `docs/knowledge-inventory/decisions.md` must pass:
+
+1. `php scripts/schema-parity-check.php` — checks FK `RESTRICT` vs `SET NULL`, `timestamptz` bare-timestamp == 0 (business tables), CHECK enums, `assignments`/`invoices`/`is_internal` presence, indexes `DESC`, model `$casts` coverage. See `docs/workflow/schema-parity-runbook.md`.
+2. `php artisan migrate:fresh --seed` on sqlite (CI) + pgsql (reviewer manual if pgsql available).
+3. `DEC-NNN` required for any new table/column/CHECK invented outside `v1-database-design.md` — auto-fail if migration adds a table not in design without a DEC patch in same PR.
+4. **Same-PR rule:** a new column (`is_internal`, `code`, etc.) must ship with its migration **and** its Model `$fillable`/`$casts` **and** a Feature test that would fail without it — otherwise the PR is incomplete. The `role->code` vs `role->name` ViewException that broke publish was a pure schema-parity miss.
+
+Coder must run `php scripts/schema-parity-check.php` locally before push; CI job `schema-parity` blocks merge on fail.
+
+## 7. Anti-Pattern Bans (added after 2026-08-29 wizard regression)
+
+These caused the `Upload`/drag-drop/`+ New story`/wizard failures and must never recur:
+
+1. **Fake success banned.** `onclick` handlers that add `.show` classes or DOM nodes without a server round-trip are forbidden for persistent state. Success UI (`$successState`, `$status`, `Story` row, `story_events`) must be server-rendered. E2E must prove it via DB/API.
+2. **`wire:ignore` + `innerHTML` only inside a wrapper.** Live preview sync (`syncPreview()`) is allowed only when the target has `wire:ignore`. Otherwise Livewire morph overwrites it and tests become flaky under `--workers=2`. Documented in `AGENTS.md` §10.
+3. **No `Alpine.start()` duplicate.** `resources/js/app.js` must not call `Alpine.start()` — Livewire does it. The duplicate caused `wire:click` to silently stop firing and publish to never reach the server.
+4. **No `wire:click` double-fire on nav.** `#nextBtn`/`#backBtn` use JS `showStep()` + `syncLivewireStep()`; adding `wire:click="next"` on top causes double increment (step 2 → 3). Pick one path.
+5. **Workflow transitions are explicit.** `draft → published` is not allowed in `StoryService::TRANSITIONS`; the wizard's `publish()` must walk the chain (`draft → in_review → approved → published`) so every transition is audited.
+
+## 8. Branch Protection (CI is the enforcer)
+
+Branch protection on `main` requires these checks — they cannot be skipped locally:
+
+- `php artisan test`
+- `npx playwright test --workers=2`
+- `npm run build`
+- `php scripts/schema-parity-check.php`
+
+A PR with only `Tests\Feature\ExampleTest` green is not green. CI must run the full suites on a built asset.

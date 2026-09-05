@@ -51,6 +51,8 @@ class Story extends Model
         'deleted_at' => 'datetime',
         'is_breaking' => 'boolean',
         'ai_touched' => 'array',
+        'version' => 'integer',
+        'word_count' => 'integer',
     ];
 
     protected static function booted(): void
@@ -115,5 +117,15 @@ class Story extends Model
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class, 'story_tag');
+    }
+
+    public function deliveries(): HasMany
+    {
+        return $this->hasMany(Delivery::class, 'deliverable_id')->where('deliverable_type', 'story');
+    }
+
+    public function media(): BelongsToMany
+    {
+        return $this->belongsToMany(MediaAsset::class, 'story_media', 'story_id', 'asset_id')->withPivot(['role', 'sort_order', 'caption_override']);
     }
 }

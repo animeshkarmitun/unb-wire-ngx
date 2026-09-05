@@ -71,7 +71,53 @@
 
 ---
 
-## 5. How to Add a Task
+## 5. Faithful Prototype Conversion Milestone (`M8-FAITHFUL`) — 2026-08-29 Design: `docs/plans/faithful-prototype-conversion-design.md`
+
+> Scaffold → faithful 1:1. Build order = README §11 (foundation → simple → lists → DAM → wizard). Each task ≤3k tokens, single responsibility.
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M8-FOUND-001` | Tailwind tokens + fonts + gradients g1–g8 | M8-PLAN | ✅ | — | 2026-08-29 |
+| `M8-FOUND-002` | Shared chrome audit (layout/sidebar/topnav/toast) | M8-FOUND-001 | ✅ | — | 2026-08-29 |
+| `M8-UI-001` | Component library #1 (btn/card/pill/tabs/modal/drawer/switch/dropdown/thumb) | M8-FOUND-002 | ✅ | — | 2026-08-29 |
+| `M8-UI-002` | Component library #2 (workflow-strip/note-thread/filter-bar/data-table) | M8-UI-001 | ✅ | — | 2026-08-29 |
+| `M8-DASH-001` | Dashboard faithful (KPIs + stories + clients + FAB) | M8-FOUND-002 | ✅ | — | 2026-08-29 |
+| `M8-NEWS-001` | News list faithful (en+bn) | M8-UI-002 | ✅ | — | 2026-08-29 |
+| `M8-NEWS-002` | Workflow drawer (status flow + take-over + notes) | M8-NEWS-001 | ✅ | — | 2026-08-29 |
+| `M8-PHOTO-001` | UNB Photo Manager faithful | M8-UI-002 | ✅ | — | 2026-09-05 |
+| `M8-PHOTO-002` | Field intake approval queue | M8-PHOTO-001 | ✅ | — | 2026-09-05 |
+| `M8-PHOTO-003` | AP Photo Manager faithful | M8-UI-002, M8-PHOTO-001 | ✅ | — | 2026-09-05 |
+| `M8-CLIENT-001` | Clients Manager faithful (5-stat, bulk bar, 4-channel, drawer, modals, wizard) | M8-UI-002, M2-DB-002 | ✅ | — | 2026-09-05 |
+| `M8-PACK-001` | Packages & Add-ons Manager faithful (4-stat, cards, add-on table, editor preview, archive) | M8-UI-002, M2-DB-007 | ✅ | — | 2026-09-05 |
+| `M8-ROLE-001` | Roles & Access Manager faithful (4-stat, role cards, drawer with presets & matrix, people list, invite, delete, audit) | M8-UI-002, M2-DB-001 | ✅ | — | 2026-09-05 |
+| `M8-SIMPLE-001` | Simple pages chrome-faithful (clients/packages/roles/ai-settings/service) | M8-UI-002 | ✅ | — | 2026-08-29 |
+| `M8-WIZ-001` | Wizard shell (stepper + sticky nav + autosave) | M8-UI-002 | ✅ | — | 2026-08-29 |
+| `M8-WIZ-002` | Body: Quill wire toolbar + find bar + fullscreen | M8-WIZ-001 | ✅ | — | 2026-08-29 |
+| `M8-WIZ-003` | Media: featured 1200x630 + attach grid + drop + doc-import | M8-WIZ-001 | ⏳ | — | 2026-08-29 |
+| `M8-WIZ-004` | Tags/type/seg-control/distribution + live preview | M8-WIZ-001 | ⏳ | — | 2026-08-29 |
+| `M8-WIZ-005` | Desk workflow strip + internal notes | M8-WIZ-001 | ⏳ | — | 2026-08-29 |
+| `M8-WIZ-006` | AI desk faithful (drawer + diff + gate + kill-switch) | M8-WIZ-001 | ⏳ | — | 2026-08-29 |
+| `M8-E2E-001` | Wizard E2E (draft→publish + fan-out) | M8-WIZ-006 | ⏳ | — | 2026-08-29 |
+| `M8-QA-001` | A11y + Bangla/NFC + perf (N+1/cache) | M8-E2E-001 | ⏳ | — | 2026-08-29 |
+
+---
+
+## 6. Remediation (`M8-FIX`) — 2026-08-29 `docs/plans/remediation-fix-all-v2.md`
+
+> Hotfix P0 done (Upload wired). P1–P8 in progress one-by-one with interaction E2E + live smoke gates.
+
+## 7. Schema-Code Parity (`M9-SCHEMA`) — 2026-08-29 `docs/schema-code-mismatch-report.md` → `DEC-011`
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M9-SCHEMA-001` | Critical: FK restrict, grants, assignments | M8-QA-001 | ✅ | — | 2026-08-29 |
+| `M9-SCHEMA-002` | Timestamptz sweep + nullability | M9-SCHEMA-001 | ✅ | — | 2026-08-29 |
+| `M9-SCHEMA-003` | Indexes, casts, factories, encoding | M9-SCHEMA-002 | ✅ | — | 2026-08-29 |
+| `M9-SCHEMA-004` | Docs ratification (invoices, is_internal, CHECKs, partitions) | M9-SCHEMA-003 | ✅ | — | 2026-08-29 |
+
+---
+
+## 8. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.

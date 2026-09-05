@@ -17,7 +17,7 @@
         </div>
 
         {{-- Client portal (subscriber view) --}}
-        <a href="#" target="_blank" rel="noopener" title="Client portal (subscriber view)" class="relative w-[38px] h-[38px] rounded-[10px] border border-border bg-white text-[#4b4e5c] flex items-center justify-center transition-colors hover:border-navy-800 hover:text-navy-800">
+        <a href="{{ config('app.portal_url', 'http://localhost:3000') }}" target="_blank" rel="noopener" title="Client portal (subscriber view)" class="relative w-[38px] h-[38px] rounded-[10px] border border-border bg-white text-[#4b4e5c] flex items-center justify-center transition-colors hover:border-navy-800 hover:text-navy-800">
             <x-lucide-globe class="w-[17px] h-[17px]" stroke-width="1.8" />
         </a>
 

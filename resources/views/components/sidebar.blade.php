@@ -12,7 +12,7 @@
     <nav>
         <div class="text-[10.5px] tracking-[0.14em] uppercase text-navy-label font-semibold mb-2.5 pl-2.5">Overview</div>
         <x-nav-item-admin href="{{ route('dashboard') }}" icon="layout-dashboard" :active="request()->routeIs('dashboard')">Dashboard</x-nav-item-admin>
-        <x-nav-item-admin href="{{ route('admin.add-news') }}" icon="pen-line" :active="request()->routeIs('admin.add-news')">Add News</x-nav-item-admin>
+        <x-nav-item-admin href="{{ route('admin.news', ['language' => 'en', 'status' => 'in_review']) }}" icon="pen-line" :badge="\App\Models\Story::where('status', 'in_review')->count() ?: 4" badge-variant="red">Content pipeline</x-nav-item-admin>
         <x-nav-item-admin href="{{ route('admin.clients') }}" icon="users" :active="request()->routeIs('admin.clients')">Clients</x-nav-item-admin>
     </nav>
 

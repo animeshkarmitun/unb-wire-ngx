@@ -15,7 +15,7 @@ class ClientFactory extends Factory
             'public_id' => (string) Str::ulid(),
             'name' => fake()->company(),
             'code' => strtoupper(fake()->unique()->lexify('CLI-????')),
-            'type' => fake()->randomElement(['newspaper', 'tv', 'online']),
+            'type' => fake()->randomElement(['newspaper', 'tv', 'online', 'radio', 'govt', 'agency']),
             'status' => 'active',
         ];
     }

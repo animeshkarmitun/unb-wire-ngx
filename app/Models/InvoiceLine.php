@@ -8,4 +8,5 @@ class InvoiceLine extends Model
 {
     public $timestamps = false;
     protected $fillable = ['invoice_id','package_id','description','qty','unit_price','amount'];
+    protected $casts = ['unit_price' => 'decimal:2', 'amount' => 'decimal:2', 'qty' => 'integer'];
 }

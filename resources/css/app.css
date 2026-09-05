@@ -1,3 +1,11 @@
+@import './add-news-wizard.css';
+@import './news-desk.css';
+@import './photo-manager.css';
+@import './ap-photo-manager.css';
+@import './clients-manager.css';
+@import './packages-manager.css';
+@import './roles-manager.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

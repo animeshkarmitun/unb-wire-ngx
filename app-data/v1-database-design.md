@@ -228,6 +228,7 @@ UNIQUE (story_id, version). Append-only in practice.
 | story_id | FK stories → cascade | |
 | user_id | FK users | |
 | kind | varchar(8) default 'note' | 'note' (human) | 'system' (handover, sent-to-review…) |
+| is_internal | bool default true | newsroom-only filter (added 2026-08-29, complements `kind`) |
 | body | text | |
 | created_at | | **no updated_at — immutable by grant (§8)** |
 
@@ -357,7 +358,7 @@ Indexes: `(status, created_at DESC)` (field intake queue), `(kind, status)`,
 | description | text null | |
 | entitlement_filter | jsonb | declarative: {languages:[], category_ids:[]|null=all, media_kinds:[]} — **same shape is compiled into the Meilisearch tenant-token filter** (NFR §1) so search entitlements and delivery entitlements can never drift |
 | price_monthly | numeric(10,2) null | |
-| status | varchar(12) default 'active' | |
+| status | varchar(12) default 'active' | CHECK ('active','archived') — ratified DEC-011 |
 | timestamps | | |
 
 ### `package_media` (pivot — which media assets ride which package)
@@ -374,7 +375,7 @@ fan-out planning and the portal's media entitlement check.
 | package_id | FK packages → restrict | |
 | starts_at | timestamptz | |
 | ends_at | timestamptz null | null = ongoing |
-| status | varchar(12) default 'active' | |
+| status | varchar(12) default 'active' | CHECK ('active','expired','cancelled') — ratified DEC-011 |
 | created_at | | UNIQUE (client_id, package_id, starts_at) |
 
 Effective entitlement of a client = union of active packages, computed in app,
@@ -387,7 +388,7 @@ cached (CacheAside), baked into tenant tokens at issue time.
 | client_id | FK clients → cascade | |
 | type | varchar(12) | 'api','ftp','webhook' |
 | config | jsonb | ftp: {host,path,username,credential_ref}; webhook: {url, secret_ref} — secrets live in vault, only refs here (NFR §8) |
-| status | varchar(12) default 'active' | |
+| status | varchar(12) default 'active' | CHECK ('active','paused','disabled') — ratified DEC-011 |
 | last_success_at | timestamptz null | |
 | failure_count | int default 0 | auto-pause after N consecutive failures |
 | timestamps | | |
@@ -510,7 +511,7 @@ order per document. Archive sweep (>12 mo stories) writes `delete` from 'main' +
 | table | strategy |
 |---|---|
 | stories | hot by query pattern (`status='published' AND published_at > now()-12mo`); archive sweep job sets status='archived', moves search doc main→archive. **Data stays in one table v1** — revisit partitioning at ~5M rows |
-| deliveries / audit_logs / downloads / ai_generations | monthly RANGE partitions on created_at, detached to archive schema after 12 mo (audit: kept 7 y) |
+| deliveries / audit_logs / downloads / ai_generations | **deferred to ~5M rows** (DEC-011) — v1 single table; monthly RANGE partitions detached to archive schema after 12 mo (audit: kept 7 y) when threshold hit |
 | media originals | S3 lifecycle: hot → infrequent-access after 12 mo → glacier after 7 y; DB rows untouched, derivatives stay hot |
 | index_outbox | rows deleted after 'done' + 7 days |
 | upload_sessions | expired rows deleted daily by janitor job |
@@ -530,12 +531,13 @@ land green with constraints + indexes from this doc:
    `story_tag`
 5. **media core** — `media_batches`, `media_assets`, `media_reviews`, `media_tag`,
    `story_media`
-6. **field ops** — `assignments`, `upload_sessions`
+6. **field ops** — `assignments` (reintroduced DEC-011), `upload_sessions`
 7. **distribution** — `packages`, `package_media`, `client_packages`,
-   `client_channels`, `deliveries` (partitioned: initial partition + partman template)
-8. **AI** — `ai_generations` (partitioned), `ai_token_usage_daily`, `settings`
-9. **ops** — `notifications`, `audit_logs` (partitioned, grant-restricted),
-   `downloads` (partitioned), `index_outbox`
+    `client_channels`, `deliveries` (partitioning deferred DEC-011)
+8. **AI** — `ai_generations` (partitioning deferred), `ai_token_usage_daily`, `settings`
+9. **ops** — `notifications`, `audit_logs` (grant-restricted, pgsql REVOKE in `2026_08_29_200003`), `downloads`, `index_outbox`
+10a. **billing** — `invoices`, `invoice_lines` (added 2026-08-28, BillingService MRR)
+10b. **patch** — `story_notes.is_internal` bool default true (2026-08-29)
 10. **seeders** — roles + permissions matrix from roles.html; categories (both
     languages); 3–4 packages matching packages.html; one demo client with channels
 

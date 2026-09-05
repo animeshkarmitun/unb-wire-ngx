@@ -13,6 +13,7 @@ class StoryNote extends Model
         'story_id',
         'user_id',
         'kind',
+        'is_internal',
         'body',
         'created_at',
     ];

@@ -32,19 +32,18 @@
 
 | Domain | Tables |
 |---|---|
-| Identity & access | `roles`, `role_permissions`, `users`, ~~`devices`~~ (deferred, DEC-008) |
+| Identity & access | `roles`, `role_permissions`, `users`, `devices` (retained, DEC-011) |
 | Clients | `clients`, `client_users`, `client_api_keys` |
 | Taxonomy | `categories`, `tags`, `story_tag`, `media_tag` |
-| Stories | `stories`, `story_versions`, `story_notes`, `story_events`, `story_media` |
-| Media | `media_batches`, `media_assets`, `media_reviews`, `upload_sessions`, ~~`assignments`~~ (deferred, DEC-008) |
-| Distribution | `packages`, `package_media`, `client_packages`, `client_channels`, `deliveries` (monthly partitions) |
-| AI & ops | `ai_generations` (part.), `ai_token_usage_daily`, `settings`, `notifications`, `audit_logs` (part., grant-restricted), `downloads` (part.), `index_outbox` |
+| Stories | `stories`, `story_versions`, `story_notes` (+`is_internal`), `story_events`, `story_media` |
+| Media | `media_batches` (+`assignment_id`), `media_assets`, `media_reviews`, `upload_sessions`, `assignments` (reintroduced, DEC-011) |
+| Distribution | `packages`, `package_media`, `client_packages`, `client_channels`, `deliveries` (partitioning deferred to ~5M rows, DEC-011) |
+| AI & ops | `ai_generations` (partitioning deferred), `ai_token_usage_daily`, `settings`, `notifications`, `audit_logs` (grant-restricted, pgsql REVOKE), `downloads`, `index_outbox` |
+| Billing | `invoices`, `invoice_lines` (ratified M5, DEC-011) |
 
 ## 3. Build order
 
-Follow the migration task breakdown in the canonical doc **§10**, with the DEC-008
-adjustments: drop `assignments` from the field-ops task; drop `devices` from the
-auth-base task.
+Follow the migration task breakdown in the canonical doc **§10**, with DEC-011 adjustments: `assignments` re-added (§6 parity), `devices` retained, `invoices`/`is_internal` ratified. Partitioning remains deferred per §9.
 
 Acceptance per migration task (from the canonical doc): FK + CHECK constraints
 exactly as specced; all indexes present; `timestamptz` everywhere (grep generated

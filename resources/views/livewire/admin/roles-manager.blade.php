@@ -1,184 +1,510 @@
 <div>
-<div class="flex items-center justify-between mb-6">
-<div>
-<div class="text-[12.5px] text-muted-2 mb-2"><a href="{{ route('dashboard') }}" class="text-muted hover:text-crimson-dark">Home</a> &nbsp;/&nbsp; Settings &nbsp;/&nbsp; Roles & access</div>
-<h1 class="font-serif text-[30px] font-semibold tracking-tight">Roles & access</h1>
-</div>
-<div class="flex gap-2">
-<x-btn variant="outline" wire:click="$set('showInviteModal', true)">Invite member</x-btn>
-<x-btn variant="primary" wire:click="$set('showNewModal', true)">New role</x-btn>
-</div>
-</div>
+    <!-- Topbar & Breadcrumb -->
+    <div class="breadcrumb">
+        <a href="{{ route('dashboard') }}">Home</a> &nbsp;/&nbsp; Settings &nbsp;/&nbsp; Roles &amp; access
+    </div>
 
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-<x-card><div class="font-serif text-[27px] font-bold">{{ $totalRoles }}</div><div class="text-[11.5px] text-muted mt-1">Total roles</div></x-card>
-<x-card><div class="font-serif text-[27px] font-bold text-green">{{ $totalPeople }}</div><div class="text-[11.5px] text-muted mt-1">People with access</div></x-card>
-<x-card><div class="font-serif text-[27px] font-bold">{{ $customRoles }}</div><div class="text-[11.5px] text-muted mt-1">Custom roles</div></x-card>
-<x-card><div class="font-serif text-[27px] font-bold text-amber">{{ $pendingInvites }}</div><div class="text-[11.5px] text-muted mt-1">Pending invites</div></x-card>
-</div>
+    <div class="topbar">
+        <h1>Roles &amp; access</h1>
+        <div class="topbar-actions">
+            <button type="button" class="btn btn-outline" wire:click="openInviteModal">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="8.5" cy="7" r="4"/>
+                    <line x1="20" y1="8" x2="20" y2="14"/>
+                    <line x1="23" y1="11" x2="17" y2="11"/>
+                </svg>
+                Invite member
+            </button>
+            <button type="button" class="btn btn-primary" wire:click="openNewRole">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                New role
+            </button>
+        </div>
+    </div>
 
-<div class="flex gap-2 mb-5">
-@php $tabs=['roles'=>'Roles','people'=>'People','audit'=>'Activity']; @endphp
-@foreach($tabs as $k=>$label)
-<button wire:click="setTab('{{ $k }}')" class="px-4 py-2 rounded-full text-sm font-medium border transition {{ $activeTab===$k ? 'bg-crimson-soft border-crimson text-crimson-dark font-bold' : 'bg-panel border-[#e3e1da] text-ink hover:border-crimson' }}">{{ $label }} <span class="ml-1 text-[10px] bg-[#f3f1ee] px-2 py-0.5 rounded-full">{{ $k==='roles'?$totalRoles:($k==='people'?$totalPeople:$audits->count()) }}</span></button>
-@endforeach
-</div>
+    <!-- 4-Stat Metric Strip -->
+    <div class="stat-strip">
+        <div class="stat-card">
+            <div class="stat-num" id="stRoles">{{ $totalRoles }}</div>
+            <div class="stat-label">Total roles</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num green" id="stPeople">{{ $totalPeople }}</div>
+            <div class="stat-label">People with access</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num" id="stCustom">{{ $customRoles }}</div>
+            <div class="stat-label">Custom roles</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num amber" id="stInvited">{{ $pendingInvites }}</div>
+            <div class="stat-label">Pending invites</div>
+        </div>
+    </div>
 
-@if($activeTab==='roles')
-<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-@foreach($roles as $idx=>$role)
-@php $grad='g'.(($idx%8)+1); $permsCount=$role->permissions->filter(fn($p)=>$p->can_view||$p->can_create||$p->can_edit||$p->can_publish||$p->can_delete)->count(); $members=$role->users; @endphp
-<div class="bg-panel border border-border rounded-[15px] p-[18px] flex flex-col hover:shadow-[0_10px_26px_rgba(15,23,48,0.08)] transition">
-<div class="flex gap-3">
-<div class="w-[42px] h-[42px] rounded-xl flex items-center justify-center text-white font-serif font-bold text-xs shrink-0 {{ $grad }}">{{ strtoupper(substr($role->name,0,2)) }}</div>
-<div class="min-w-0">
-<div class="font-serif text-[16px] font-bold flex items-center gap-2 flex-wrap">{{ $role->name }} @if($role->is_locked)<span class="text-[9px] uppercase tracking-wide bg-navy-800 text-white px-1.5 py-0.5 rounded">system</span>@elseif($role->type==='client')<span class="text-[9px] uppercase bg-purple-bg text-purple px-1.5 py-0.5 rounded">client</span>@else<span class="text-[9px] uppercase bg-purple-bg text-purple px-1.5 py-0.5 rounded">custom</span>@endif</div>
-<div class="text-xs text-muted leading-5 truncate">{{ $role->description }}</div>
-</div>
-</div>
-<div class="flex flex-wrap gap-1 mt-3">
-@foreach($role->permissions as $p)
-@if($p->can_view || $p->can_create || $p->can_edit || $p->can_publish || $p->can_delete)
-<span class="text-[10.5px] font-semibold px-2 py-1 rounded-md {{ ($p->can_publish||$p->can_delete)?'bg-green-bg text-green':'bg-blue-bg text-blue' }}">{{ $p->module }}</span>
-@else
-<span class="text-[10.5px] font-semibold px-2 py-1 rounded-md bg-[#f3f1ee] text-muted">{{ $p->module }}</span>
-@endif
-@endforeach
-</div>
-<div class="flex items-center mt-3">
-<div class="flex">
-@foreach($members->take(4) as $m)
-<div class="w-6 h-6 rounded-full bg-navy-800 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white -ml-1 first:ml-0">{{ strtoupper(substr($m->name,0,2)) }}</div>
-@endforeach
-@if($members->count()>4)<span class="w-6 h-6 rounded-full bg-[#f3f1ee] text-muted text-[10px] flex items-center justify-center border-2 border-white -ml-1">+{{ $members->count()-4 }}</span>@endif
-</div>
-<span class="text-[11.5px] text-muted-2 ml-2">{{ $members->count() }} member{{ $members->count()!==1?'s':'' }}</span>
-</div>
-<div class="flex gap-2 mt-3 pt-3 border-t border-[#f4f2ee]">
-<button wire:click="openEdit({{ $role->id }})" class="flex-1 py-1.5 text-xs font-semibold border border-[#e3e1da] rounded-lg hover:border-navy-800">Edit</button>
-<button wire:click="confirmDelete({{ $role->id }})" class="flex-1 py-1.5 text-xs font-semibold border border-[#e3e1da] rounded-lg hover:border-crimson hover:text-crimson-dark hover:bg-crimson-soft">Delete</button>
-</div>
-</div>
-@endforeach
-<button wire:click="$set('showNewModal', true)" class="border-2 border-dashed border-[#d8d5cd] rounded-[15px] min-h-[220px] flex flex-col items-center justify-center gap-2 text-muted hover:border-crimson hover:text-crimson-dark hover:bg-crimson-soft transition"><x-lucide-plus class="w-5 h-5"/><span class="text-sm font-semibold">Create role</span></button>
-</div>
-<div class="mt-5 bg-blue-bg border border-[#cfdcf7] rounded-xl p-4 text-xs text-[#2c4a8a] flex gap-3"><x-lucide-info class="w-4 h-4 shrink-0 text-blue"/><div><strong>Client roles</strong> control the portal, not this panel. A person needs <strong>View</strong> on a module to see it in sidebar.</div></div>
-@endif
+    <!-- Page Tabs -->
+    <div class="pg-tabs">
+        <button type="button" class="pg-tab {{ $activeTab === 'roles' ? 'active' : '' }}" wire:click="setTab('roles')">
+            Roles <span class="cnt">{{ $totalRoles }}</span>
+        </button>
+        <button type="button" class="pg-tab {{ $activeTab === 'people' ? 'active' : '' }}" wire:click="setTab('people')">
+            People <span class="cnt">{{ $people->count() }}</span>
+        </button>
+        <button type="button" class="pg-tab {{ $activeTab === 'audit' ? 'active' : '' }}" wire:click="setTab('audit')">
+            Activity <span class="cnt">{{ $audits->count() }}</span>
+        </button>
+    </div>
 
-@if($activeTab==='people')
-<div class="bg-panel border border-border rounded-xl overflow-hidden">
-<div class="grid grid-cols-[40px_1.6fr_1fr_170px_110px] gap-3 px-4 py-2.5 bg-[#fbfaf7] text-[10.5px] font-bold uppercase tracking-wide text-muted-2">
-<span></span><span>Name</span><span>Desk</span><span>Role</span><span>Status</span>
-</div>
-@foreach($people as $p)
-<div class="grid grid-cols-[40px_1.6fr_1fr_170px_110px] gap-3 items-center px-4 py-3 border-t border-border hover:bg-[#fbfaf7]">
-<div class="w-8 h-8 rounded-lg bg-navy-800 text-white text-xs font-bold flex items-center justify-center">{{ strtoupper(substr($p->name,0,2)) }}</div>
-<div><div class="text-sm font-semibold">{{ $p->name }}</div><div class="text-xs text-muted-2">{{ $p->email }}</div></div>
-<div class="text-xs text-muted">{{ $p->desk ?? '—' }}</div>
-<div class="text-xs font-medium">{{ $p->role->name ?? '—' }}</div>
-<span class="text-[11px] font-bold px-2.5 py-1 rounded-full w-fit {{ $p->status==='active'?'bg-green-bg text-green':($p->status==='invited'?'bg-[#fdf3e0] text-[#b7791f]':'bg-[#f3f1ee] text-muted') }}">{{ $p->status }}</span>
-</div>
-@endforeach
-</div>
-@endif
+    <!-- ================= ROLES PANEL ================= -->
+    <section class="pg-panel {{ $activeTab === 'roles' ? 'active' : '' }}">
+        <div class="role-grid" id="roleGrid">
+            @foreach($roles as $role)
+                @php
+                    $roleGrad = $this->getRoleGradient($role);
+                    $mem = $role->users;
+                @endphp
+                <div class="role-card">
+                    <div class="rc-top">
+                        <div class="rc-logo {{ $roleGrad }}">{{ $this->getInitials($role->name) }}</div>
+                        <div>
+                            <div class="rc-name">
+                                {{ $role->name }}
+                                @if($role->is_locked)
+                                    <span class="rc-lock">System</span>
+                                @elseif($role->type === 'client')
+                                    <span class="rc-lock" style="background:var(--blue, #3b6fe0)">Client</span>
+                                @else
+                                    <span class="rc-custom">Custom</span>
+                                @endif
+                            </div>
+                            <div class="rc-desc">{{ $role->description }}</div>
+                        </div>
+                    </div>
 
-@if($activeTab==='audit')
-<div class="bg-panel border border-border rounded-xl p-2 px-5">
-@forelse($audits as $a)
-<div class="flex gap-3 py-3 border-b border-border last:border-0">
-<span class="w-2 h-2 rounded-full bg-blue mt-1.5 shrink-0"></span>
-<div><div class="text-sm"><b>{{ $a->actor_type }}</b> {{ $a->action }} @if($a->entity_type)<b>{{ $a->entity_type }} #{{ $a->entity_id }}</b>@endif</div><div class="text-xs text-muted-2">{{ $a->created_at }}</div></div>
-</div>
-@empty
-<div class="text-sm text-muted p-4">No activity yet.</div>
-@endforelse
-</div>
-@endif
+                    <div class="perm-chips">
+                        @php $hasAnyPerm = false; @endphp
+                        @foreach($modules as $m)
+                            @php
+                                $p = $role->permissions->firstWhere('module', $m['id']);
+                                $count = 0;
+                                if ($p) {
+                                    foreach ($m['actions'] as $a) {
+                                        if (!empty($p->{'can_'.$a})) $count++;
+                                    }
+                                }
+                            @endphp
+                            @if($count > 0)
+                                @php $hasAnyPerm = true; @endphp
+                                @if($count === count($m['actions']))
+                                    <span class="perm-chip full">{{ $m['short'] }}</span>
+                                @elseif($count === 1 && !empty($p->can_view))
+                                    <span class="perm-chip view">{{ $m['short'] }}</span>
+                                @else
+                                    <span class="perm-chip">{{ $m['short'] }} {{ $count }}/{{ count($m['actions']) }}</span>
+                                @endif
+                            @endif
+                        @endforeach
+                        @if(! $hasAnyPerm)
+                            <span class="perm-chip view">No module access</span>
+                        @endif
+                    </div>
 
-{{-- Drawer --}}
-@if($editingRoleId)
-<div class="fixed inset-0 z-[70] flex justify-end">
-<div class="absolute inset-0 bg-navy-900/50 backdrop-blur-sm" wire:click="closeEdit"></div>
-<div class="relative w-[min(620px,100%)] bg-paper h-full overflow-y-auto shadow-2xl">
-<div class="bg-panel border-b border-border p-5 flex items-center gap-3">
-<div class="w-11 h-11 rounded-xl bg-navy-800 text-white flex items-center justify-center font-serif font-bold">{{ strtoupper(substr($editName,0,2)) }}</div>
-<div><div class="font-serif text-lg font-bold">{{ $editName }}</div><div class="text-xs text-muted">{{ $editDesc }}</div></div>
-<button wire:click="closeEdit" class="ml-auto w-8 h-8 rounded-lg border border-border bg-white">✕</button>
-</div>
-<div class="p-5 space-y-4">
-<div class="bg-panel border border-border rounded-xl p-4">
-<label class="text-xs font-semibold">Role name</label>
-<input wire:model="editName" class="mt-1 w-full border border-[#e3e1da] rounded-lg px-3 py-2 text-sm bg-paper focus:bg-white focus:border-navy-800 outline-none">
-<label class="text-xs font-semibold mt-3 block">Description</label>
-<textarea wire:model="editDesc" class="mt-1 w-full border border-[#e3e1da] rounded-lg px-3 py-2 text-sm bg-paper focus:bg-white outline-none"></textarea>
-</div>
-@foreach($modules as $mod)
-<div class="bg-white border border-border rounded-xl p-3">
-<div class="flex items-center gap-2"><span class="text-sm font-bold">{{ $mod['label'] }}</span><span class="text-[10px] bg-[#f3f1ee] px-2 py-0.5 rounded-full">{{ collect($mod['actions'])->filter(fn($a)=>!empty($editPerms[$mod['id']][$a]))->count() }} / 5</span>
-<button type="button" class="ml-auto text-xs text-blue font-bold" wire:click="$set('editPerms.{{ $mod['id'] }}', ['view'=>true,'create'=>true,'edit'=>true,'publish'=>true,'delete'=>true])">Allow all</button>
-</div>
-<div class="flex flex-wrap gap-1.5 mt-2">
-@foreach($mod['actions'] as $act)
-<label class="text-xs px-3 py-1.5 rounded-full border cursor-pointer select-none {{ !empty($editPerms[$mod['id']][$act]) ? 'bg-blue-bg border-blue text-blue font-bold' : 'bg-white border-[#e3e1da] text-[#4b4e5c] hover:border-navy-800' }}">
-<input type="checkbox" class="sr-only" wire:model.live="editPerms.{{ $mod['id'] }}.{{ $act }}">
-{{ ucfirst($act) }}
-</label>
-@endforeach
-</div>
-</div>
-@endforeach
-</div>
-<div class="sticky bottom-0 bg-panel border-t border-border p-4 flex gap-2 justify-end">
-<x-btn variant="outline" wire:click="closeEdit">Discard</x-btn>
-<x-btn variant="primary" wire:click="saveEdit">Save role</x-btn>
-</div>
-</div>
-</div>
-@endif
+                    <div class="rc-members">
+                        @foreach($mem->take(4) as $idx => $u)
+                            <span class="rc-av {{ $this->getUserGradient($idx) }}" title="{{ $u->name }}">{{ $this->getInitials($u->name) }}</span>
+                        @endforeach
+                        @if($mem->count() > 4)
+                            <span class="rc-av more">+{{ $mem->count() - 4 }}</span>
+                        @endif
+                        <span class="rc-mem-txt">{{ $mem->count() ? $mem->count() . ' member' . ($mem->count() > 1 ? 's' : '') : 'No members yet' }}</span>
+                    </div>
 
-{{-- New role modal --}}
-@if($showNewModal)
-<div class="fixed inset-0 z-[80] flex items-center justify-center p-4">
-<div class="absolute inset-0 bg-navy-900/50 backdrop-blur-sm" wire:click="$set('showNewModal', false)"></div>
-<div class="relative bg-white rounded-2xl w-[min(520px,100%)] shadow-2xl overflow-hidden">
-<div class="flex items-center gap-2 px-5 py-4 border-b border-border"><span class="font-serif text-lg font-bold">Create a role</span><button wire:click="$set('showNewModal', false)" class="ml-auto w-7 h-7 rounded-lg border">✕</button></div>
-<div class="p-5 space-y-3">
-<div><label class="text-xs font-semibold">Role name *</label><input wire:model="newName" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g. Night Desk Editor"></div>
-<div><label class="text-xs font-semibold">Description</label><textarea wire:model="newDesc" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm" placeholder="What is this role for?"></textarea></div>
-<div><label class="text-xs font-semibold">Start from</label><select wire:model="newCopyFrom" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm"><option value="">Blank (no permissions)</option>@foreach($roles as $r)<option value="{{ $r->id }}">Copy from {{ $r->name }}</option>@endforeach</select></div>
-</div>
-<div class="flex gap-2 justify-end p-4 border-t border-border"><x-btn variant="outline" wire:click="$set('showNewModal', false)">Cancel</x-btn><x-btn variant="primary" wire:click="createRole">Create role</x-btn></div>
-</div>
-</div>
-@endif
+                    <div class="rc-foot">
+                        <button type="button" class="rc-btn" wire:click="openDrawer({{ $role->id }})">
+                            {{ $role->is_locked ? 'View permissions' : 'Edit permissions' }}
+                        </button>
+                        <button type="button" class="rc-btn" wire:click="duplicateRole({{ $role->id }})">
+                            Duplicate
+                        </button>
+                        @if(! $role->is_locked)
+                            <button type="button" class="rc-btn danger" wire:click="openDelete({{ $role->id }})">
+                                Delete
+                            </button>
+                        @endif
+                    </div>
+                </div>
+            @endforeach
 
-{{-- Delete confirm --}}
-@if($deleteId)
-<div class="fixed inset-0 z-[80] flex items-center justify-center p-4">
-<div class="absolute inset-0 bg-navy-900/50" wire:click="$set('deleteId', null)"></div>
-<div class="relative bg-white rounded-2xl w-[min(420px,100%)] p-5 shadow-2xl">
-<h3 class="font-serif font-bold">Delete role?</h3><p class="text-sm text-muted mt-2">System roles and roles with members cannot be deleted. Reassign members first.</p>
-<div class="flex gap-2 justify-end mt-4"><x-btn variant="outline" wire:click="$set('deleteId', null)">Cancel</x-btn><x-btn variant="primary" wire:click="deleteRole">Delete</x-btn></div>
-</div>
-</div>
-@endif
+            <!-- Create a custom role dashed card -->
+            <button type="button" class="role-new" id="roleNewCard" wire:click="openNewRole">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Create a custom role
+            </button>
+        </div>
 
-{{-- Invite modal --}}
-@if($showInviteModal)
-<div class="fixed inset-0 z-[80] flex items-center justify-center p-4">
-<div class="absolute inset-0 bg-navy-900/50" wire:click="$set('showInviteModal', false)"></div>
-<div class="relative bg-white rounded-2xl w-[min(520px,100%)] shadow-2xl overflow-hidden">
-<div class="flex items-center gap-2 px-5 py-4 border-b"><span class="font-serif font-bold">Invite a team member</span><button wire:click="$set('showInviteModal', false)" class="ml-auto w-7 h-7 border rounded-lg">✕</button></div>
-<div class="p-5 space-y-3">
-<div><label class="text-xs font-semibold">Full name *</label><input wire:model="invName" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
-<div><label class="text-xs font-semibold">Work email *</label><input wire:model="invEmail" type="email" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
-<div><label class="text-xs font-semibold">Desk</label><select wire:model="invDesk" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"><option>English desk</option><option>Bangla desk</option><option>Photo desk</option><option>Business</option><option>Management</option></select></div>
-<div><label class="text-xs font-semibold">Role</label><select wire:model="invRole" class="w-full border rounded-lg px-3 py-2 text-sm mt-1">@foreach($roles as $r)<option value="{{ $r->id }}">{{ $r->name }}</option>@endforeach</select></div>
-</div>
-<div class="flex justify-end gap-2 p-4 border-t"><x-btn variant="outline" wire:click="$set('showInviteModal', false)">Cancel</x-btn><x-btn variant="primary" wire:click="invite">Send invite</x-btn></div>
-</div>
-</div>
-@endif
+        <div class="info-banner">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            <div>
+                <strong>Client roles</strong> (like <code>Client Bangla (Without AP)</code>) are portal logins for subscribers — they control what a client sees on the <a href="{{ url('/portal') }}">client portal</a>, not the admin. Staff roles control this newsroom panel. A person needs at least the <strong>View</strong> permission on a module to see it in their sidebar.
+            </div>
+        </div>
+    </section>
 
-<x-toast />
+    <!-- ================= PEOPLE PANEL ================= -->
+    <section class="pg-panel {{ $activeTab === 'people' ? 'active' : '' }}">
+        <div class="pp-list" id="ppList">
+            <div class="pp-row head">
+                <span></span>
+                <span>Member</span>
+                <span class="pp-hide-m">Desk</span>
+                <span>Role</span>
+                <span class="pp-hide-m">Status</span>
+                <span></span>
+            </div>
+            @foreach($people as $idx => $p)
+                @php $isYou = (auth()->id() === $p->id); @endphp
+                <div class="pp-row">
+                    <div class="pp-av {{ $this->getUserGradient($idx) }}">{{ $this->getInitials($p->name) }}</div>
+                    <div>
+                        <div class="pp-name">
+                            {{ $p->name }}
+                            @if($isYou)
+                                <span class="pp-you">You</span>
+                            @endif
+                        </div>
+                        <div class="pp-email">{{ $p->email }}</div>
+                    </div>
+                    <div class="pp-desk pp-hide-m">{{ $p->desk ?? '—' }}</div>
+                    <div>
+                        <select class="select-plain pp-role-sel"
+                                wire:change="updateUserRole({{ $p->id }}, $event.target.value)"
+                                {{ $isYou ? 'disabled title="You cannot change your own role"' : '' }}>
+                            @foreach($roles as $r)
+                                <option value="{{ $r->id }}" {{ $p->role_id === $r->id ? 'selected' : '' }}>
+                                    {{ $r->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="pp-hide-m">
+                        <span class="pp-status {{ $p->status }}">
+                            <i></i>{{ $p->status }}
+                        </span>
+                        <div class="pp-last">
+                            @if($p->status === 'invited')
+                                Invited
+                            @elseif($p->last_seen_at)
+                                {{ $p->last_seen_at->diffForHumans() }}
+                            @else
+                                Online now
+                            @endif
+                        </div>
+                    </div>
+                    <div>
+                        @if(! $isYou)
+                            @if($p->status === 'invited')
+                                <button type="button" class="pp-act" wire:click="resendInvite({{ $p->id }})">Resend invite</button>
+                            @elseif($p->status === 'deactivated')
+                                <button type="button" class="pp-act" wire:click="activateUser({{ $p->id }})">Reactivate</button>
+                            @else
+                                <button type="button" class="pp-act danger" wire:click="deactivateUser({{ $p->id }})">Deactivate</button>
+                            @endif
+                        @endif
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </section>
+
+    <!-- ================= ACTIVITY PANEL ================= -->
+    <section class="pg-panel {{ $activeTab === 'audit' ? 'active' : '' }}">
+        <div class="au-list" id="auList">
+            @forelse($audits as $a)
+                @php
+                    $diff = is_string($a->diff) ? json_decode($a->diff, true) : (array) $a->diff;
+                    $color = $diff['color'] ?? 'var(--blue, #3b6fe0)';
+                @endphp
+                <div class="au-row">
+                    <span class="au-dot" style="background: {{ $color }}"></span>
+                    <div>
+                        @if(!empty($diff['message']))
+                            <div class="au-text">{!! $diff['message'] !!}</div>
+                        @else
+                            <div class="au-text">
+                                <b>{{ $a->actor_type }}</b> {{ $a->action }}
+                                @if($a->entity_type)
+                                    <b>{{ $a->entity_type }} #{{ $a->entity_id }}</b>
+                                @endif
+                            </div>
+                        @endif
+                        <div class="au-time">{{ \Carbon\Carbon::parse($a->created_at)->diffForHumans() }}</div>
+                    </div>
+                </div>
+            @empty
+                <div class="p-4 text-sm text-muted">No activity logs recorded yet.</div>
+            @endforelse
+        </div>
+    </section>
+
+    <!-- ================= ROLE EDITOR DRAWER ================= -->
+    <div class="drawer-overlay {{ $editingRoleId ? 'open' : '' }}" wire:click="closeDrawer"></div>
+    <aside class="drawer {{ $editingRoleId ? 'open' : '' }}">
+        @if($editingRoleId)
+            <div class="dr-head">
+                <div class="dr-top">
+                    <div class="dr-logo {{ $editGrad }}">{{ $this->getInitials($editName ?: 'Role') }}</div>
+                    <div>
+                        <div class="dr-name">{{ $editName ?: 'Role' }}</div>
+                        <div class="dr-sub">
+                            {{ $editLocked ? 'System role' : ($editRoleType === 'client' ? 'Client role' : 'Custom role') }}
+                            · {{ $editingRole ? $editingRole->users->count() : 0 }} member{{ ($editingRole && $editingRole->users->count() === 1) ? '' : 's' }}
+                        </div>
+                    </div>
+                    <button type="button" class="dr-close" wire:click="closeDrawer" title="Close">✕</button>
+                </div>
+            </div>
+            <div class="dr-body">
+                @if(! $editLocked)
+                    <div class="dr-sec">
+                        <div class="dr-sec-title">Role info</div>
+                        <div class="field">
+                            <label class="field-label">Name</label>
+                            <input type="text" class="text-input" wire:model.live="editName">
+                            @error('editName') <span class="text-xs text-crimson-dark mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="field">
+                            <label class="field-label">Description</label>
+                            <textarea class="text-area" wire:model.live="editDesc"></textarea>
+                            @error('editDesc') <span class="text-xs text-crimson-dark mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="field" style="margin-bottom:0">
+                            <label class="field-label">Colour</label>
+                            <div class="color-dots">
+                                @foreach(['g1','g2','g3','g4','g5','g6','g7','g8'] as $g)
+                                    <span class="color-dot {{ $g }} {{ $editGrad === $g ? 'sel' : '' }}"
+                                          wire:click="setEditGrad('{{ $g }}')"></span>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dr-sec">
+                        <div class="dr-sec-title">Quick presets</div>
+                        <div class="preset-row">
+                            <button type="button" class="preset-btn" wire:click="applyPreset('view')">View only</button>
+                            <button type="button" class="preset-btn" wire:click="applyPreset('uploader')">Uploader</button>
+                            <button type="button" class="preset-btn" wire:click="applyPreset('editor')">Editor</button>
+                            <button type="button" class="preset-btn" wire:click="applyPreset('full')">Full access</button>
+                            <button type="button" class="preset-btn" wire:click="applyPreset('clear')">Clear all</button>
+                        </div>
+                    </div>
+                @else
+                    <div class="mx-locked" style="margin-bottom:14px">
+                        <b>System role.</b> Admin permissions are fixed so the panel can never lock itself out. Create a custom role if you need a restricted variant.
+                    </div>
+                @endif
+
+                <!-- Permissions Section -->
+                <div class="dr-sec">
+                    <div class="dr-sec-title">Permissions{{ $editLocked ? ' — read only' : '' }}</div>
+                    @foreach($modules as $m)
+                        @php
+                            $mid = $m['id'];
+                            $onCount = 0;
+                            foreach ($m['actions'] as $a) {
+                                if (!empty($editPerms[$mid][$a])) $onCount++;
+                            }
+                            $isAll = ($onCount === count($m['actions']));
+                        @endphp
+                        <div class="mx-mod">
+                            <div class="mx-mod-head">
+                                <span class="mx-mod-name">{{ $m['label'] }}</span>
+                                <span class="mx-mod-count {{ $onCount > 0 ? 'on' : '' }}">{{ $onCount }}/{{ count($m['actions']) }}</span>
+                                @if(! $editLocked)
+                                    <button type="button" class="mx-all" wire:click="toggleModuleAll('{{ $mid }}')">
+                                        {{ $isAll ? 'None' : 'All' }}
+                                    </button>
+                                @endif
+                            </div>
+                            <div class="mx-chips">
+                                @foreach($m['actions'] as $act)
+                                    <label class="mx-chip {{ in_array($act, $dangerActions, true) ? 'danger' : '' }}"
+                                           style="{{ $editLocked ? 'pointer-events:none;opacity:0.75' : '' }}">
+                                        <input type="checkbox"
+                                               wire:model.live="editPerms.{{ $mid }}.{{ $act }}"
+                                               {{ $editLocked ? 'disabled' : '' }}>
+                                        <span>{{ ucfirst($act) }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <!-- Members Section -->
+                <div class="dr-sec">
+                    <div class="dr-sec-title">Members ({{ $editingRole ? $editingRole->users->count() : 0 }})</div>
+                    @if($editingRole && $editingRole->users->count() > 0)
+                        <div class="mx-members">
+                            @foreach($editingRole->users as $uIdx => $u)
+                                <span class="mx-mem">
+                                    <i class="{{ $this->getUserGradient($uIdx) }}">{{ $this->getInitials($u->name) }}</i>
+                                    {{ $u->name }}
+                                </span>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="field-hint">Nobody has this role yet — assign it from the People tab.</div>
+                    @endif
+                </div>
+            </div>
+
+            <div class="dr-foot">
+                <span class="dr-foot-note">Changes apply to every member of this role immediately</span>
+                <span class="spacer"></span>
+                <button type="button" class="btn btn-outline btn-sm" wire:click="closeDrawer">Discard</button>
+                @if(! $editLocked)
+                    <button type="button" class="btn btn-primary btn-sm" wire:click="saveRole">Save role</button>
+                @endif
+            </div>
+        @endif
+    </aside>
+
+    <!-- ================= CREATE ROLE MODAL ================= -->
+    <div class="modal-overlay {{ $showNewModal ? 'open' : '' }}" wire:click.self="closeNewModal">
+        <div class="modal">
+            <div class="mo-head">
+                <div class="mo-title">Create a role</div>
+                <button type="button" class="mo-close" wire:click="closeNewModal" title="Close">✕</button>
+            </div>
+            <div class="mo-body">
+                <div class="field">
+                    <label class="field-label">Role name <span class="req">*</span></label>
+                    <input type="text" class="text-input" wire:model.live="newName" placeholder="e.g. Night Desk Editor">
+                    @error('newName') <span class="text-xs text-crimson-dark mt-1 block">{{ $message }}</span> @enderror
+                </div>
+                <div class="field">
+                    <label class="field-label">Description</label>
+                    <textarea class="text-area" wire:model.live="newDesc" placeholder="What is this role for?"></textarea>
+                    @error('newDesc') <span class="text-xs text-crimson-dark mt-1 block">{{ $message }}</span> @enderror
+                </div>
+                <div class="field">
+                    <label class="field-label">Colour</label>
+                    <div class="color-dots">
+                        @foreach(['g1','g2','g3','g4','g5','g6','g7','g8'] as $g)
+                            <span class="color-dot {{ $g }} {{ $newGrad === $g ? 'sel' : '' }}"
+                                  wire:click="setNewGrad('{{ $g }}')"></span>
+                        @endforeach
+                    </div>
+                </div>
+                <div class="field" style="margin-bottom:0">
+                    <label class="field-label">Start from</label>
+                    <select class="select-plain" wire:model="newCopyFrom">
+                        <option value="">Blank — no permissions</option>
+                        @foreach($roles as $r)
+                            <option value="{{ $r->id }}">Copy of {{ $r->name }}</option>
+                        @endforeach
+                    </select>
+                    <div class="field-hint">Copies that role's permissions — you can fine-tune right after creating</div>
+                </div>
+            </div>
+            <div class="mo-actions">
+                <button type="button" class="btn btn-outline" wire:click="closeNewModal">Cancel</button>
+                <button type="button" class="btn btn-primary" wire:click="createRole">Create role</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= DELETE ROLE MODAL ================= -->
+    <div class="modal-overlay {{ $showDeleteModal ? 'open' : '' }}" wire:click.self="closeDeleteModal">
+        <div class="modal">
+            <div class="mo-head">
+                <div class="mo-title">Delete "{{ $deleteRoleName }}"?</div>
+                <button type="button" class="mo-close" wire:click="closeDeleteModal" title="Close">✕</button>
+            </div>
+            <div class="mo-body">
+                @if($deleteRoleMemberCount > 0)
+                    <div class="warn-box">
+                        <span>⚠</span>
+                        <div>
+                            <b>{{ $deleteRoleMemberCount }} member{{ $deleteRoleMemberCount > 1 ? 's' : '' }}</b> still {{ $deleteRoleMemberCount > 1 ? 'have' : 'has' }} this role: {{ $deleteRoleMemberNames }}.<br>
+                            Reassign them from the People tab first — then you can delete it.
+                        </div>
+                    </div>
+                @else
+                    <p style="font-size: 13.5px; color: var(--ink, #1c1f2e); line-height: 1.6;">
+                        This removes the role permanently. People are not affected because nobody has it. Audit entries stay in the activity log.
+                    </p>
+                @endif
+            </div>
+            <div class="mo-actions">
+                <button type="button" class="btn btn-outline" wire:click="closeDeleteModal">Cancel</button>
+                @if($deleteRoleMemberCount > 0)
+                    <button type="button" class="btn btn-primary" style="background:var(--crimson, #e5484d); opacity:0.5; cursor:not-allowed;" disabled>
+                        Delete role
+                    </button>
+                @else
+                    <button type="button" class="btn btn-primary" style="background:var(--crimson, #e5484d);" wire:click="deleteRole">
+                        Delete role
+                    </button>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= INVITE MEMBER MODAL ================= -->
+    <div class="modal-overlay {{ $showInviteModal ? 'open' : '' }}" wire:click.self="closeInviteModal">
+        <div class="modal">
+            <div class="mo-head">
+                <div class="mo-title">Invite a team member</div>
+                <button type="button" class="mo-close" wire:click="closeInviteModal" title="Close">✕</button>
+            </div>
+            <div class="mo-body">
+                <div class="field">
+                    <label class="field-label">Full name <span class="req">*</span></label>
+                    <input type="text" class="text-input" wire:model.live="invName" placeholder="e.g. Farhana Yeasmin">
+                    @error('invName') <span class="text-xs text-crimson-dark mt-1 block">{{ $message }}</span> @enderror
+                </div>
+                <div class="field">
+                    <label class="field-label">Work email <span class="req">*</span></label>
+                    <input type="email" class="text-input" wire:model.live="invEmail" placeholder="name@unbnews.org">
+                    @error('invEmail') <span class="text-xs text-crimson-dark mt-1 block">{{ $message }}</span> @enderror
+                </div>
+                <div class="field">
+                    <label class="field-label">Desk</label>
+                    <select class="select-plain" wire:model="invDesk">
+                        <option value="English desk">English desk</option>
+                        <option value="Bangla desk">Bangla desk</option>
+                        <option value="Photo desk">Photo desk</option>
+                        <option value="Business">Business</option>
+                        <option value="Management">Management</option>
+                    </select>
+                </div>
+                <div class="field" style="margin-bottom:0">
+                    <label class="field-label">Role</label>
+                    <select class="select-plain" wire:model="invRole">
+                        @foreach($roles as $r)
+                            <option value="{{ $r->id }}">{{ $r->name }}</option>
+                        @endforeach
+                    </select>
+                    <div class="field-hint">They get an email with a sign-in link — access starts only after they accept</div>
+                </div>
+            </div>
+            <div class="mo-actions">
+                <button type="button" class="btn btn-outline" wire:click="closeInviteModal">Cancel</button>
+                <button type="button" class="btn btn-primary" wire:click="inviteMember">Send invite</button>
+            </div>
+        </div>
+    </div>
 </div>

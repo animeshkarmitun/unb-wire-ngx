@@ -56,4 +56,9 @@ class Client extends Model
     {
         return $this->hasMany(ClientPackage::class);
     }
+
+    public function downloads(): HasMany
+    {
+        return $this->hasMany(Download::class);
+    }
 }

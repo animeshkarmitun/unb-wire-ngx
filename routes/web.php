@@ -7,8 +7,8 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/admin', function () {
-    return view('admin.dashboard');
+Route::get('/admin', function (\App\Services\DashboardService $dashboardService) {
+    return view('admin.dashboard', $dashboardService->getData());
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/admin/roles', function () {

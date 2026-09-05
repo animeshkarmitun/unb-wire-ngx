@@ -18,11 +18,24 @@ jobs:
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.4'
           extensions: mbstring, dom, fileinfo, sqlite, gd, exif, intl, redis
           coverage: none
 
+      - name: Create directories
+        run: mkdir -p bootstrap/cache storage/framework/cache storage/framework/sessions storage/framework/testing storage/framework/views storage/logs
+
       - uses: ramsey/composer-install@v3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Build frontend assets
+        run: |
+          npm ci
+          npm run build
 
       - name: Prepare environment
         run: |
@@ -32,6 +45,9 @@ jobs:
 
       - name: Migrate and seed
         run: php artisan migrate:fresh --seed
+
+      - name: Schema parity
+        run: php scripts/schema-parity-check.php
 
       - name: Lint (Pint)
         run: ./vendor/bin/pint --test
