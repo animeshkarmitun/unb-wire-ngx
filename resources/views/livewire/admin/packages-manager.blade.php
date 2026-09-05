@@ -35,7 +35,7 @@
 <div class="p-4 flex-1 flex flex-col">
 <div class="text-xs text-muted font-mono bg-paper border border-border rounded-lg p-2 mb-3">{{ json_encode($p->entitlement_filter) }}</div>
 <div class="flex items-center gap-2 mt-auto pt-3 border-t border-border">
-<span class="text-xs text-muted"><b>{{ $p->clientPackages_count }}</b> client{{ $p->clientPackages_count!==1?'s':'' }}</span>
+<span class="text-xs text-muted"><b>{{ $p->client_packages_count ?? 0 }}</b> client{{ ($p->client_packages_count ?? 0) !== 1 ? 's' : '' }}</span>
 </div>
 </div>
 <div class="flex gap-2 p-3 pt-0">

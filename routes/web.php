@@ -7,17 +7,8 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/admin', function () {
-    $today = \Carbon\Carbon::today('Asia/Dhaka');
-    $publishedToday = \App\Models\Story::whereDate('published_at', $today)->where('status','published')->count();
-    $activeClients = \App\Models\Client::where('status','active')->count();
-    $totalDel = \App\Models\Delivery::count();
-    $okDel = \App\Models\Delivery::where('status','delivered')->count();
-    $successRate = $totalDel ? round($okDel / $totalDel * 100, 1) : 98.4;
-    $exclusiveToday = \App\Models\Story::whereDate('published_at', $today)->where('status','published')->count();
-    $recentStories = \App\Models\Story::with(['category','owner'])->latest('published_at')->limit(4)->get();
-    $topClients = \App\Models\Client::withCount('clientChannels')->where('status','active')->limit(3)->get();
-    return view('admin.dashboard', compact('publishedToday','activeClients','successRate','exclusiveToday','recentStories','topClients'));
+Route::get('/admin', function (\App\Services\DashboardService $dashboardService) {
+    return view('admin.dashboard', $dashboardService->getData());
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/admin/roles', function () {

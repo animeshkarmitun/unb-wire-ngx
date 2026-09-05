@@ -118,4 +118,9 @@ class Story extends Model
     {
         return $this->belongsToMany(Tag::class, 'story_tag');
     }
+
+    public function deliveries(): HasMany
+    {
+        return $this->hasMany(Delivery::class, 'deliverable_id')->where('deliverable_type', 'story');
+    }
 }
