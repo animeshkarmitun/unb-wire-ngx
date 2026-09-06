@@ -180,6 +180,9 @@
                             </td>
                             <td>
                                 <div class="actions">
+                                    <a href="{{ route('admin.story', $s->public_id) }}" class="icon-btn story-view-link" title="View wire dispatch reader">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    </a>
                                     <a href="{{ route('admin.add-news', ['id' => $s->id]) }}" class="icon-btn" title="Edit story">
                                         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                                     </a>
