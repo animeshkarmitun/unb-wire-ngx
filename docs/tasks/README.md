@@ -94,6 +94,7 @@
 | `M8-DELIV-001` | Delivery Settings Manager faithful (5 cards: auto-push FTP/SFTP, API keys/webhooks, email alerts, download history, dispatch engine) | M8-UI-002, M2-DB-007 | ✅ | — | 2026-09-06 |
 | `M8-PORTAL-001` | Client Portal faithful 1:1 conversion (Next.js, 3 wire views, search token, media library, lightbox) | DEC-006, M8-DELIV-001 | ✅ | — | 2026-09-06 |
 | `M8-STORY-001` | Story Reader View faithful 1:1 conversion (story.html + FR-NWS-019 editorial chrome) | M8-PORTAL-001 | ✅ | — | 2026-09-06 |
+| `M8-SERV-001` | Wire Service Frontpage faithful 1:1 conversion (english-service.html + bn parity) | M8-STORY-001 | ✅ | — | 2026-09-06 |
 | `M8-SIMPLE-001` | Simple pages chrome-faithful (clients/packages/roles/ai-settings/service) | M8-UI-002 | ✅ | — | 2026-08-29 |
 | `M8-WIZ-001` | Wizard shell (stepper + sticky nav + autosave) | M8-UI-002 | ✅ | — | 2026-08-29 |
 | `M8-WIZ-002` | Body: Quill wire toolbar + find bar + fullscreen | M8-WIZ-001 | ✅ | — | 2026-08-29 |
