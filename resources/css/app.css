@@ -6,6 +6,7 @@
 @import './packages-manager.css';
 @import './roles-manager.css';
 @import './ai-settings.css';
+@import './delivery-settings.css';
 
 @tailwind base;
 @tailwind components;

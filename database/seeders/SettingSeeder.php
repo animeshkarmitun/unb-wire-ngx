@@ -34,6 +34,20 @@ class SettingSeeder extends Seeder
             ]
         );
 
+        DB::table('settings')->updateOrInsert(
+            ['key' => 'delivery'],
+            [
+                'value' => json_encode([
+                    'retryAttempts' => 3,
+                    'backoffSeconds' => 60,
+                    'autoPauseAfter' => 5,
+                    'atLeastOnce' => true,
+                ]),
+                'updated_by' => $adminId,
+                'updated_at' => now(),
+            ]
+        );
+
         // Seed initial monthly token usage rollup matching prototype figures
         DB::table('ai_token_usage_daily')->delete();
         $today = now()->toDateString();
