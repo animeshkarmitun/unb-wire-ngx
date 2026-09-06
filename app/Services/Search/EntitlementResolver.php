@@ -26,9 +26,15 @@ class EntitlementResolver
 
         foreach ($rows as $r) {
             $f = is_string($r->entitlement_filter) ? json_decode($r->entitlement_filter, true) : $r->entitlement_filter;
-            if (! empty($f['languages'])) $langs = array_merge($langs, (array) $f['languages']);
-            if (! empty($f['category_ids'])) $cats = array_merge($cats, (array) $f['category_ids']);
-            if (! empty($f['media_kinds'])) $media = array_merge($media, (array) $f['media_kinds']);
+            if (! empty($f['languages'])) {
+                $langs = array_merge($langs, (array) $f['languages']);
+            }
+            if (! empty($f['category_ids'])) {
+                $cats = array_merge($cats, (array) $f['category_ids']);
+            }
+            if (! empty($f['media_kinds'])) {
+                $media = array_merge($media, (array) $f['media_kinds']);
+            }
         }
 
         return [
@@ -47,6 +53,7 @@ class EntitlementResolver
             $ids = implode(', ', $e['category_ids']);
             $filter .= " AND category_id IN [{$ids}]";
         }
+
         return $filter;
     }
 
@@ -58,6 +65,7 @@ class EntitlementResolver
             $ids = implode(', ', $entitlement['category_ids']);
             $filter .= " AND category_id IN [{$ids}]";
         }
+
         return $filter;
     }
 }

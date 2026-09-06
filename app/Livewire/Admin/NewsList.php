@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Admin;
 
+use App\Jobs\FanoutStory;
+use App\Jobs\ProcessIndexOutbox;
 use App\Models\Category;
 use App\Models\Story;
 use App\Services\NoteService;
@@ -18,16 +20,22 @@ class NewsList extends Component
     use WithPagination;
 
     public string $language = 'en';
+
     public string $status = 'all';
+
     public string $category = 'all';
+
     public string $search = '';
+
     public ?int $selectedId = null;
 
     /** @var list<string> */
     public array $selectedStories = [];
+
     public bool $selectAll = false;
 
     public string $noteText = '';
+
     public ?string $conflictError = null;
 
     public function mount(string $language = 'en'): void
@@ -62,8 +70,8 @@ class NewsList extends Component
             }
             if ($this->search !== '') {
                 $query->where(function ($q) {
-                    $q->where('headline', 'like', '%' . $this->search . '%')
-                        ->orWhere('brief', 'like', '%' . $this->search . '%');
+                    $q->where('headline', 'like', '%'.$this->search.'%')
+                        ->orWhere('brief', 'like', '%'.$this->search.'%');
                 });
             }
             $pageIds = $query->orderByDesc('updated_at')->paginate(15)->pluck('id')->map(fn ($id) => (string) $id)->toArray();
@@ -153,8 +161,8 @@ class NewsList extends Component
             }
             if ($story->status === 'approved') {
                 $svc->transition($story, 'published', $user);
-                dispatch(new \App\Jobs\FanoutStory($story->id));
-                dispatch(new \App\Jobs\ProcessIndexOutbox());
+                dispatch(new FanoutStory($story->id));
+                dispatch(new ProcessIndexOutbox);
             }
             $this->dispatch('toast', message: 'Story published to wire feed.');
         }
@@ -190,8 +198,8 @@ class NewsList extends Component
             }
             if ($story->status === 'approved') {
                 $svc->transition($story, 'published', $user);
-                dispatch(new \App\Jobs\FanoutStory($story->id));
-                dispatch(new \App\Jobs\ProcessIndexOutbox());
+                dispatch(new FanoutStory($story->id));
+                dispatch(new ProcessIndexOutbox);
             }
         }
 
@@ -225,13 +233,13 @@ class NewsList extends Component
         }
         if ($this->search !== '') {
             $query->where(function ($q) {
-                $q->where('headline', 'like', '%' . $this->search . '%')
-                    ->orWhere('brief', 'like', '%' . $this->search . '%');
+                $q->where('headline', 'like', '%'.$this->search.'%')
+                    ->orWhere('brief', 'like', '%'.$this->search.'%');
             });
         }
 
         $stories = $query->orderByDesc('updated_at')->get();
-        $fileName = 'unb-stories-' . $this->language . '-' . now()->format('Ymd-His') . '.csv';
+        $fileName = 'unb-stories-'.$this->language.'-'.now()->format('Ymd-His').'.csv';
 
         return Response::streamDownload(function () use ($stories) {
             $handle = fopen('php://output', 'w');
@@ -273,8 +281,8 @@ class NewsList extends Component
         }
         if ($this->search !== '') {
             $query->where(function ($q) {
-                $q->where('headline', 'like', '%' . $this->search . '%')
-                    ->orWhere('brief', 'like', '%' . $this->search . '%');
+                $q->where('headline', 'like', '%'.$this->search.'%')
+                    ->orWhere('brief', 'like', '%'.$this->search.'%');
             });
         }
 

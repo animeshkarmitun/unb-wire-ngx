@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 class StoryFactory extends Factory
 {
     protected $model = Story::class;
+
     public function definition(): array
     {
         return [
@@ -36,6 +37,6 @@ class StoryFactory extends Factory
 
     public function published(): static
     {
-        return $this->state(fn() => ['status' => 'published', 'published_at' => now()]);
+        return $this->state(fn () => ['status' => 'published', 'published_at' => now()]);
     }
 }

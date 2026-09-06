@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
+use App\Jobs\FanoutStory;
 use App\Models\Story;
+use App\Models\StoryNote;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
-use App\Services\HtmlSanitizer;
 
 class StoryService
 {
@@ -23,7 +25,9 @@ class StoryService
 
     public function createDraft(array $data, User $actor): Story
     {
-        if (isset($data['body_html'])) $data['body_html'] = HtmlSanitizer::clean($data['body_html']);
+        if (isset($data['body_html'])) {
+            $data['body_html'] = HtmlSanitizer::clean($data['body_html']);
+        }
         $data = array_merge($data, [
             'status' => 'draft',
             'owner_id' => $actor->id,
@@ -31,6 +35,7 @@ class StoryService
             'version' => 1,
             'body_text' => HtmlSanitizer::text($data['body_html'] ?? ''),
         ]);
+
         return DB::transaction(function () use ($data, $actor) {
             $story = Story::create($data);
             $story->versions()->create([
@@ -45,6 +50,7 @@ class StoryService
                 'from_status' => null,
                 'to_status' => 'draft',
             ]);
+
             return $story;
         });
     }
@@ -63,6 +69,7 @@ class StoryService
                 $data['ai_touched'] = empty($ai) ? null : $ai;
             }
         }
+
         return DB::transaction(function () use ($story, $data, $actor) {
             $story->update(array_merge($data, ['version' => $story->version + 1]));
             $story->versions()->create([
@@ -71,6 +78,7 @@ class StoryService
                 'created_by' => $actor->id,
                 'created_at' => now(),
             ]);
+
             return $story->refresh();
         });
     }
@@ -109,7 +117,7 @@ class StoryService
         });
     }
 
-    public function addNote(Story $story, string $body, User $actor, ?string $kind = null): \App\Models\StoryNote
+    public function addNote(Story $story, string $body, User $actor, ?string $kind = null): StoryNote
     {
         return app(NoteService::class)->add($story, $actor, $body, $kind);
     }
@@ -123,15 +131,18 @@ class StoryService
         }
         if ($to === 'published') {
             if (! empty($story->ai_touched) && ! $story->is_breaking) {
-                $cfg = DB::table('settings')->where('key','ai.desk')->value('value');
-                $cfg = is_string($cfg) ? json_decode($cfg,true) : $cfg;
-                $allowAuto = !empty($cfg['autoPublish']) && in_array($story->category_id, (array)($cfg['autoCats'] ?? []), true);
-                if(! $allowAuto) throw new UnprocessableEntityHttpException('AI-touched fields require review before publish');
+                $cfg = DB::table('settings')->where('key', 'ai.desk')->value('value');
+                $cfg = is_string($cfg) ? json_decode($cfg, true) : $cfg;
+                $allowAuto = ! empty($cfg['autoPublish']) && in_array($story->category_id, (array) ($cfg['autoCats'] ?? []), true);
+                if (! $allowAuto) {
+                    throw new UnprocessableEntityHttpException('AI-touched fields require review before publish');
+                }
             }
             if ($story->embargo_until && $story->embargo_until->isFuture()) {
                 throw new UnprocessableEntityHttpException('Embargo still active');
             }
         }
+
         return DB::transaction(function () use ($story, $from, $to, $actor) {
             $extra = [];
             if ($to === 'published' && ! $story->published_at) {
@@ -144,8 +155,8 @@ class StoryService
                 'from_status' => $from,
                 'to_status' => $to,
             ]);
-            \Illuminate\Support\Facades\Cache::forget('portal:feed:*');
-            \Illuminate\Support\Facades\Cache::forget('feed:v1:*');
+            Cache::forget('portal:feed:*');
+            Cache::forget('feed:v1:*');
             if ($to === 'published') {
                 DB::table('index_outbox')->insert([
                     'index_name' => 'main',
@@ -157,8 +168,9 @@ class StoryService
                 ]);
             }
             if ($to === 'killed') {
-                dispatch(new \App\Jobs\FanoutStory($story->id))->afterResponse();
+                dispatch(new FanoutStory($story->id))->afterResponse();
             }
+
             return $story->refresh();
         });
     }
