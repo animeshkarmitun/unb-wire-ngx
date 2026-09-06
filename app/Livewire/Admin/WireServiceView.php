@@ -2,10 +2,9 @@
 
 namespace App\Livewire\Admin;
 
-use App\Models\Category;
 use App\Models\Setting;
-use App\Models\Story;
 use App\Services\RbacService;
+use App\Services\WireFeedService;
 use Illuminate\Support\Collection;
 use Livewire\Component;
 
@@ -89,161 +88,34 @@ class WireServiceView extends Component
 
     public function getCategoriesProperty(): Collection
     {
-        return Category::withCount(['stories' => function ($q) {
-            $q->where('status', 'published')->where('language', $this->service);
-        }])->orderBy('sort_order')->get();
+        return app(WireFeedService::class)->categories($this->service);
     }
 
-    public function getHeroStoryProperty(): ?Story
+    public function getHeroStoryProperty()
     {
-        $query = Story::with(['category', 'media'])
-            ->where('status', 'published')
-            ->where('language', $this->service);
-
-        if (! empty($this->search)) {
-            $term = '%'.$this->search.'%';
-            $query->where(function ($q) use ($term) {
-                $q->where('headline', 'like', $term)
-                    ->orWhere('body_text', 'like', $term);
-            });
-        }
-
-        if ($this->activeCategory !== 'all') {
-            $cat = $this->activeCategory;
-            $query->where(function ($q) use ($cat) {
-                $q->where('category_id', $cat)
-                    ->orWhereHas('category', fn ($c) => $c->where('slug', $cat));
-            });
-        } else {
-            // Prioritize breaking news if no specific category is selected
-            $breaking = (clone $query)->where('is_breaking', true)->latest('published_at')->first();
-            if ($breaking) {
-                return $breaking;
-            }
-        }
-
-        return $query->latest('published_at')->first();
+        return app(WireFeedService::class)->heroStory($this->service, $this->search, $this->activeCategory);
     }
 
     public function getSectionsProperty(): Collection
     {
-        $heroId = optional($this->heroStory)->id;
-
-        if ($this->activeCategory !== 'all') {
-            // Single category section
-            $category = Category::where('id', $this->activeCategory)
-                ->orWhere('slug', $this->activeCategory)
-                ->first();
-
-            if (! $category) {
-                return collect();
-            }
-
-            $stories = Story::with(['category', 'media'])
-                ->where('status', 'published')
-                ->where('language', $this->service)
-                ->where('category_id', $category->id)
-                ->when($heroId, fn ($q) => $q->where('id', '!=', $heroId))
-                ->when(! empty($this->search), function ($q) {
-                    $term = '%'.$this->search.'%';
-                    $q->where('headline', 'like', $term);
-                })
-                ->latest('published_at')
-                ->limit(8)
-                ->get();
-
-            return collect([[
-                'category' => $category,
-                'title' => $this->service === 'bn' ? ($category->name_bn ?: $category->name_en) : $category->name_en,
-                'stories' => $stories,
-            ]]);
-        }
-
-        // Multiple sections across top categories
-        $categories = Category::whereHas('stories', function ($q) {
-            $q->where('status', 'published')->where('language', $this->service);
-        })->orderBy('sort_order')->limit(4)->get();
-
-        $sections = collect();
-        foreach ($categories as $cat) {
-            $stories = Story::with(['category', 'media'])
-                ->where('status', 'published')
-                ->where('language', $this->service)
-                ->where('category_id', $cat->id)
-                ->when($heroId, fn ($q) => $q->where('id', '!=', $heroId))
-                ->latest('published_at')
-                ->limit(4)
-                ->get();
-
-            if ($stories->isNotEmpty()) {
-                $sections->push([
-                    'category' => $cat,
-                    'title' => $this->service === 'bn' ? ($cat->name_bn ?: $cat->name_en) : $cat->name_en,
-                    'stories' => $stories,
-                ]);
-            }
-        }
-
-        // Fallback if stories are not categorized into multiple distinct categories
-        if ($sections->isEmpty()) {
-            $fallbackStories = Story::with(['category', 'media'])
-                ->where('status', 'published')
-                ->where('language', $this->service)
-                ->when($heroId, fn ($q) => $q->where('id', '!=', $heroId))
-                ->latest('published_at')
-                ->limit(8)
-                ->get();
-
-            if ($fallbackStories->isNotEmpty()) {
-                $sections->push([
-                    'category' => null,
-                    'title' => $this->service === 'bn' ? 'সাম্প্রতিক সংবাদ' : 'Latest Wire Dispatches',
-                    'stories' => $fallbackStories,
-                ]);
-            }
-        }
-
-        return $sections;
+        return app(WireFeedService::class)->sections(
+            $this->service, $this->search, $this->activeCategory, optional($this->heroStory)->id
+        );
     }
 
     public function getLatestRailProperty(): Collection
     {
-        return Story::with(['category', 'media'])
-            ->where('status', 'published')
-            ->where('language', $this->service)
-            ->latest('published_at')
-            ->limit(5)
-            ->get();
+        return app(WireFeedService::class)->latestRail($this->service);
     }
 
     public function getPopularRailProperty(): Collection
     {
-        return Story::with(['category', 'media'])
-            ->where('status', 'published')
-            ->where('language', $this->service)
-            ->orderByDesc('word_count') // proxy for prominent in-depth dispatches
-            ->latest('published_at')
-            ->limit(5)
-            ->get();
+        return app(WireFeedService::class)->popularRail($this->service);
     }
 
     public function getTickerStoriesProperty(): Collection
     {
-        $headlines = Story::where('status', 'published')
-            ->where('language', $this->service)
-            ->latest('published_at')
-            ->limit(6)
-            ->pluck('headline');
-
-        if ($headlines->isEmpty()) {
-            return collect([
-                $this->service === 'bn'
-                    ? 'ইউএনবি সংবাদ সেবা — সার্বক্ষণিক বস্তুনিষ্ঠ ও নির্ভরযোগ্য সাংবাদিকতা'
-                    : 'UNB Wire News Service — Real-time multimedia news distribution',
-            ]);
-        }
-
-        return $headlines;
+        return app(WireFeedService::class)->tickerHeadlines($this->service);
     }
 
     public function render()
