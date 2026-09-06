@@ -1,58 +1,185 @@
-<div>
-<div class="mb-6">
-<div class="text-xs text-muted-2 mb-1"><a href="{{ route('dashboard') }}" class="hover:text-crimson-dark">Home</a> / Settings / AI settings</div>
-<div class="flex items-center gap-3">
-<h1 class="font-serif text-[28px] font-semibold">AI settings</h1>
-@if($killed)<span class="bg-crimson text-white text-xs font-bold px-3 py-1 rounded-full">KILL SWITCH ON</span>@endif
-</div>
-<p class="text-sm text-muted mt-1">Per-desk toggles, token budgets, auto-publish guardrails — audited. Add News reads this.</p>
-</div>
+<div class="ai-settings-scope">
+    {{-- Breadcrumb --}}
+    <div class="breadcrumb text-[12.5px] text-muted-2 mb-3">
+        <a href="{{ route('dashboard') }}" class="text-muted hover:text-navy-800">Home</a> &nbsp;/&nbsp; Settings &nbsp;/&nbsp; AI settings
+    </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-[1.6fr_0.9fr] gap-4 items-start">
-<div class="space-y-4">
-<div class="bg-panel border border-border rounded-xl p-5">
-<h3 class="text-xs font-bold uppercase tracking-wide text-muted-2 mb-3">Desks</h3>
-<label class="flex items-center justify-between py-2 cursor-pointer"><span class="text-sm font-medium">English desk — Pre-edit</span><input type="checkbox" wire:model.live="preeditEn" class="w-10 h-6 rounded-full appearance-none bg-[#ddd9d0] checked:bg-green relative before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-1 before:left-1 checked:before:translate-x-4 transition"></label>
-<label class="flex items-center justify-between py-2 cursor-pointer"><span class="text-sm font-medium">Bangla desk — Pre-edit</span><input type="checkbox" wire:model.live="preeditBn" class="w-10 h-6 rounded-full appearance-none bg-[#ddd9d0] checked:bg-green relative before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-1 before:left-1 checked:before:translate-x-4 transition"></label>
-<label class="flex items-center justify-between py-2 cursor-pointer"><span class="text-sm font-medium">Auto-publish (routine categories only)</span><input type="checkbox" wire:model.live="autoPublish" class="w-10 h-6 rounded-full appearance-none bg-[#ddd9d0] checked:bg-amber relative before:content-[''] before:absolute before:w-4 before:h-4 before:bg-white before:rounded-full before:top-1 before:left-1 checked:before:translate-x-4 transition"></label>
-@if($autoPublish)
-<div class="mt-2 text-xs"><div class="font-semibold mb-1">Allowlisted categories for auto-publish</div>
-@foreach(['Bangladesh','World','Sports','Business'] as $cat)
-<label class="flex items-center gap-2 py-1"><input type="checkbox" value="{{ $cat }}" wire:model.live="autoCats"> <span class="text-sm">{{ $cat }}</span></label>
-@endforeach
-</div>
-@endif
-</div>
+    {{-- Topbar --}}
+    <div class="flex items-center justify-between gap-3.5 mb-4.5 flex-wrap">
+        <h1 class="font-serif text-[25px] font-bold tracking-[-0.015em] text-ink">AI settings</h1>
+    </div>
 
-<div class="bg-panel border border-border rounded-xl p-5">
-<h3 class="text-xs font-bold uppercase tracking-wide text-muted-2 mb-3">Budget & Model</h3>
-<div class="grid grid-cols-2 gap-3">
-<div><label class="text-xs font-semibold">Monthly token cap</label><input wire:model="monthlyCap" type="number" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
-<div><label class="text-xs font-semibold">Model</label><select wire:model="model" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"><option>openai:gpt-4o</option><option>openai:gpt-4o-mini</option><option>anthropic:claude-3</option></select></div>
-</div>
-<div class="mt-3"><label class="text-xs font-semibold">House style prompt (versioned)</label><textarea wire:model="stylePrompt" rows="4" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="UNB house style: concise, factual…"></textarea></div>
-</div>
+    {{-- Master Status Banner --}}
+    <div class="status-banner {{ $killed ? 'off' : '' }}" id="statusBanner">
+        <span class="pulse"></span>
+        <div>
+            <b id="statusTitle">{{ $killed ? 'All AI features are disabled (kill switch)' : 'AI pre-edit is active' }}</b><br>
+            <span id="statusSub">{{ $killed ? 'Manual workflow unaffected — re-enable below' : 'Suggestions in the editor, photo captions and Bangla→English assist' }}</span>
+        </div>
+        <span class="spacer"></span>
+        <span class="ai-note" style="font-size:11px;color:var(--muted)">
+            Auto-publish: <b id="statusAuto" style="color:{{ $autoPublish ? 'var(--crimson-dark)' : 'var(--green)' }}">{{ $autoPublish ? 'ON' : 'OFF' }}</b>
+        </span>
+    </div>
 
-<div class="bg-panel border border-border rounded-xl p-5">
-<h3 class="text-xs font-bold uppercase tracking-wide text-muted-2 mb-2">Kill switch</h3>
-<p class="text-xs text-muted mb-3">When ON, every AI call is blocked and returns immediately — audited as <code>ai.kill_switch.on</code>.</p>
-<button wire:click="toggleKill" class="px-4 py-2 rounded-lg text-sm font-bold border {{ $killed?'bg-crimson text-white border-crimson':'bg-white border-[#e3e1da] hover:border-crimson' }}">{{ $killed?'Disable kill switch':'Enable kill switch' }}</button>
-</div>
+    {{-- ===== AI pre-edit per desk ===== --}}
+    <div class="card">
+        <div class="card-title">✦ AI pre-edit</div>
+        <div class="card-sub">LLM suggestions inside the editor — headline variants, body polish, category, tags, Bangla→English. Journalists always review before anything is applied or published.</div>
 
-<div class="flex justify-end"><x-btn variant="primary" wire:click="save">Save AI settings</x-btn></div>
-</div>
+        <div class="sw-row">
+            <div class="sw-meta">
+                <b>English News</b>
+                <span>AI desk in the Add News form</span>
+            </div>
+            <label class="sw">
+                <input type="checkbox" id="swEn" wire:model.live="preeditEn">
+                <i></i>
+            </label>
+        </div>
+        <div class="sw-row">
+            <div class="sw-meta">
+                <b>Bangla News</b>
+                <span>Same assist in the Bangla editor</span>
+            </div>
+            <label class="sw">
+                <input type="checkbox" id="swBn" wire:model.live="preeditBn">
+                <i></i>
+            </label>
+        </div>
+        <div class="sw-row">
+            <div class="sw-meta">
+                <b>UNB Photos</b>
+                <span>Caption &amp; keyword suggestions on field uploads</span>
+            </div>
+            <label class="sw">
+                <input type="checkbox" id="swPhotos" wire:model.live="preeditPhotos">
+                <i></i>
+            </label>
+        </div>
+    </div>
 
-<div class="space-y-4">
-<div class="bg-purple-bg border border-purple/20 rounded-xl p-4">
-<h4 class="text-sm font-bold text-purple flex items-center gap-2"><x-lucide-sparkles class="w-4 h-4"/> How Add News uses this</h4>
-<p class="text-xs text-[#4b3a6b] mt-2 leading-relaxed">The 4-step wizard checks <code class="bg-white px-1 rounded">ai.desk.killed</code> before every <code>UNBAI._call</code>. Auto-publish is off by default — only routine categories in <code>autoCats</code> are allowed when the toggle is on. Every LLM call writes to <code>ai_generations</code> + <code>ai_token_usage_daily</code> for metering.</p>
-</div>
-<div class="bg-panel border border-border rounded-xl p-4">
-<div class="text-xs font-bold uppercase text-muted-2 mb-2">Current JSON (settings.value)</div>
-<pre class="text-xs font-mono bg-paper border rounded-lg p-3 overflow-x-auto">{{ json_encode(['preeditEn'=>$preeditEn,'preeditBn'=>$preeditBn,'autoPublish'=>$autoPublish,'autoCats'=>$autoCats,'monthlyCap'=>$monthlyCap,'killed'=>$killed,'model'=>$model], JSON_PRETTY_PRINT) }}</pre>
-</div>
-</div>
-</div>
+    {{-- ===== AI auto-publish ===== --}}
+    <div class="card">
+        <div class="card-title">⚡ AI auto-publish</div>
+        <div class="card-sub">When ON, AI-pre-edited stories in allowlisted categories skip the human checklist and publish straight to the wire. <strong>Default is OFF.</strong></div>
 
-<x-toast />
+        <div class="danger-box" id="autoOffBox" style="{{ $autoPublish ? 'display:none' : '' }}">
+            <b>Auto-publish is off — every AI-assisted story needs a human checklist before publishing.</b>
+            This is the recommended posture for a news agency. Turn it on only for routine, low-risk categories.
+        </div>
+        <div class="warn-box" id="autoOnBox" style="{{ ! $autoPublish ? 'display:none' : '' }}">
+            <b>⚠ Auto-publish is ON for the allowlisted categories below.</b>
+            Every auto-publish is logged with the AI version and editor context, and can be rolled back from the distribution log.
+        </div>
+
+        <div class="sw-row">
+            <div class="sw-meta">
+                <b>Enable AI auto-publish</b>
+                <span>Applies only to the allowlisted categories</span>
+            </div>
+            <label class="sw danger" x-data>
+                <input type="checkbox" id="swAuto" :checked="$wire.autoPublish" @click.prevent="$wire.toggleAutoPublish()">
+                <i></i>
+            </label>
+        </div>
+
+        <div id="autoCatsWrap" style="{{ $autoPublish ? 'opacity:1;pointer-events:auto' : 'opacity:0.45;pointer-events:none' }}">
+            <div class="f-label" style="margin-top:8px">Allowlisted categories</div>
+            <div class="chip-row" id="autoCats">
+                @foreach($allCategories as $cat)
+                    <button type="button"
+                            class="chip {{ in_array($cat, $autoCats, true) ? 'on' : '' }}"
+                            wire:click="toggleCategory('{{ $cat }}')"
+                            data-cat="{{ $cat }}">
+                        {{ $cat }}
+                    </button>
+                @endforeach
+            </div>
+            <div class="f-hint">Routine, data-driven categories only. Never allowlist politics or breaking news.</div>
+        </div>
+    </div>
+
+    {{-- ===== token usage ===== --}}
+    <div class="card">
+        <div class="card-title">Token usage &amp; budget</div>
+        <div class="card-sub">LLM calls are billed per token. Set a monthly cap — pre-edit pauses gracefully when the cap is hit (never blocks manual work).</div>
+
+        <div class="usage-bar">
+            <span id="usageFill" style="width: {{ $usagePercent }}%"></span>
+        </div>
+        <div class="usage-num">
+            <b id="usageNow">{{ number_format($totalTokens) }}</b> of <b id="usageCapLabel">{{ number_format($monthlyCap) }}</b> tokens this month · est. cost <b id="usageCost">৳{{ number_format($costEst) }}</b>
+        </div>
+
+        <table class="desk-table">
+            <thead>
+                <tr>
+                    <th>Desk</th>
+                    <th>Calls</th>
+                    <th>Tokens</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>English News</td>
+                    <td>{{ number_format($callsEn) }}</td>
+                    <td>{{ number_format($tokensEn) }}</td>
+                </tr>
+                <tr>
+                    <td>Bangla News</td>
+                    <td>{{ number_format($callsBn) }}</td>
+                    <td>{{ number_format($tokensBn) }}</td>
+                </tr>
+                <tr>
+                    <td>UNB Photos</td>
+                    <td>{{ number_format($callsPhotos) }}</td>
+                    <td>{{ number_format($tokensPhotos) }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="cap-row" style="margin-top:14px">
+            <div class="f-wrap">
+                <label class="f-label" for="capInput">Monthly token cap</label>
+                <input class="f-inp" type="number" id="capInput" wire:model.blur="monthlyCap" min="50000" step="50000">
+            </div>
+            <div class="f-hint" style="padding-bottom:10px">A pre-edit call uses ~1,000–2,000 tokens depending on story length.</div>
+        </div>
+    </div>
+
+    {{-- ===== house style prompt ===== --}}
+    <div class="card">
+        <div class="card-title">House style prompt</div>
+        <div class="card-sub">The system prompt every AI call follows — UNB wire style, attribution rules, banned phrasing.</div>
+        <textarea class="f-ta" id="stylePrompt" wire:model="stylePrompt"></textarea>
+        <div class="f-hint">Changes apply to new AI calls only. Already-generated suggestions keep the old prompt's output in the audit log.</div>
+    </div>
+
+    {{-- ===== kill switch ===== --}}
+    <div class="kill-zone">
+        <div class="card-title" style="color:var(--crimson-dark)">Emergency kill switch</div>
+        <div class="card-sub">Instantly disables every AI feature newsroom-wide — pre-edit, translation, captions, auto-publish. Manual work is never affected.</div>
+        <button type="button" class="kill-btn {{ $killed ? 'restore' : '' }}" id="killBtn" wire:click="toggleKill">
+            {{ $killed ? 'Re-enable AI features' : 'Disable all AI features now' }}
+        </button>
+    </div>
+
+    {{-- Sticky save bar --}}
+    <div class="save-bar">
+        <button type="button" class="btn btn-outline" id="resetBtn" wire:click="resetDefaults">Reset to defaults</button>
+        <button type="button" class="btn btn-primary" id="saveBtn" wire:click="save">Save settings</button>
+    </div>
+
+    {{-- auto-publish enable confirmation modal --}}
+    <div class="ai-settings-modal-overlay" id="autoModal" style="{{ $showAutoModal ? 'display:flex' : 'display:none' }}" wire:cloak>
+        <div class="ai-settings-modal">
+            <h3>⚠ Enable AI auto-publish?</h3>
+            <p>AI-pre-edited stories in the allowlisted categories will go <strong>straight to the wire</strong> without a human checklist. Every auto-publish is logged and can be rolled back, but clients may see the story before anyone at UNB reads it.</p>
+            <div class="m-foot">
+                <button type="button" class="btn btn-outline" id="autoCancel" wire:click="cancelAutoPublish">Keep it off</button>
+                <button type="button" class="btn btn-primary" id="autoConfirm" wire:click="confirmAutoPublish">Yes, enable for allowlist only</button>
+            </div>
+        </div>
+    </div>
 </div>

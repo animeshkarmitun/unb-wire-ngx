@@ -5,6 +5,7 @@
 @import './clients-manager.css';
 @import './packages-manager.css';
 @import './roles-manager.css';
+@import './ai-settings.css';
 
 @tailwind base;
 @tailwind components;
