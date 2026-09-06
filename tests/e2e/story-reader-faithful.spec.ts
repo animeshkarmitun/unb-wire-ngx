@@ -152,4 +152,44 @@ test.describe('Story Reader Faithful (M8-STORY-001 / story.html + FR-NWS-019)', 
     const editHref = await editBtn.getAttribute('href');
     expect(editHref).toMatch(/\/admin\/add-news\?id=\d+/);
   });
+
+  test('Social share actions, copy link, and back button interact reliably', async ({ page }) => {
+    await page.goto('/admin/news/en');
+    const firstStoryLink = page.locator('a.story-view-link, a[href*="/admin/story/"]').first();
+    await expect(firstStoryLink).toBeVisible({ timeout: 10000 });
+    const href = await firstStoryLink.getAttribute('href');
+    await page.goto(href!);
+    await expect(page.locator('.story-reader-root')).toBeVisible({ timeout: 10000 });
+
+    // Copy link button
+    const copyLinkBtn = page.locator('#copyLink');
+    await expect(copyLinkBtn).toBeVisible();
+    await copyLinkBtn.click();
+
+    // Back link in sub-masthead
+    const backLink = page.locator('.story-back-link');
+    await expect(backLink).toBeVisible();
+    await expect(backLink).toHaveAttribute('href', /.*admin\/(news|service).*/);
+
+    // Related story mini cards link to story reader
+    const relCard = page.locator('.story-mini-card').first();
+    if (await relCard.isVisible().catch(() => false)) {
+      await expect(relCard).toHaveAttribute('href', /.*admin\/story\/.*/);
+    }
+  });
+
+  test('Editorial workflow status transition control reacts on click', async ({ page }) => {
+    await page.goto('/admin/news/en');
+    const firstStoryLink = page.locator('a.story-view-link, a[href*="/admin/story/"]').first();
+    await expect(firstStoryLink).toBeVisible({ timeout: 10000 });
+    const href = await firstStoryLink.getAttribute('href');
+    await page.goto(href!);
+    await expect(page.locator('.story-reader-root')).toBeVisible({ timeout: 10000 });
+
+    // Find any workflow transition button
+    const transitionBtn = page.locator('.story-editorial-panel button[wire\\:click*="transitionStatus"]').first();
+    if (await transitionBtn.isVisible().catch(() => false)) {
+      await expect(transitionBtn).toBeEnabled();
+    }
+  });
 });

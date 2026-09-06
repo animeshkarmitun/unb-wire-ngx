@@ -150,4 +150,123 @@ test.describe('UNB Photo Manager & Field Intake Queue Faithful (M8-PHOTO-001 & M
       await expect(modal).not.toHaveClass(/open/);
     }
   });
+
+  test('Workflow tabs switch active state and update displayed assets', async ({ page }) => {
+    await page.goto('/admin/photos');
+
+    const tabs = page.locator('#wfTabs .wf-tab');
+    
+    // Switch to Needs review
+    const reviewTab = tabs.filter({ hasText: /Needs review/i });
+    await reviewTab.click();
+    await expect(reviewTab).toHaveClass(/active/);
+
+    // Switch to In library
+    const libTab = tabs.filter({ hasText: /In library/i });
+    await libTab.click();
+    await expect(libTab).toHaveClass(/active/);
+
+    // Switch to Packaged
+    const pkgTab = tabs.filter({ hasText: /Packaged/i });
+    await pkgTab.click();
+    await expect(pkgTab).toHaveClass(/active/);
+
+    // Switch to Published
+    const pubTab = tabs.filter({ hasText: /Published/i });
+    await pubTab.click();
+    await expect(pubTab).toHaveClass(/active/);
+
+    // Return to All assets
+    const allTab = tabs.filter({ hasText: /All assets/i });
+    await allTab.click();
+    await expect(allTab).toHaveClass(/active/);
+  });
+
+  test('Toolbar filters and unattached toggle update photo list interactively', async ({ page }) => {
+    await page.goto('/admin/photos');
+
+    // Toggle unattached button
+    const unattachedBtn = page.locator('#unattachedBtn');
+    await expect(unattachedBtn).toHaveClass(/btn-outline/);
+    await unattachedBtn.click();
+    await expect(unattachedBtn).toHaveClass(/btn-navy/);
+    await unattachedBtn.click();
+    await expect(unattachedBtn).toHaveClass(/btn-outline/);
+
+    // Filter by sort dropdown
+    const sortSelect = page.locator('#damSort');
+    await sortSelect.selectOption('dl');
+    await page.waitForTimeout(300);
+
+    // Filter by search input
+    const searchInput = page.locator('#damSearch');
+    await searchInput.fill('Dhaka');
+    await page.waitForTimeout(500);
+
+    const damGrid = page.locator('#damGrid');
+    await expect(damGrid).toBeVisible();
+
+    // Clear search
+    await searchInput.fill('');
+    await page.waitForTimeout(400);
+  });
+
+  test('Inspector metadata form allows editing and saving updates', async ({ page }) => {
+    await page.goto('/admin/photos');
+
+    const damGrid = page.locator('#damGrid');
+    const items = damGrid.locator('.dam-item');
+
+    if (await items.count() > 0) {
+      await items.first().click();
+
+      const inspPanel = page.locator('#inspPanel');
+      await expect(inspPanel).toBeVisible({ timeout: 5000 });
+
+      // Edit caption and save
+      const captionField = page.locator('#iCap');
+      const originalValue = await captionField.inputValue();
+      await captionField.fill(originalValue + ' [Updated Test]');
+
+      await page.locator('#iSave').click();
+      await expect(page.locator('.toast-msg')).toBeVisible({ timeout: 3000 });
+      await expect(page.locator('.toast-msg')).toContainText(/saved/i);
+
+      // Restore
+      await captionField.fill(originalValue);
+      await page.locator('#iSave').click();
+      await page.waitForTimeout(400);
+
+      // Close inspector
+      await page.locator('#inspClose').click();
+      await expect(inspPanel).not.toBeVisible();
+    }
+  });
+
+  test('Field intake re-edit modal allows radio selection and cancel dismissal', async ({ page }) => {
+    await page.goto('/admin/photos');
+
+    const fieldTab = page.locator('#wfTabs .wf-tab').filter({ hasText: /Field intake/i });
+    await fieldTab.click();
+
+    const reeditBtn = page.locator('.fq-btn.warn').first();
+    if (await reeditBtn.isVisible().catch(() => false)) {
+      await reeditBtn.click();
+
+      const modal = page.locator('#fqOverlay');
+      await expect(modal).toHaveClass(/open/);
+      await expect(page.locator('#fqTitle')).toContainText(/Request re-edit/i);
+
+      // Radio reasons selectable
+      const reasons = page.locator('.fq-reason');
+      await expect(reasons).toHaveCount(4);
+      await reasons.nth(1).click();
+      await expect(reasons.nth(1)).toHaveClass(/sel/);
+
+      // Dismiss with X
+      await page.locator('#fqClose').click();
+      await expect(modal).not.toHaveClass(/open/);
+    }
+  });
 });
+

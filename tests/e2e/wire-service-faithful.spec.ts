@@ -99,22 +99,68 @@ test.describe('Wire Service Frontpage Faithful (M8-SERV-001 / english-service.ht
     await expect(latestTab).toHaveClass(/active/);
   });
 
-  test('Wire service settings modal opens and can be saved', async ({ page }) => {
+  test('Wire service settings modal opens, supports editing/toggles, cancel, and save lifecycle', async ({ page }) => {
     await page.goto('/admin/service/en');
 
     const settingsBtn = page.locator('button.admin-chip', { hasText: 'Settings' });
     await expect(settingsBtn).toBeVisible();
-    await settingsBtn.click();
 
-    // Modal dialog
+    // 1. Open modal and test Cancel button
+    await settingsBtn.click();
     const modalInput = page.locator('input[wire\\:model="wireName"]');
     await expect(modalInput).toBeVisible({ timeout: 5000 });
 
-    await modalInput.fill('UNB Premium English Wire');
-    await page.click('button[type="submit"]:has-text("Save Changes")');
+    const descTextarea = page.locator('textarea[wire\\:model="description"]');
+    await expect(descTextarea).toBeVisible();
 
-    // Toast feedback or modal closure
+    const enableCheckbox = page.locator('input[type="checkbox"][wire\\:model="enabled"]');
+    await expect(enableCheckbox).toBeVisible();
+    await enableCheckbox.click(); // toggle distribution
+
+    const cancelBtn = page.locator('button.admin-chip:has-text("Cancel")');
+    await cancelBtn.click();
     await expect(modalInput).toBeHidden({ timeout: 5000 });
+
+    // 2. Re-open modal and test Save Changes
+    await settingsBtn.click();
+    await expect(modalInput).toBeVisible({ timeout: 5000 });
+    await modalInput.fill('UNB Premium English Wire');
+    await descTextarea.fill('Real-time national and international dispatches.');
+    await page.click('button[type="submit"]:has-text("Save Changes")');
+    await expect(modalInput).toBeHidden({ timeout: 5000 });
+
+    // 3. Re-open modal and test close '×' button
+    await settingsBtn.click();
+    await expect(modalInput).toBeVisible({ timeout: 5000 });
+    const closeBtn = page.locator('button:has-text("×")');
+    await closeBtn.click();
+    await expect(modalInput).toBeHidden({ timeout: 5000 });
+  });
+
+  test('Masthead search input filters dispatches and story links navigate to reader', async ({ page }) => {
+    await page.goto('/admin/service/en');
+
+    // Masthead search
+    const searchInput = page.locator('.mast-search input');
+    await expect(searchInput).toBeVisible();
+    await searchInput.fill('NonexistentHeadlineX999');
+    await page.waitForTimeout(600); // Livewire debounce
+
+    // Clear search
+    await searchInput.fill('');
+    await page.waitForTimeout(600);
+
+    // Hero or grid story links
+    const storyLink = page.locator('a.story-card, a.hero, a.rail-item').first();
+    if (await storyLink.isVisible().catch(() => false)) {
+      await expect(storyLink).toHaveAttribute('href', /.*admin\/story\/.*/);
+    }
+
+    // Section view all link
+    const viewAllLink = page.locator('a.sec-more').first();
+    if (await viewAllLink.isVisible().catch(() => false)) {
+      await expect(viewAllLink).toHaveAttribute('href', /.*admin\/news.*/);
+    }
   });
 
   test('Bangla Wire Service frontpage renders with Bangla branding and typography', async ({ page }) => {

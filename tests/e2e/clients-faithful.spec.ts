@@ -159,4 +159,61 @@ test.describe('Clients Manager Faithful (M8-CLIENT-001)', () => {
     await wiz.locator('.mo-close').click();
     await expect(wiz).not.toHaveClass(/open/);
   });
+
+  test('Tier and sort dropdown filters update client list dynamically', async ({ page }) => {
+    await page.goto('/admin/clients');
+
+    // Tier dropdown
+    const tierSel = page.locator('#tierSel');
+    await expect(tierSel).toBeVisible();
+    await tierSel.selectOption('Premium');
+    await page.waitForTimeout(400);
+
+    const rows = page.locator('#clList .cl-row:not(.head)');
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(0);
+
+    // Reset tier
+    await tierSel.selectOption('all');
+    await page.waitForTimeout(400);
+
+    // Sort dropdown
+    const sortSel = page.locator('#sortSel');
+    await expect(sortSel).toBeVisible();
+    await sortSel.selectOption('name');
+    await page.waitForTimeout(400);
+    await expect(page.locator('#clList')).toBeVisible();
+  });
+
+  test('Drawer channels toggles and deactivate client modal cancel lifecycle', async ({ page }) => {
+    await page.goto('/admin/clients');
+
+    // Open first client drawer
+    const firstRow = page.locator('#clList .cl-row:not(.head)').first();
+    await firstRow.click();
+    const drawer = page.locator('#drawer');
+    await expect(drawer).toHaveClass(/open/);
+
+    // Switch to Channels tab
+    await drawer.locator('.dr-tab[data-dtab="channels"]').click();
+
+    // Check channel rows exist
+    const chanRows = drawer.locator('.chan-row');
+    await expect(chanRows.first()).toBeVisible();
+
+    // Test pause deliveries button opens pause modal
+    const pauseBtn = drawer.locator('button[data-dact="pause"]');
+    if (await pauseBtn.isVisible().catch(() => false)) {
+      await pauseBtn.click();
+      const pauseModal = page.locator('#pauseOverlay');
+      await expect(pauseModal).toHaveClass(/open/);
+      // Cancel pause modal
+      await pauseModal.locator('.mo-close, button:has-text("Cancel")').first().click();
+      await expect(pauseModal).not.toHaveClass(/open/);
+    }
+
+    // Close drawer via close button
+    await drawer.locator('#drClose').click();
+    await expect(drawer).not.toHaveClass(/open/);
+  });
 });

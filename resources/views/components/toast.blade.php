@@ -2,6 +2,9 @@
 <script>
 window.unbToast = function(html){
   const w=document.getElementById('toastWrap');
+  if(!w) return;
+  const last = w.lastElementChild;
+  if(last && last.innerHTML === html) return;
   const t=document.createElement('div');
   t.className='toast bg-navy-900 text-white rounded-[11px] px-4 py-3 text-[13px] font-medium shadow-xl pointer-events-auto';
   t.innerHTML=html;
@@ -10,5 +13,8 @@ window.unbToast = function(html){
 }
 document.addEventListener('livewire:init',()=>{
   Livewire.on('toast',(e)=> unbToast(e.message ?? e[0]?.message ?? 'Done'));
+});
+window.addEventListener('toast', (e) => {
+  unbToast(e.detail?.message ?? (typeof e.detail === 'string' ? e.detail : 'Done'));
 });
 </script>

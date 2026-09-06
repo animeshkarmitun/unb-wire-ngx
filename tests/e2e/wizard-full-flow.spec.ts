@@ -124,6 +124,49 @@ test.describe('Add News Wizard — Full Rebuilt Flow & Interaction Contracts', (
     expect(editorText).toContain('Column 1');
   });
 
+  test('Step 1 (Write): Pullquote, Find & Replace bar, Related story modal, History modal, and Fullscreen toggle', async ({ page }) => {
+    await page.goto('/admin/add-news');
+    await page.waitForLoadState('networkidle');
+
+    // 1. Pullquote button inserts blockquote
+    const pullquoteBtn = page.locator('#editorToolbar button.ql-pullquote');
+    await pullquoteBtn.click();
+    await page.waitForTimeout(200);
+    const textAfterPull = await page.locator('.ql-editor').textContent();
+    expect(textAfterPull).toContain('Pull quote from the story');
+
+    // 2. Find & Replace bar opens, searches, and closes
+    const findBtn = page.locator('#editorToolbar button.ql-findreplace');
+    await findBtn.click();
+    await expect(page.locator('#frBar')).toBeVisible();
+    await page.fill('#frFind', 'quote');
+    await page.waitForTimeout(200);
+    await expect(page.locator('#frCount')).toContainText(/found|1 of/);
+    await page.click('#frClose');
+    await expect(page.locator('#frBar')).toBeHidden();
+
+    // 3. Related Story modal opens and cancels
+    const relatedBtn = page.locator('#editorToolbar button.ql-related');
+    await relatedBtn.click();
+    await expect(page.locator('#relOverlay')).toHaveClass(/open/);
+    await page.click('#cancelRel');
+    await expect(page.locator('#relOverlay')).not.toHaveClass(/open/);
+
+    // 4. Revision History modal opens and closes
+    const historyBtn = page.locator('#editorToolbar button.ql-history');
+    await historyBtn.click();
+    await expect(page.locator('#hisOverlay')).toHaveClass(/open/);
+    await page.click('#cancelHis');
+    await expect(page.locator('#hisOverlay')).not.toHaveClass(/open/);
+
+    // 5. Fullscreen button toggles fullscreen class on editorWrap
+    const fsBtn = page.locator('#fsBtn');
+    await fsBtn.click();
+    await expect(page.locator('#editorWrap')).toHaveClass(/fullscreen/);
+    await fsBtn.click();
+    await expect(page.locator('#editorWrap')).not.toHaveClass(/fullscreen/);
+  });
+
   test('Step 2 (Media): Photo Archive selection, featured image preview, and attached media grid', async ({ page }) => {
     await page.goto('/admin/add-news');
     await page.waitForLoadState('networkidle');
@@ -250,6 +293,33 @@ test.describe('Add News Wizard — Full Rebuilt Flow & Interaction Contracts', (
     const feedJson = await feedResponse.json();
     const found = (feedJson.data || []).some((s: { headline: string }) => s.headline === testHead);
     expect(found).toBe(true);
+  });
+
+  test('Step 4 (Review & publish): Review section Edit buttons jump back to corresponding steps', async ({ page }) => {
+    await page.goto('/admin/add-news');
+    await page.waitForLoadState('networkidle');
+
+    await page.fill('#headlineInput', 'Bangladesh Inland Water Transport Authority announces green fleet modernization');
+    await page.fill('#briefInput', 'Electric and hybrid passenger vessels will be deployed on major riverine routes.');
+
+    // Navigate to step 4
+    await page.click('.stp[data-go="4"]');
+    await page.waitForTimeout(400);
+    await expect(page.locator('.stp.active .stp-label')).toHaveText('Review & publish');
+
+    // Click Edit on Story -> jumps to step 1
+    const editStory = page.locator('.rv-group-title', { hasText: 'Story' }).locator('.rv-edit');
+    await editStory.click();
+    await page.waitForTimeout(300);
+    await expect(page.locator('.stp.active .stp-label')).toHaveText('Write');
+
+    // Return to Step 4 and click Edit on Organize -> jumps to step 3
+    await page.click('.stp[data-go="4"]');
+    await page.waitForTimeout(300);
+    const editOrganize = page.locator('.rv-group-title', { hasText: 'Organize' }).locator('.rv-edit');
+    await editOrganize.click();
+    await page.waitForTimeout(300);
+    await expect(page.locator('.stp.active .stp-label')).toHaveText('Organize & access');
   });
 
   test('Live Preview Rail: Collapsing toggle, expansion button, and Device Focus Emulator', async ({ page }) => {

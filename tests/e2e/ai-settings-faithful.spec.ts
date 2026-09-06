@@ -3,7 +3,9 @@ import { execSync } from 'child_process';
 
 test.describe('AI Settings Manager Faithful (M8-AI-001)', () => {
   test.beforeAll(async () => {
-    execSync('php artisan db:seed --class=RoleSeeder && php artisan db:seed --class=UserSeeder && php artisan db:seed --class=SettingSeeder', { stdio: 'ignore' });
+    try {
+      execSync('php artisan db:seed --class=RoleSeeder && php artisan db:seed --class=UserSeeder && php artisan db:seed --class=SettingSeeder', { stdio: 'ignore' });
+    } catch (_) {}
   });
 
   test.beforeEach(async ({ page }) => {

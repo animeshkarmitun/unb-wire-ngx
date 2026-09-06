@@ -207,4 +207,37 @@ test.describe('Client Portal Faithful Prototype Parity (app-data/client-portal.h
     await page.locator('#lbClose').click();
     await expect(lb).not.toBeVisible();
   });
+
+  test('Category chips filter wire stories and reset to All', async ({ page }) => {
+    const politicsChip = page.locator('#catChips button[data-cat="Politics"]');
+    await politicsChip.click();
+    await expect(politicsChip).toHaveClass(/active/);
+
+    // Verify all visible stories in feedList belong to Politics
+    const visibleCats = page.locator('#feedList .st-cat');
+    if (await visibleCats.count() > 0) {
+      await expect(visibleCats.first()).toContainText('Politics');
+    }
+
+    // Reset to All
+    const allChip = page.locator('#catChips button[data-cat="All"]');
+    await allChip.click();
+    await expect(allChip).toHaveClass(/active/);
+  });
+
+  test('Single story action buttons: copy feedback and locked story request CTA', async ({ page }) => {
+    // Copy button on first unlocked story
+    const copyBtn = page.locator('#feedList .story:not(.locked) .st-btn:has-text("Copy")').first();
+    if (await copyBtn.isVisible().catch(() => false)) {
+      await copyBtn.click();
+      await expect(page.locator('#feedList .st-btn').filter({ hasText: /Copied/ }).first()).toBeVisible({ timeout: 4000 });
+    }
+
+    // Locked story CTA if present
+    const lockCta = page.locator('#feedList .story.locked .lock-cta').first();
+    if (await lockCta.isVisible().catch(() => false)) {
+      await lockCta.click();
+      await expect(lockCta).toContainText('✓ Request sent');
+    }
+  });
 });
