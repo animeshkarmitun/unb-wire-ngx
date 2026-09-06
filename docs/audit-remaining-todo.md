@@ -1,0 +1,60 @@
+# Codebase Audit — Remaining To-Do
+
+**Audit date:** 2026-09-06  
+**Completed:** Phase 1 (C1–C3, C6 false positive), Phase 2 (W1–W3, C5, C7 partial)
+
+---
+
+## Open Questions (Need Decision)
+
+> These need your input before the related items can be implemented.
+
+- [ ] **Q1 — Missing API surface (C8):** Many FRD endpoints are absent (Story CRUD, workflow transitions, internal notes, media approval, role management, package management, distribution/webhooks). Are these intentionally deferred (handled by Livewire server-side actions for now), or genuinely missing and need REST endpoints built?
+- [ ] **Q2 — HTML purification strategy:** `HtmlSanitizer::clean()` already runs at write-time. Should we add render-time purification as a defense-in-depth layer (`{!! clean($bodyHtml) !!}`), or is write-time sufficient?
+- [ ] **Q3 — Test database:** Are you open to switching tests from SQLite in-memory to a dedicated PostgreSQL test database? SQLite can mask PG-specific behavior (JSONB, CHECK constraints, `timestamptz`). Tradeoff is slower tests.
+- [ ] **Q4 — CSS architecture:** Custom CSS files (wire-service.css, news-desk.css, etc.) are extensive. Full Tailwind migration now, or future concern?
+
+---
+
+## Phase 2 — Remaining
+
+- [ ] **C7 — ClientsManager service extraction** (1095 lines → `ClientService`)
+  - Extract onboarding wizard logic into service
+  - Extract channel management (toggle, FTP, API key, webhook) into service
+  - Extract package/subscription operations into service
+  - Extract bulk actions (pause, apply package) into service
+  - Extract stats computation into service
+  - Component should retain only UI state + thin orchestration
+
+---
+
+## Phase 3 — Test Suite
+
+- [ ] **C4 — Rewrite E2E tests** — Current tests are fake success patterns
+  - `editorial-flow.spec.ts` — rewrite with real Playwright interactions: login → create draft → transition → verify DB/API
+  - RBAC test — verify actual access denied behavior, not just DOM visibility
+- [ ] **Add Feature tests for AddNews** — core editorial UI, highest priority gap
+- [ ] **Add Feature tests for Portal API** — `/v1/portal/feed`, `/v1/portal/search-token`, `/v1/portal/story/{id}`
+- [ ] **Add Feature tests for TusController** — chunked upload endpoints
+- [ ] **Add Job tests with `Queue::fake()`:**
+  - `GenerateDerivatives` — media processing
+  - `ProcessIndexOutbox` — Meilisearch sync (already has partial coverage)
+- [ ] **W4 — Complete model factories** (currently 6 of 30 models)
+  - Missing: `MediaAsset`, `Delivery`, `Tag`, `Role`, `MediaBatch`, `ClientChannel`, `ClientPackage`, `ClientApiKey`, `StoryVersion`, `StoryEvent`, `InternalNote`, `Setting`, and others
+- [ ] **W9 — Consider PostgreSQL test database** (blocked by Q3)
+- [ ] **Add tests for untested services:**
+  - `PresignedUrlService` — media URL generation
+  - `NoteService` — internal notes
+  - `NotificationService`
+
+---
+
+## Phase 4 — Polish & Hardening
+
+- [ ] **W6 — Add read replica config** — PostgreSQL `read`/`write` array separation in `config/database.php`
+- [ ] **W8 — Form Request authorization** — `AiAssistRequest` and `TusCreateRequest` return `authorize() → true` unconditionally; add ownership/permission checks
+- [ ] **W10 — Branch protection** — Add `.github/rulesets/` config (CI checks exist in `ci.yml` but protection relies on manual GitHub settings)
+- [ ] **W11 — Accessibility** — Add `alt` text and `aria-label` to image placeholders, icons, custom inputs across admin views
+- [ ] **W12 — Break up monolithic Blade files** — `add-news.blade.php` handles content editing, dateline, status toggles, taxonomy in one file; split into sub-components
+- [ ] **CSS consolidation** — Migrate custom CSS into Tailwind config (blocked by Q4)
+- [ ] **Pint formatting** — Run `./vendor/bin/pint` across the codebase to fix pre-existing style issues (several flagged non-blocking during commits)
