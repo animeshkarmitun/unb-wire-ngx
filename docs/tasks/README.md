@@ -98,12 +98,12 @@
 | `M8-SIMPLE-001` | Simple pages chrome-faithful (clients/packages/roles/ai-settings/service) | M8-UI-002 | ✅ | — | 2026-08-29 |
 | `M8-WIZ-001` | Wizard shell (stepper + sticky nav + autosave) | M8-UI-002 | ✅ | — | 2026-08-29 |
 | `M8-WIZ-002` | Body: Quill wire toolbar + find bar + fullscreen | M8-WIZ-001 | ✅ | — | 2026-08-29 |
-| `M8-WIZ-003` | Media: featured 1200x630 + attach grid + drop + doc-import | M8-WIZ-001 | ⏳ | — | 2026-08-29 |
-| `M8-WIZ-004` | Tags/type/seg-control/distribution + live preview | M8-WIZ-001 | ⏳ | — | 2026-08-29 |
-| `M8-WIZ-005` | Desk workflow strip + internal notes | M8-WIZ-001 | ⏳ | — | 2026-08-29 |
-| `M8-WIZ-006` | AI desk faithful (drawer + diff + gate + kill-switch) | M8-WIZ-001 | ⏳ | — | 2026-08-29 |
-| `M8-E2E-001` | Wizard E2E (draft→publish + fan-out) | M8-WIZ-006 | ⏳ | — | 2026-08-29 |
-| `M8-QA-001` | A11y + Bangla/NFC + perf (N+1/cache) | M8-E2E-001 | ⏳ | — | 2026-08-29 |
+| `M8-WIZ-003` | Media: featured 1200x630 + attach grid + drop + doc-import | M8-WIZ-001 | ✅ | — | 2026-08-29 |
+| `M8-WIZ-004` | Tags/type/seg-control/distribution + live preview | M8-WIZ-001 | ✅ | — | 2026-08-29 |
+| `M8-WIZ-005` | Desk workflow strip + internal notes | M8-WIZ-001 | ✅ | — | 2026-08-29 |
+| `M8-WIZ-006` | AI desk faithful (drawer + diff + gate + kill-switch) | M8-WIZ-001 | ✅ | — | 2026-08-29 |
+| `M8-E2E-001` | Wizard E2E (draft→publish + fan-out) | M8-WIZ-006 | ✅ | — | 2026-08-29 |
+| `M8-QA-001` | A11y + Bangla/NFC + perf (N+1/cache) | M8-E2E-001 | ✅ | — | 2026-08-29 |
 
 ---
 
