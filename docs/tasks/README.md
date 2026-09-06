@@ -90,6 +90,7 @@
 | `M8-CLIENT-001` | Clients Manager faithful (5-stat, bulk bar, 4-channel, drawer, modals, wizard) | M8-UI-002, M2-DB-002 | ✅ | — | 2026-09-05 |
 | `M8-PACK-001` | Packages & Add-ons Manager faithful (4-stat, cards, add-on table, editor preview, archive) | M8-UI-002, M2-DB-007 | ✅ | — | 2026-09-05 |
 | `M8-ROLE-001` | Roles & Access Manager faithful (4-stat, role cards, drawer with presets & matrix, people list, invite, delete, audit) | M8-UI-002, M2-DB-001 | ✅ | — | 2026-09-05 |
+| `M8-AI-001` | AI Settings Manager faithful (banner, 3-desk toggles, auto-publish modal & allowlist, budget, style prompt, kill switch) | M8-UI-002, M2-DB-001, M8-ROLE-001 | ✅ | — | 2026-09-06 |
 | `M8-SIMPLE-001` | Simple pages chrome-faithful (clients/packages/roles/ai-settings/service) | M8-UI-002 | ✅ | — | 2026-08-29 |
 | `M8-WIZ-001` | Wizard shell (stepper + sticky nav + autosave) | M8-UI-002 | ✅ | — | 2026-08-29 |
 | `M8-WIZ-002` | Body: Quill wire toolbar + find bar + fullscreen | M8-WIZ-001 | ✅ | — | 2026-08-29 |

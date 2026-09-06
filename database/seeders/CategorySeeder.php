@@ -20,7 +20,13 @@ class CategorySeeder extends Seeder
 
         $ids = [];
         foreach ($tops as $cat) {
-            $ids[$cat['slug']] = DB::table('categories')->insertGetId($cat);
+            $existing = DB::table('categories')->where('slug', $cat['slug'])->first();
+            if ($existing) {
+                $ids[$cat['slug']] = $existing->id;
+                DB::table('categories')->where('id', $existing->id)->update($cat);
+            } else {
+                $ids[$cat['slug']] = DB::table('categories')->insertGetId($cat);
+            }
         }
 
         $subs = [
@@ -32,13 +38,15 @@ class CategorySeeder extends Seeder
         ];
 
         foreach ($subs as $sub) {
-            DB::table('categories')->insert([
-                'slug' => $sub['slug'],
-                'name_en' => $sub['name_en'],
-                'name_bn' => $sub['name_bn'],
-                'parent_id' => $ids[$sub['parent']],
-                'sort_order' => $sub['sort_order'],
-            ]);
+            DB::table('categories')->updateOrInsert(
+                ['slug' => $sub['slug']],
+                [
+                    'name_en' => $sub['name_en'],
+                    'name_bn' => $sub['name_bn'],
+                    'parent_id' => $ids[$sub['parent']] ?? null,
+                    'sort_order' => $sub['sort_order'],
+                ]
+            );
         }
     }
 }
