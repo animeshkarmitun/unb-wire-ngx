@@ -7,6 +7,7 @@
 @import './roles-manager.css';
 @import './ai-settings.css';
 @import './delivery-settings.css';
+@import './story-reader.css';
 
 @tailwind base;
 @tailwind components;
