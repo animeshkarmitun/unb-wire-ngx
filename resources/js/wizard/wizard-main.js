@@ -306,7 +306,11 @@ const addMediaAfter = document.getElementById('addMediaAfter');
     }
     initQuill();
 
-    // Wire button fallback click handlers
+    // Wire button fallback click handlers & mousedown blur prevention
+    document.querySelectorAll('#editorToolbar button.qlc').forEach(btn => {
+      btn.addEventListener('mousedown', e => e.preventDefault());
+    });
+
     const qlDateline = document.querySelector('#editorToolbar .ql-dateline');
     if (qlDateline) qlDateline.onclick = e => { e.preventDefault(); insertDateline(); };
     const qlSignoff = document.querySelector('#editorToolbar .ql-signoff');
@@ -324,7 +328,7 @@ const addMediaAfter = document.getElementById('addMediaAfter');
     const qlHistory = document.querySelector('#editorToolbar .ql-history');
     if (qlHistory) qlHistory.onclick = e => { e.preventDefault(); openHistoryModal(); };
 
-    // Fullscreen toggle
+    // Fullscreen toggle & full canvas focus delegation
     const editorWrap = document.getElementById('editorWrap');
     const fsBtn = document.getElementById('fsBtn');
     function toggleFullscreen(force) {
@@ -336,14 +340,33 @@ const addMediaAfter = document.getElementById('addMediaAfter');
         fsBtn.title = on ? 'Exit fullscreen (Esc)' : 'Fullscreen (Esc to exit)';
       }
       document.body.style.overflow = on ? 'hidden' : '';
+      if (quill) {
+        setTimeout(() => {
+          quill.focus();
+        }, 50);
+      }
     }
 
-    if (fsBtn) fsBtn.onclick = () => toggleFullscreen();
+    if (fsBtn) {
+      fsBtn.addEventListener('mousedown', e => e.preventDefault());
+      fsBtn.onclick = () => toggleFullscreen();
+    }
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && editorWrap && editorWrap.classList.contains('fullscreen')) {
         toggleFullscreen(false);
       }
     });
+
+    if (editorWrap) {
+      const qlCont = editorWrap.querySelector('.ql-container');
+      if (qlCont) {
+        qlCont.addEventListener('click', e => {
+          if (e.target === qlCont && quill) {
+            quill.focus();
+          }
+        });
+      }
+    }
 
     function updateEditorStats() {
       const txt = quill ? quill.getText().trim() : '';

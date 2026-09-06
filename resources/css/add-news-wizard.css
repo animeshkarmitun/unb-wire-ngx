@@ -340,16 +340,27 @@
   border: none !important;
   display: flex !important;
   flex-direction: column !important;
+  background: #ffffff !important;
 }
 .editor-wrap.fullscreen .ql-container {
   flex: 1;
   overflow-y: auto;
+  cursor: text;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
 }
 .editor-wrap.fullscreen .ql-editor {
   min-height: 100%;
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 36px 24px;
+  flex: 1;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 36px max(24px, calc((100% - 860px) / 2));
+  font-size: 16.5px;
+  line-height: 1.8;
+  color: var(--ink, #1c1f2e);
+  cursor: text;
 }
 
 .editor-foot {
@@ -1444,7 +1455,7 @@
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 250 !important;
   padding: 24px;
 }
 .media-overlay.open {

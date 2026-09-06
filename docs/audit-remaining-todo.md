@@ -30,9 +30,10 @@
 
 ## Phase 3 — Test Suite
 
-- [ ] **C4 — Rewrite E2E tests** — Current tests are fake success patterns
-  - `editorial-flow.spec.ts` — rewrite with real Playwright interactions: login → create draft → transition → verify DB/API
-  - RBAC test — verify actual access denied behavior, not just DOM visibility
+- [x] **C4 — Rewrite E2E tests** — Current tests were fake success patterns (rewritten & verified)
+  - `editorial-flow.spec.ts` — rewritten with real Playwright interactions: login → create draft → step through wizard → publish → verify DB & Portal API feed
+  - RBAC test — verified actual access denied behavior for Business Team role across add-news & news-list
+  - `web-auth-rbac.spec.ts` — rewritten with deterministic URL redirections and login authentication tests
 - [ ] **Add Feature tests for AddNews** — core editorial UI, highest priority gap
 - [ ] **Add Feature tests for Portal API** — `/v1/portal/feed`, `/v1/portal/search-token`, `/v1/portal/story/{id}`
 - [ ] **Add Feature tests for TusController** — chunked upload endpoints

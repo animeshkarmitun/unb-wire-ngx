@@ -167,6 +167,147 @@ test.describe('Add News Wizard — Full Rebuilt Flow & Interaction Contracts', (
     await expect(page.locator('#editorWrap')).not.toHaveClass(/fullscreen/);
   });
 
+  test('Step 1 (Write): Full-view story body field exhaustive interactions, canvas focus, typing, formatting, and modal stacking', async ({ page }) => {
+    test.setTimeout(60000);
+    await page.goto('/admin/add-news');
+    await page.waitForLoadState('networkidle');
+
+    // Fill headline and brief
+    await page.fill('#headlineInput', 'Dhaka Stock Exchange benchmark index gains 45 points in Sunday trading');
+    await page.fill('#briefInput', 'Institutional buyers renewed interest in banking and pharma equities lifting the benchmark index.');
+
+    // 1. Enter Full-View
+    const fsBtn = page.locator('#fsBtn');
+    await fsBtn.click();
+    const editorWrap = page.locator('#editorWrap');
+    await expect(editorWrap).toHaveClass(/fullscreen/);
+    await expect(fsBtn).toHaveText('✕');
+    await expect(fsBtn).toHaveAttribute('title', /Exit fullscreen/);
+
+    // 2. Auto-focus and canvas margin click-to-focus
+    await page.waitForTimeout(100);
+    const qlEditor = page.locator('.ql-editor');
+
+    // Click left canvas margin (x: 80, y: 300)
+    await page.mouse.click(80, 300);
+    const isEditorActiveAfterLeft = await page.evaluate(() => {
+      const active = document.activeElement;
+      return active?.classList.contains('ql-editor') || !!active?.closest('.ql-editor');
+    });
+    expect(isEditorActiveAfterLeft).toBe(true);
+
+    // Click right canvas margin (x: 1150, y: 300)
+    await page.mouse.click(1150, 300);
+    const isEditorActiveAfterRight = await page.evaluate(() => {
+      const active = document.activeElement;
+      return active?.classList.contains('ql-editor') || !!active?.closest('.ql-editor');
+    });
+    expect(isEditorActiveAfterRight).toBe(true);
+
+    // Click bottom canvas area (x: 600, y: 600)
+    await page.mouse.click(600, 600);
+    const isEditorActiveAfterBottom = await page.evaluate(() => {
+      const active = document.activeElement;
+      return active?.classList.contains('ql-editor') || !!active?.closest('.ql-editor');
+    });
+    expect(isEditorActiveAfterBottom).toBe(true);
+
+    // 3. Multi-paragraph typing in full-view
+    await qlEditor.click();
+    await page.keyboard.type('The benchmark DSEX index crossed the 5,400-point threshold amidst high turnover.');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('Market analysts credited institutional support and regulatory liquidity assurances.');
+
+    // Verify text content and live footer stats in full-view
+    const editorText = await qlEditor.innerText();
+    expect(editorText).toContain('benchmark DSEX index');
+    expect(editorText).toContain('Market analysts credited');
+    await expect(page.locator('#efWords')).toHaveText(/\d+\s+words/);
+
+    // 4. Formatting tools inside full-view
+    // Insert Dateline
+    await page.click('#editorToolbar button.ql-dateline');
+    await page.waitForTimeout(200);
+    const textWithDateline = await qlEditor.innerText();
+    expect(textWithDateline).toContain('DHAKA');
+
+    // Insert Pull quote
+    await page.click('#editorToolbar button.ql-pullquote');
+    await page.waitForTimeout(200);
+    const textWithPull = await qlEditor.innerText();
+    expect(textWithPull).toContain('Pull quote from the story');
+
+    // 5. Modal stacking in full-view (modals must appear on top of z-index 180 editor)
+    // Table modal
+    await page.click('#editorToolbar button.ql-table');
+    await expect(page.locator('#tblOverlay')).toHaveClass(/open/);
+    await expect(page.locator('#tblOverlay .media-modal')).toBeVisible();
+    await page.fill('#tblRows', '2');
+    await page.fill('#tblCols', '3');
+    await page.click('#tblInsert');
+    await expect(page.locator('#tblOverlay')).not.toHaveClass(/open/);
+    const textWithTable = await qlEditor.innerText();
+    expect(textWithTable).toContain('Column 1');
+
+    // History modal
+    await page.click('#editorToolbar button.ql-history');
+    await expect(page.locator('#hisOverlay')).toHaveClass(/open/);
+    await expect(page.locator('#hisOverlay .media-modal')).toBeVisible();
+    await page.click('#cancelHis');
+    await expect(page.locator('#hisOverlay')).not.toHaveClass(/open/);
+
+    // 6. Find & Replace inside full-view
+    await page.click('#editorToolbar button.ql-findreplace');
+    await expect(page.locator('#frBar')).toBeVisible();
+    await page.fill('#frFind', 'turnover');
+    await page.waitForTimeout(200);
+    await expect(page.locator('#frCount')).toContainText(/1\s+of\s+1|found/);
+    await page.click('#frClose');
+    await expect(page.locator('#frBar')).toBeHidden();
+
+    // 7. Exit full-view via Escape key
+    await page.keyboard.press('Escape');
+    await expect(editorWrap).not.toHaveClass(/fullscreen/);
+    await expect(fsBtn).toHaveText('⛶');
+
+    // Re-enter and exit via ✕ button
+    await fsBtn.click();
+    await expect(editorWrap).toHaveClass(/fullscreen/);
+    await fsBtn.click();
+    await expect(editorWrap).not.toHaveClass(/fullscreen/);
+
+    // 8. Normal view content and stats verification
+    const normalViewText = await qlEditor.innerText();
+    expect(normalViewText).toContain('benchmark DSEX index');
+    expect(normalViewText).toContain('DHAKA');
+
+    // 9. Downstream Stepper Persistence: verify full-view body reaches Step 4 Review
+    // Step 1 -> Step 2
+    await page.click('#nextBtn');
+    await page.waitForTimeout(400);
+    await expect(page.locator('.stp.active .stp-label')).toHaveText('Media');
+
+    // Step 2 -> Step 3
+    await page.click('#nextBtn');
+    await page.waitForTimeout(400);
+    await expect(page.locator('.stp.active .stp-label')).toHaveText('Organize & access');
+
+    // Step 3 -> Step 4
+    await page.click('#nextBtn');
+    await page.waitForTimeout(400);
+    await expect(page.locator('.stp.active .stp-label')).toHaveText('Review & publish');
+
+    // Verify Review summary includes story body written in full-view
+    const reviewBodyRow = page.locator('.rev-row', { hasText: 'Body copy' });
+    await expect(reviewBodyRow).toContainText(/benchmark DSEX index|DHAKA/);
+
+    // Jump back to Step 1 via Edit button
+    await page.click('#jumpStep1');
+    await page.waitForTimeout(400);
+    await expect(page.locator('.stp.active .stp-label')).toHaveText('Write');
+    expect(await qlEditor.innerText()).toContain('benchmark DSEX index');
+  });
+
   test('Step 2 (Media): Photo Archive selection, featured image preview, and attached media grid', async ({ page }) => {
     await page.goto('/admin/add-news');
     await page.waitForLoadState('networkidle');
