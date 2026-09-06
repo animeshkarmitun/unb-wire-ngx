@@ -182,8 +182,3 @@ Route::middleware('auth:sanctum')->post('/ai/{kind}', function (string $kind, Ai
 
     return response()->json(['pack' => $pack]);
 })->middleware('throttle:30,1');
-Route::middleware('auth')->post('/ai/{kind}', function (string $kind, AiAssistRequest $request, AiService $svc) {
-    $pack = $svc->call($kind, $request->validated(), auth()->id(), $request->input('story_id'));
-
-    return response()->json(['pack' => $pack]);
-})->middleware('throttle:30,1');

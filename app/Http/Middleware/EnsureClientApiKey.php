@@ -5,7 +5,7 @@ namespace App\Http\Middleware;
 use App\Services\ApiKeyService;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 
 class EnsureClientApiKey
 {
@@ -25,14 +25,13 @@ class EnsureClientApiKey
             return response()->json(['message' => 'Insufficient scope'], 403);
         }
         $rpm = $key->rate_limit_rpm ?: 60;
-        $cacheKey = "ratelimit:api:{$key->id}:".now()->format('YmdHi');
-        $hits = Cache::increment($cacheKey);
-        if ($hits === 1) {
-            Cache::put($cacheKey, 1, 65);
+        $rateLimitKey = 'api-key:'.$key->id;
+        if (RateLimiter::tooManyAttempts($rateLimitKey, $rpm)) {
+            $retryAfter = RateLimiter::availableIn($rateLimitKey);
+
+            return response()->json(['message' => 'Rate limit exceeded'], 429)->header('Retry-After', $retryAfter);
         }
-        if ($hits > $rpm) {
-            return response()->json(['message' => 'Rate limit exceeded'], 429)->header('Retry-After', 60);
-        }
+        RateLimiter::hit($rateLimitKey, 60);
         $request->attributes->set('clientApiKey', $key);
         $request->attributes->set('client', $key->client);
 

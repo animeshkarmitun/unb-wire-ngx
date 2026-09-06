@@ -166,6 +166,7 @@ class StoryService
                     'attempts' => 0,
                     'created_at' => now(),
                 ]);
+                dispatch(new FanoutStory($story->id))->afterResponse();
             }
             if ($to === 'killed') {
                 dispatch(new FanoutStory($story->id))->afterResponse();

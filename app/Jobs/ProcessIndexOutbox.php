@@ -35,10 +35,10 @@ class ProcessIndexOutbox implements ShouldQueue
                 if ($host && $key) {
                     $payload = $this->buildPayload($row);
                     if ($row->op === 'delete') {
-                        Http::withHeaders(['Authorization' => "Bearer {$key}"])->delete("{$host}/indexes/{$row->index_name}/documents/{$row->document_id}");
+                        Http::withHeaders(['Authorization' => "Bearer {$key}"])->delete("{$host}/indexes/{$row->index_name}/documents/{$row->document_id}")->throw();
                     } else {
                         $docs = $payload ? [$payload] : [['id' => $row->document_id, 'objectID' => $row->document_id]];
-                        Http::withHeaders(['Authorization' => "Bearer {$key}"])->post("{$host}/indexes/{$row->index_name}/documents", $docs);
+                        Http::withHeaders(['Authorization' => "Bearer {$key}"])->post("{$host}/indexes/{$row->index_name}/documents", $docs)->throw();
                     }
                 }
                 DB::table('index_outbox')->where('id', $row->id)->update(['status' => 'done', 'processed_at' => now()]);
