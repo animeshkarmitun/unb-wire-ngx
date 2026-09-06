@@ -4,7 +4,6 @@ namespace App\Livewire\Admin;
 
 use App\Jobs\FanoutStory;
 use App\Jobs\ProcessIndexOutbox;
-use App\Models\Category;
 use App\Models\Story;
 use App\Services\NoteService;
 use App\Services\RbacService;
@@ -61,21 +60,8 @@ class NewsList extends Component
     public function updatedSelectAll(bool $value): void
     {
         if ($value) {
-            $query = Story::where('language', $this->language);
-            if ($this->status !== 'all') {
-                $query->where('status', $this->status);
-            }
-            if ($this->category !== 'all') {
-                $query->where('category_id', $this->category);
-            }
-            if ($this->search !== '') {
-                $query->where(function ($q) {
-                    $q->where('headline', 'like', '%'.$this->search.'%')
-                        ->orWhere('brief', 'like', '%'.$this->search.'%');
-                });
-            }
-            $pageIds = $query->orderByDesc('updated_at')->paginate(15)->pluck('id')->map(fn ($id) => (string) $id)->toArray();
-            $this->selectedStories = $pageIds;
+            $this->selectedStories = app(\App\Services\StoryQueryService::class)
+                ->filteredIds($this->language, $this->status, $this->category, $this->search);
         } else {
             $this->selectedStories = [];
         }
@@ -224,21 +210,8 @@ class NewsList extends Component
 
     public function export(): StreamedResponse
     {
-        $query = Story::with(['category', 'subCategory', 'owner'])->where('language', $this->language);
-        if ($this->status !== 'all') {
-            $query->where('status', $this->status);
-        }
-        if ($this->category !== 'all') {
-            $query->where('category_id', $this->category);
-        }
-        if ($this->search !== '') {
-            $query->where(function ($q) {
-                $q->where('headline', 'like', '%'.$this->search.'%')
-                    ->orWhere('brief', 'like', '%'.$this->search.'%');
-            });
-        }
-
-        $stories = $query->orderByDesc('updated_at')->get();
+        $stories = app(\App\Services\StoryQueryService::class)
+            ->exportQuery($this->language, $this->status, $this->category, $this->search);
         $fileName = 'unb-stories-'.$this->language.'-'.now()->format('Ymd-His').'.csv';
 
         return Response::streamDownload(function () use ($stories) {
@@ -264,50 +237,12 @@ class NewsList extends Component
 
     public function render()
     {
-        $query = Story::with([
-            'category',
-            'subCategory',
-            'owner.role',
-            'assignedEditor',
-            'lockedBy',
-            'notes.user.role',
-        ])->where('language', $this->language);
+        $svc = app(\App\Services\StoryQueryService::class);
 
-        if ($this->status !== 'all') {
-            $query->where('status', $this->status);
-        }
-        if ($this->category !== 'all') {
-            $query->where('category_id', $this->category);
-        }
-        if ($this->search !== '') {
-            $query->where(function ($q) {
-                $q->where('headline', 'like', '%'.$this->search.'%')
-                    ->orWhere('brief', 'like', '%'.$this->search.'%');
-            });
-        }
-
-        $stories = $query->orderByDesc('updated_at')->paginate(15);
-        $categories = Category::whereNull('parent_id')->with('children')->orderBy('sort_order')->get();
-
-        $selected = $this->selectedId
-            ? Story::with([
-                'category',
-                'subCategory',
-                'owner.role',
-                'assignedEditor',
-                'lockedBy',
-                'notes.user.role',
-                'events.actor',
-            ])->find($this->selectedId)
-            : null;
-
-        $counts = [
-            'all' => Story::where('language', $this->language)->count(),
-            'published' => Story::where('language', $this->language)->where('status', 'published')->count(),
-            'draft' => Story::where('language', $this->language)->where('status', 'draft')->count(),
-            'in_review' => Story::where('language', $this->language)->where('status', 'in_review')->count(),
-            'changes_requested' => Story::where('language', $this->language)->where('status', 'changes_requested')->count(),
-        ];
+        $stories = $svc->filteredList($this->language, $this->status, $this->category, $this->search);
+        $categories = $svc->categoriesTree();
+        $selected = $this->selectedId ? $svc->findWithDetails($this->selectedId) : null;
+        $counts = $svc->statusCounts($this->language);
 
         return view('livewire.admin.news-list', compact('stories', 'categories', 'selected', 'counts'));
     }
