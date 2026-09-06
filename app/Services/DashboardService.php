@@ -26,13 +26,13 @@ class DashboardService
         $publishedToday = Story::whereDate('published_at', $today)->where('status', 'published')->count();
         $publishedYesterday = Story::whereDate('published_at', $yesterday)->where('status', 'published')->count();
         $deltaPublished = $publishedToday - $publishedYesterday;
-        $deltaPublishedText = ($deltaPublished >= 0 ? '+' : '') . $deltaPublished . ' from yesterday';
+        $deltaPublishedText = ($deltaPublished >= 0 ? '+' : '').$deltaPublished.' from yesterday';
         $deltaPublishedDirection = $deltaPublished >= 0 ? 'up' : 'down';
 
         // 2. Active clients & delta this week
         $activeClients = Client::where('status', 'active')->count();
         $clientsThisWeek = Client::where('status', 'active')->where('created_at', '>=', $startOfWeek)->count();
-        $deltaClientsText = '+' . $clientsThisWeek . ' this week';
+        $deltaClientsText = '+'.$clientsThisWeek.' this week';
         $deltaClientsDirection = 'up';
 
         // 3. Distribution success rate (last 7 days vs previous 7 days)
@@ -45,7 +45,7 @@ class DashboardService
         $priorRate = $priorDel > 0 ? round(($priorDelOk / $priorDel) * 100, 1) : 98.7;
 
         $deltaRate = round($successRate - $priorRate, 1);
-        $deltaRateText = ($deltaRate >= 0 ? '+' : '') . $deltaRate . '% from last week';
+        $deltaRateText = ($deltaRate >= 0 ? '+' : '').$deltaRate.'% from last week';
         $deltaRateDirection = $deltaRate >= 0 ? 'up' : 'down';
 
         // 4. Exclusive content sent (breaking, urgent/flash priority, or tagged exclusive)
@@ -64,7 +64,7 @@ class DashboardService
         $exclusiveToday = Story::where(fn ($q) => $exclusiveFilter($q, $today))->count();
         $exclusiveYesterday = Story::where(fn ($q) => $exclusiveFilter($q, $yesterday))->count();
         $deltaExclusive = $exclusiveToday - $exclusiveYesterday;
-        $deltaExclusiveText = ($deltaExclusive >= 0 ? '+' : '') . $deltaExclusive . ' from yesterday';
+        $deltaExclusiveText = ($deltaExclusive >= 0 ? '+' : '').$deltaExclusive.' from yesterday';
         $deltaExclusiveDirection = $deltaExclusive >= 0 ? 'up' : 'down';
 
         // 5. Recent stories (4 items, eager loaded)
@@ -111,7 +111,7 @@ class DashboardService
                 'id' => $story->id,
                 'public_id' => $story->public_id,
                 'headline' => $story->headline,
-                'meta' => ($story->language === 'bn' ? 'Bangla' : 'English') . ' · ' . ($story->category?->name_en ?? 'General') . ' · ' . ($story->word_count ?? 300) . ' words',
+                'meta' => ($story->language === 'bn' ? 'Bangla' : 'English').' · '.($story->category?->name_en ?? 'General').' · '.($story->word_count ?? 300).' words',
                 'tags' => $tags,
                 'status' => $story->status,
                 'is_distributed' => $isDistributed,
@@ -136,7 +136,7 @@ class DashboardService
             $words = preg_split('/\s+/', trim($client->name));
             $initials = '';
             if (count($words) >= 2) {
-                $initials = strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1));
+                $initials = strtoupper(substr($words[0], 0, 1).substr($words[1], 0, 1));
             } else {
                 $initials = strtoupper(substr($client->name, 0, 2));
             }

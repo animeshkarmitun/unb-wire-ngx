@@ -12,10 +12,13 @@ class StoryNotification extends Notification implements ShouldQueue
 
     public function __construct(public string $event, public array $data) {}
 
-    public function via(object $notifiable): array { return ['database']; }
+    public function via(object $notifiable): array
+    {
+        return ['database'];
+    }
 
     public function toArray(object $notifiable): array
     {
-        return ['event'=>$this->event,'data'=>$this->data,'at'=>now()->toIso8601String()];
+        return ['event' => $this->event, 'data' => $this->data, 'at' => now()->toIso8601String()];
     }
 }

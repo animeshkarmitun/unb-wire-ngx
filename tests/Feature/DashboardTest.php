@@ -12,6 +12,9 @@ use App\Models\Story;
 use App\Models\User;
 use App\Services\DashboardService;
 use Carbon\Carbon;
+use Database\Seeders\CategorySeeder;
+use Database\Seeders\PackageSeeder;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -25,9 +28,9 @@ class DashboardTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(\Database\Seeders\RoleSeeder::class);
-        $this->seed(\Database\Seeders\CategorySeeder::class);
-        $this->seed(\Database\Seeders\PackageSeeder::class);
+        $this->seed(RoleSeeder::class);
+        $this->seed(CategorySeeder::class);
+        $this->seed(PackageSeeder::class);
 
         $adminRole = Role::where('name', 'Admin')->first();
         $this->admin = User::factory()->create(['role_id' => $adminRole->id]);

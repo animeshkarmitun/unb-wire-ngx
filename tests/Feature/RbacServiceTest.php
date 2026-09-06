@@ -3,9 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Role;
-use App\Models\RolePermission;
 use App\Models\User;
 use App\Services\RbacService;
+use Database\Seeders\RoleSeeder;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -15,8 +16,9 @@ class RbacServiceTest extends TestCase
 
     private function makeUser(string $roleName = 'Editor'): User
     {
-        $this->seed(\Database\Seeders\RoleSeeder::class);
+        $this->seed(RoleSeeder::class);
         $role = Role::where('name', $roleName)->firstOrFail();
+
         return User::factory()->create(['role_id' => $role->id]);
     }
 
@@ -62,7 +64,7 @@ class RbacServiceTest extends TestCase
     {
         $user = $this->makeUser('Uploader-Bangla');
         $svc = app(RbacService::class);
-        $this->expectException(\Illuminate\Auth\Access\AuthorizationException::class);
+        $this->expectException(AuthorizationException::class);
         $svc->assertCan($user, 'clients', 'view');
     }
 

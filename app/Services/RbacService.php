@@ -14,6 +14,7 @@ class RbacService
             return false;
         }
         $col = 'can_'.$action;
+
         return (bool) ($perm->$col ?? false);
     }
 

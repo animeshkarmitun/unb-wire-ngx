@@ -25,28 +25,37 @@ class TusController extends Controller
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
         return response('', 201)->header('Location', url("/api/uploads/{$id}"))->header('Tus-Resumable', '1.0.0');
     }
 
     public function head(string $id)
     {
         $s = DB::table('upload_sessions')->where('id', $id)->first();
-        if(! $s) abort(404);
+        if (! $s) {
+            abort(404);
+        }
+
         return response('', 200)->header('Upload-Offset', (string) $s->offset_bytes)->header('Upload-Length', (string) $s->size_bytes)->header('Tus-Resumable', '1.0.0');
     }
 
     public function patch(Request $request, string $id)
     {
         $s = DB::table('upload_sessions')->where('id', $id)->first();
-        if(! $s) abort(404);
+        if (! $s) {
+            abort(404);
+        }
         $offset = (int) $request->header('Upload-Offset', 0);
-        if($offset !== (int) $s->offset_bytes) return response('Conflict', 409)->header('Tus-Resumable', '1.0.0');
+        if ($offset !== (int) $s->offset_bytes) {
+            return response('Conflict', 409)->header('Tus-Resumable', '1.0.0');
+        }
         $chunk = $request->getContent();
         $newOffset = $offset + strlen($chunk);
         DB::table('upload_sessions')->where('id', $id)->update(['offset_bytes' => $newOffset, 'updated_at' => now()]);
-        if($newOffset >= (int) $s->size_bytes){
+        if ($newOffset >= (int) $s->size_bytes) {
             DB::table('upload_sessions')->where('id', $id)->update(['status' => 'completed']);
         }
+
         return response('', 204)->header('Upload-Offset', (string) $newOffset)->header('Tus-Resumable', '1.0.0');
     }
 }

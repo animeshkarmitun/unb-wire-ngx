@@ -7,6 +7,8 @@ use App\Models\Story;
 use App\Models\User;
 use App\Services\StoryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Tests\TestCase;
 
 class StoryWorkflowTest extends TestCase
@@ -14,6 +16,7 @@ class StoryWorkflowTest extends TestCase
     use RefreshDatabase;
 
     private User $actor;
+
     private Category $cat;
 
     protected function setUp(): void
@@ -58,7 +61,7 @@ class StoryWorkflowTest extends TestCase
         $s = $this->draft();
         $svc = app(StoryService::class);
         $svc->updateDraft($s, ['headline' => 'v2'], 1, $this->actor);
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\ConflictHttpException::class);
+        $this->expectException(ConflictHttpException::class);
         $svc->updateDraft($s->refresh(), ['headline' => 'v3'], 1, $this->actor);
     }
 
@@ -78,7 +81,7 @@ class StoryWorkflowTest extends TestCase
     public function test_invalid_transition_rejected(): void
     {
         $s = $this->draft();
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException::class);
+        $this->expectException(UnprocessableEntityHttpException::class);
         app(StoryService::class)->transition($s, 'published', $this->actor);
     }
 
@@ -88,7 +91,7 @@ class StoryWorkflowTest extends TestCase
         $svc = app(StoryService::class);
         $s = $svc->transition($s, 'in_review', $this->actor);
         $s = $svc->transition($s, 'approved', $this->actor);
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException::class);
+        $this->expectException(UnprocessableEntityHttpException::class);
         $svc->transition($s, 'published', $this->actor);
     }
 
@@ -108,7 +111,7 @@ class StoryWorkflowTest extends TestCase
         $svc = app(StoryService::class);
         $s = $svc->transition($s, 'in_review', $this->actor);
         $s = $svc->transition($s, 'approved', $this->actor);
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException::class);
+        $this->expectException(UnprocessableEntityHttpException::class);
         $svc->transition($s, 'published', $this->actor);
     }
 

@@ -1,13 +1,15 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Models\Story;
+use App\Services\DashboardService;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/admin', function (\App\Services\DashboardService $dashboardService) {
+Route::get('/admin', function (DashboardService $dashboardService) {
     return view('admin.dashboard', $dashboardService->getData());
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -24,7 +26,8 @@ Route::get('/admin/clients', function () {
 })->middleware(['auth', 'verified', 'rbac:clients,view'])->name('admin.clients');
 
 Route::get('/admin/news/{language}', function (string $language) {
-    abort_unless(in_array($language, ['en','bn']), 404);
+    abort_unless(in_array($language, ['en', 'bn']), 404);
+
     return view('admin.news', ['language' => $language]);
 })->middleware(['auth', 'verified', 'rbac:stories,view'])->name('admin.news');
 
@@ -49,12 +52,13 @@ Route::get('/admin/distribution', function () {
 })->middleware(['auth', 'verified', 'rbac:distribution,view'])->name('admin.distribution');
 
 Route::get('/admin/service/{service}', function (string $service) {
-    abort_unless(in_array($service,['en','bn']),404);
-    return view('admin.service',['service'=>$service]);
+    abort_unless(in_array($service, ['en', 'bn']), 404);
+
+    return view('admin.service', ['service' => $service]);
 })->middleware(['auth', 'verified', 'rbac:stories,view'])->name('admin.service');
 
 Route::get('/admin/story/{publicId}', function (string $publicId) {
-    return view('admin.story',['publicId'=>$publicId,'story'=>\App\Models\Story::where('public_id',$publicId)->firstOrFail()]);
+    return view('admin.story', ['publicId' => $publicId, 'story' => Story::where('public_id', $publicId)->firstOrFail()]);
 })->middleware(['auth', 'verified', 'rbac:stories,view'])->name('admin.story');
 
 Route::get('/admin/preferences', function () {

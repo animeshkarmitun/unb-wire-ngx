@@ -2,15 +2,20 @@
 
 namespace App\Livewire\Admin;
 
+use App\Jobs\FanoutStory;
+use App\Jobs\ProcessIndexOutbox;
 use App\Models\Category;
 use App\Models\MediaAsset;
 use App\Models\Story;
+use App\Models\StoryEvent;
+use App\Models\StoryNote;
 use App\Models\Tag;
 use App\Services\AiService;
 use App\Services\HtmlSanitizer;
 use App\Services\NotificationService;
 use App\Services\RbacService;
 use App\Services\StoryService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Component;
@@ -19,45 +24,73 @@ class AddNews extends Component
 {
     // Stepper state (1: Write, 2: Media, 3: Organize & access, 4: Review & publish)
     public int $step = 1;
+
     public ?int $storyId = null;
+
     public string $status = 'draft';
+
     public string $language = 'en';
 
     // Step 1: Write fields
     public string $headline = '';
+
     public string $subHead = '';
+
     public string $datelineCity = 'Dhaka';
+
     public string $datelineAt = '';
+
     public string $brief = '';
+
     public string $bodyHtml = '';
+
     public string $priority = 'routine';
+
     public bool $isBreaking = false;
+
     public string $embargoUntil = '';
+
     public string $author = 'UNB Desk';
 
     // Step 2: Media fields
     public ?int $featuredMediaId = null;
+
     public string $featuredCaption = '';
+
     public array $attachedMedia = []; // Array of ['id' => int, 'cap' => string, 'role' => string, 'rights' => string, 'type' => string, 'grad' => string, 'src' => ?string]
+
     public array $selectedMediaIds = [];
 
     // Step 3: Organize & Access fields
     public string $categoryId = '';
+
     public string $subCategoryId = '';
+
     public array $tags = []; // Array of tag names e.g. ['bangladesh', 'dhaka']
+
     public array $newsTypes = []; // e.g. ['has_video', 'top_news', 'trending', 'editors_pick', 'slider', 'special']
+
     public string $access = 'standard'; // 'standard' | 'exclusive'
+
     public array $exclusiveTiers = ['Premium', 'Standard'];
+
     public array $exclusiveClients = [];
 
     // Step 4 & Workflow fields
     public array $aiTouched = [];
+
     public ?array $aiPack = null;
+
     public bool $aiLoading = false;
+
     public string $noteBody = '';
+
     public ?string $successState = null; // 'published' | 'sent' | null
+
     public ?int $ownerId = null;
+
     public string $ownerName = '';
+
     public string $ownerRole = '';
 
     public function mount(?int $id = null): void
@@ -107,7 +140,7 @@ class AddNews extends Component
                     'role' => $m->role,
                     'rights' => 'story',
                     'type' => $m->kind === 'video' ? 'video' : 'photo',
-                    'grad' => 'g' . (($m->id % 8) + 1),
+                    'grad' => 'g'.(($m->id % 8) + 1),
                     'src' => null,
                 ];
                 if ($m->role === 'featured') {
@@ -277,11 +310,11 @@ class AddNews extends Component
             $this->selectedMediaIds[] = $id;
             $this->attachedMedia[] = [
                 'id' => $id,
-                'cap' => $caption ?: 'Photo #' . $id,
+                'cap' => $caption ?: 'Photo #'.$id,
                 'role' => 'inline',
                 'rights' => 'story',
                 'type' => $kind === 'video' ? 'video' : 'photo',
-                'grad' => 'g' . (($id % 8) + 1),
+                'grad' => 'g'.(($id % 8) + 1),
                 'src' => null,
             ];
         }
@@ -314,6 +347,7 @@ class AddNews extends Component
 
         if (isset($pack['error'])) {
             $this->dispatch('toast', message: $pack['error']);
+
             return;
         }
 
@@ -342,7 +376,7 @@ class AddNews extends Component
             $this->dispatch('quill-set-content', html: $this->bodyHtml);
         }
         if ($field === 'category' && isset($this->aiPack['category']['name'])) {
-            $cat = Category::where('name_en', 'like', '%' . $this->aiPack['category']['name'] . '%')->first();
+            $cat = Category::where('name_en', 'like', '%'.$this->aiPack['category']['name'].'%')->first();
             if ($cat) {
                 $this->categoryId = (string) $cat->id;
                 $this->aiTouched['category'] = true;
@@ -355,7 +389,7 @@ class AddNews extends Component
             $this->aiTouched['tags'] = true;
         }
 
-        $this->dispatch('toast', message: 'Applied AI ' . $field);
+        $this->dispatch('toast', message: 'Applied AI '.$field);
         $this->dispatch('story-updated');
         $this->autosave();
     }
@@ -447,7 +481,7 @@ class AddNews extends Component
     private function parseEmbargo(string $input): ?string
     {
         try {
-            return \Carbon\Carbon::parse($input, 'Asia/Dhaka')->utc()->toDateTimeString();
+            return Carbon::parse($input, 'Asia/Dhaka')->utc()->toDateTimeString();
         } catch (\Throwable $e) {
             return $input;
         }
@@ -525,8 +559,8 @@ class AddNews extends Component
         $this->status = $s->status;
 
         if ($s->status === 'published') {
-            dispatch(new \App\Jobs\FanoutStory($s->id));
-            dispatch(new \App\Jobs\ProcessIndexOutbox());
+            dispatch(new FanoutStory($s->id));
+            dispatch(new ProcessIndexOutbox);
             $notifs->notifyStatusChange($s->id, 'published', auth()->id());
             $this->successState = 'published';
             $this->dispatch('toast', message: 'Story successfully published to wire feed');
@@ -545,14 +579,14 @@ class AddNews extends Component
             $this->autosave();
         }
 
-        \App\Models\StoryNote::create([
+        StoryNote::create([
             'story_id' => $this->storyId,
             'user_id' => auth()->id(),
             'body' => $this->noteBody,
             'is_internal' => true,
         ]);
 
-        \App\Models\StoryEvent::create([
+        StoryEvent::create([
             'story_id' => $this->storyId,
             'actor_id' => auth()->id(),
             'action' => 'note_added',
@@ -569,7 +603,7 @@ class AddNews extends Component
         $cats = Category::whereNull('parent_id')->orderBy('sort_order')->get();
         $subs = $this->categoryId ? Category::where('parent_id', $this->categoryId)->orderBy('sort_order')->get() : collect();
         $media = MediaAsset::where('status', 'library')->orderByDesc('created_at')->limit(24)->get();
-        $notes = $this->storyId ? \App\Models\StoryNote::with('user.role')->where('story_id', $this->storyId)->where('is_internal', true)->orderBy('created_at')->get() : collect();
+        $notes = $this->storyId ? StoryNote::with('user.role')->where('story_id', $this->storyId)->where('is_internal', true)->orderBy('created_at')->get() : collect();
 
         return view('livewire.admin.add-news', compact('cats', 'subs', 'media', 'notes'));
     }

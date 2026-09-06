@@ -11,13 +11,20 @@ class GenerateDerivatives implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public int $assetId){ $this->onQueue('derivatives'); }
+    public function __construct(public int $assetId)
+    {
+        $this->onQueue('derivatives');
+    }
 
     public function handle(): void
     {
         $asset = MediaAsset::find($this->assetId);
-        if(! $asset) return;
-        if(! empty($asset->derivatives['thumb'])) return;
+        if (! $asset) {
+            return;
+        }
+        if (! empty($asset->derivatives['thumb'])) {
+            return;
+        }
 
         $derivatives = [
             'thumb' => ['path' => "d/{$asset->public_id}/thumb.webp", 'width' => 400],
@@ -25,7 +32,10 @@ class GenerateDerivatives implements ShouldQueue
             'large' => ['path' => "d/{$asset->public_id}/large.webp", 'width' => 1600],
         ];
 
-        try { Storage::disk($asset->storage_disk)->exists($asset->original_path); } catch (\Throwable $e) {}
+        try {
+            Storage::disk($asset->storage_disk)->exists($asset->original_path);
+        } catch (\Throwable $e) {
+        }
 
         $asset->update(['derivatives' => $derivatives]);
     }

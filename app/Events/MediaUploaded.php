@@ -15,7 +15,13 @@ class MediaUploaded implements ShouldBroadcast
 
     public function __construct(public MediaAsset $asset) {}
 
-    public function broadcastOn(): array { return [new Channel('photo-desk')]; }
+    public function broadcastOn(): array
+    {
+        return [new Channel('photo-desk')];
+    }
 
-    public function broadcastWith(): array { return ['id'=>$this->asset->id,'title'=>$this->asset->title,'status'=>$this->asset->status]; }
+    public function broadcastWith(): array
+    {
+        return ['id' => $this->asset->id, 'title' => $this->asset->title, 'status' => $this->asset->status];
+    }
 }

@@ -2,12 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Models\Category;
+use App\Jobs\GenerateDerivatives;
 use App\Models\MediaAsset;
 use App\Models\User;
 use App\Services\Media\PresignedUrlService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class MediaTest extends TestCase
@@ -20,7 +21,7 @@ class MediaTest extends TestCase
         Storage::disk('s3')->put('originals/test.jpg', 'fake-content');
         $user = User::factory()->create();
         $a = MediaAsset::create([
-            'public_id' => (string) \Illuminate\Support\Str::ulid(),
+            'public_id' => (string) Str::ulid(),
             'kind' => 'photo',
             'status' => 'library',
             'title' => 'Test photo',
@@ -43,7 +44,7 @@ class MediaTest extends TestCase
     {
         $user = User::factory()->create();
         $a = MediaAsset::create([
-            'public_id' => (string) \Illuminate\Support\Str::ulid(),
+            'public_id' => (string) Str::ulid(),
             'kind' => 'photo',
             'status' => 'library',
             'title' => 'T',
@@ -57,7 +58,7 @@ class MediaTest extends TestCase
             'derivatives' => [],
             'uploaded_by' => $user->id,
         ]);
-        (new \App\Jobs\GenerateDerivatives($a->id))->handle();
+        (new GenerateDerivatives($a->id))->handle();
         $this->assertNotEmpty($a->refresh()->derivatives['thumb']);
     }
 

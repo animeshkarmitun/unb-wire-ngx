@@ -13,8 +13,11 @@ class EnsureRbac
     public function handle(Request $request, Closure $next, string $module, string $action = 'view')
     {
         $user = $request->user();
-        if (!$user) abort(401);
+        if (! $user) {
+            abort(401);
+        }
         $this->rbac->assertCan($user, $module, $action);
+
         return $next($request);
     }
 }

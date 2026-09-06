@@ -12,14 +12,14 @@ return new class extends Migration
         if (DB::connection()->getDriverName() === 'pgsql') {
             $fk = DB::selectOne("SELECT conname FROM pg_constraint WHERE conrelid='users'::regclass AND contype='f' AND array_position(conkey, (SELECT attnum FROM pg_attribute WHERE attrelid='users'::regclass AND attname='role_id')) IS NOT NULL");
             if ($fk) {
-                DB::statement('ALTER TABLE users DROP CONSTRAINT "' . $fk->conname . '"');
+                DB::statement('ALTER TABLE users DROP CONSTRAINT "'.$fk->conname.'"');
             }
             DB::statement('ALTER TABLE users ADD CONSTRAINT users_role_id_foreign FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE RESTRICT');
         } else {
             Schema::table('users', function (Blueprint $table) {
                 try {
                     $table->dropConstrainedForeignId('role_id');
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                 }
             });
             Schema::table('users', function (Blueprint $table) {
@@ -29,7 +29,7 @@ return new class extends Migration
                 Schema::table('users', function (Blueprint $table) {
                     $table->foreignId('role_id')->nullable()->constrained('roles')->restrictOnDelete();
                 });
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
             }
         }
     }

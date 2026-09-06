@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\FanoutStory;
 use App\Models\Category;
 use App\Models\Client;
 use App\Models\Package;
@@ -9,7 +10,10 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\ApiKeyService;
 use App\Services\RbacService;
+use App\Services\Search\EntitlementResolver;
+use App\Services\Search\TenantTokenIssuer;
 use App\Services\StoryService;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -21,12 +25,13 @@ class SeedWorkflowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(\Database\Seeders\RoleSeeder::class);
+        $this->seed(RoleSeeder::class);
     }
 
     private function user(string $role): User
     {
         $r = Role::where('name', $role)->firstOrFail();
+
         return User::factory()->create(['role_id' => $r->id]);
     }
 
@@ -94,10 +99,10 @@ class SeedWorkflowTest extends TestCase
         $story = $svc->transition($story, 'approved', $officeAdmin);
         $story = $svc->transition($story, 'published', $officeAdmin);
 
-        (new \App\Jobs\FanoutStory($story->id))->handle();
+        (new FanoutStory($story->id))->handle();
         $this->assertDatabaseHas('deliveries', ['client_id' => $client->id, 'deliverable_id' => $story->id]);
 
-        $tokenData = app(\App\Services\Search\TenantTokenIssuer::class)->issueFor($client);
+        $tokenData = app(TenantTokenIssuer::class)->issueFor($client);
         $this->assertStringContainsString('en', $tokenData['filter']);
         $this->assertEquals('language IN [en]', $tokenData['filter']);
 
@@ -128,10 +133,10 @@ class SeedWorkflowTest extends TestCase
         $bn = $svc->transition($bn, 'approved', $admin);
         $bn = $svc->transition($bn, 'published', $admin);
 
-        (new \App\Jobs\FanoutStory($bn->id))->handle();
+        (new FanoutStory($bn->id))->handle();
         $this->assertDatabaseMissing('deliveries', ['client_id' => $client->id, 'deliverable_id' => $bn->id]);
 
-        $filter = app(\App\Services\Search\EntitlementResolver::class)->compileMeiliFilter($client);
+        $filter = app(EntitlementResolver::class)->compileMeiliFilter($client);
         $this->assertEquals('language IN [en]', $filter);
         $this->assertStringNotContainsString('bn', $filter);
     }
