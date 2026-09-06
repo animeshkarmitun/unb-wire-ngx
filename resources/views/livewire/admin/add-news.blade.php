@@ -644,7 +644,7 @@
   </div><!-- /add-grid -->
 
   <!-- ============ PREVIEW FOCUS OVERLAY ============ -->
-  <div class="pv-overlay" id="pvOverlay">
+  <div class="pv-overlay" id="pvOverlay" wire:ignore>
     <div class="pv-focus dev-desktop" id="pvFocus">
       <div class="pv-focus-bar">
         <span class="pv-focus-title"><span class="pv-dot"></span> Live preview</span>
@@ -660,7 +660,7 @@
   </div>
 
   <!-- ============ PHOTO ARCHIVE MODAL ============ -->
-  <div class="media-overlay" id="mediaOverlay">
+  <div class="media-overlay" id="mediaOverlay" wire:ignore>
     <div class="media-modal">
       <div class="mm-header">
         <div>
@@ -703,7 +703,7 @@
   </div>
 
   <!-- ============ IMPORT FROM DOC MODAL ============ -->
-  <div class="media-overlay" id="docOverlay">
+  <div class="media-overlay" id="docOverlay" wire:ignore>
     <div class="media-modal doc-modal">
       <div class="mm-header">
         <div>
@@ -746,7 +746,7 @@
   </div>
 
   <!-- ============ MEDIA EDIT MODAL ============ -->
-  <div class="media-overlay" id="editOverlay">
+  <div class="media-overlay" id="editOverlay" wire:ignore>
     <div class="media-modal edit-modal">
       <div class="mm-header">
         <div>
@@ -778,7 +778,7 @@
   </div>
 
   <!-- ============ RELATED STORY MODAL ============ -->
-  <div class="media-overlay" id="relOverlay">
+  <div class="media-overlay" id="relOverlay" wire:ignore>
     <div class="media-modal" style="width:min(600px, 100%)">
       <div class="mm-header">
         <div>
@@ -799,7 +799,7 @@
   </div>
 
   <!-- ============ TABLE MODAL ============ -->
-  <div class="media-overlay" id="tblOverlay">
+  <div class="media-overlay" id="tblOverlay" wire:ignore>
     <div class="media-modal" style="width:min(580px, 100%)">
       <div class="mm-header">
         <div>
@@ -831,7 +831,7 @@
   </div>
 
   <!-- ============ REVISION HISTORY MODAL ============ -->
-  <div class="media-overlay" id="hisOverlay">
+  <div class="media-overlay" id="hisOverlay" wire:ignore>
     <div class="media-modal" style="width:min(640px, 100%)">
       <div class="mm-header">
         <div>
@@ -848,7 +848,7 @@
   </div>
 
   <!-- ============ AI ASSIST MODAL ============ -->
-  <div class="media-overlay" id="aiOverlay">
+  <div class="media-overlay" id="aiOverlay" wire:ignore>
     <div class="media-modal ai-modal">
       <div class="mm-header">
         <div>
@@ -866,7 +866,7 @@
   </div>
 
   <!-- ============ AI SUGGESTION DRAWER ============ -->
-  <div class="ai-drawer" id="aiDrawer">
+  <div class="ai-drawer" id="aiDrawer" wire:ignore>
     <div class="aid-head">
       <div>
         <div class="aid-title">✦ AI Editorial Assistant</div>
@@ -882,7 +882,7 @@
   </div>
 
   <!-- ============ RAW VS AI COMPARE MODAL ============ -->
-  <div class="media-overlay" id="cmpOverlay">
+  <div class="media-overlay" id="cmpOverlay" wire:ignore>
     <div class="media-modal cmp-modal">
       <div class="mm-header">
         <div>
@@ -915,7 +915,7 @@
   </div>
 
   <!-- ============ AI PUBLISH GATE MODAL ============ -->
-  <div class="media-overlay" id="aiGateOverlay">
+  <div class="media-overlay" id="aiGateOverlay" wire:ignore>
     <div class="modal ai-gate">
       <h3>✦ AI Human Review Checklist</h3>
       <div class="g-sub">This story includes AI-generated or assisted content. Verify accuracy before wire broadcast (<span id="gateFacts">0 facts flagged</span>).</div>
@@ -930,7 +930,7 @@
   </div>
 
   <!-- ============ DRAG & DROP OVERLAY ============ -->
-  <div class="drop-overlay" id="dropOverlay">
+  <div class="drop-overlay" id="dropOverlay" wire:ignore>
     <div class="drop-overlay-inner">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       <div class="do-title">Drop photos or videos to attach</div>

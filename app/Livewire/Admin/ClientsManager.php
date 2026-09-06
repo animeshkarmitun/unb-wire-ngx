@@ -298,9 +298,9 @@ class ClientsManager extends Component
         $this->drawerEffective = 'Immediately (prorated)';
     }
 
-    public function saveNote(RbacService $rbac): void
+    public function saveNote(): void
     {
-        $rbac->assertCan(auth()->user(), 'clients', 'edit');
+        app(RbacService::class)->assertCan(auth()->user(), 'clients', 'edit');
         if (! $this->selectedId) {
             return;
         }

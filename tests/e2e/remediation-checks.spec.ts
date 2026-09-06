@@ -18,7 +18,7 @@ test.describe('Remediation — interaction contracts', () => {
     await page.waitForTimeout(500);
     await page.goto('/admin/news/en');
     await page.waitForLoadState('networkidle');
-    const enLink = page.getByRole('link', { name: '+ New story' }).first();
+    const enLink = page.getByRole('link', { name: /\+ (New story|Add News)/i }).first();
     await expect(enLink).toHaveAttribute('href', /\/admin\/add-news/);
   });
 
