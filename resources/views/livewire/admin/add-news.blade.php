@@ -93,14 +93,14 @@
           </div>
 
           <!-- Start with AI -->
-          <div class="ai-start" id="aiStart">
+          <div class="ai-start" id="aiStart" x-data="{ open: true }">
             <div class="ai-start-head">
               <span class="ai-label">✦ Start with AI</span>
               <span class="ai-note">Paste raw notes, a press release or field copy — AI drafts the headline, brief, body, category &amp; tags. <strong>Nothing is applied without your click.</strong></span>
-              <button type="button" class="ai-start-toggle" id="aiStartToggle">Hide</button>
+              <button type="button" class="ai-start-toggle" id="aiStartToggle" @click="open = !open" x-text="open ? 'Hide' : 'Show'">Hide</button>
             </div>
-            <div class="ai-start-body" id="aiStartBody">
-              <textarea class="ai-raw" id="aiRaw" placeholder="Paste notes, press release, bullet points, rough quotes, or field copy here…"></textarea>
+            <div class="ai-start-body" id="aiStartBody" x-show="open" :hidden="!open">
+              <textarea class="ai-raw" id="aiRaw" wire:model.live.debounce.300ms="aiRawText" placeholder="Paste notes, press release, bullet points, rough quotes, or field copy here…"></textarea>
               <div class="ai-start-foot">
                 <span class="ai-note">AI drafts headline, brief, polished wire body, category and tags for your review</span>
                 <button type="button" class="ai-gen-btn" id="aiGenerateBtn" wire:click="callAi('generate')">

@@ -52,6 +52,8 @@ class AddNews extends Component
 
     public string $author = 'UNB Desk';
 
+    public string $aiRawText = '';
+
     // Step 2: Media fields
     public ?int $featuredMediaId = null;
 
@@ -339,7 +341,7 @@ class AddNews extends Component
         $payload = [
             'headline' => $this->headline,
             'brief' => $this->brief,
-            'text' => HtmlSanitizer::text($this->bodyHtml) ?: $this->brief,
+            'text' => $this->aiRawText ?: (HtmlSanitizer::text($this->bodyHtml) ?: $this->brief),
             'category' => $this->categoryId,
         ];
         $pack = $svc->call($kind, $payload, auth()->id(), $this->storyId);
