@@ -3,12 +3,16 @@
 namespace Database\Seeders;
 
 use App\Models\Category;
+use App\Models\Client;
+use App\Models\ClientUser;
+use App\Models\Download;
 use App\Models\MediaAsset;
 use App\Models\MediaBatch;
 use App\Models\Package;
 use App\Models\Role;
 use App\Models\Story;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -794,6 +798,95 @@ class MediaSeeder extends Seeder
                 'download_count' => $ap['dl'],
                 'created_at' => $ap['date'],
             ]);
+        }
+
+        // 2. Seed Download & License Audit Logs for The Daily Star
+        $dailyStar = Client::where('code', 'DST')->first();
+        if ($dailyStar) {
+            Download::where('client_id', $dailyStar->id)->delete();
+
+            $clientRoleId = Role::where('type', 'client')->value('id') ?? Role::first()?->id ?? 1;
+
+            $photoUser = ClientUser::where('client_id', $dailyStar->id)->where('email', 'like', '%photo%')->first()
+                ?? ClientUser::firstOrCreate(
+                    ['client_id' => $dailyStar->id, 'email' => 'photo@dailystar.com'],
+                    ['name' => 'Photo Desk', 'password' => bcrypt('password'), 'client_role_id' => $clientRoleId, 'status' => 'active']
+                );
+
+            $newsUser = ClientUser::where('client_id', $dailyStar->id)->where('email', 'like', '%news%')->first()
+                ?? ClientUser::firstOrCreate(
+                    ['client_id' => $dailyStar->id, 'email' => 'newsdesk@dailystar.com'],
+                    ['name' => 'News Desk', 'password' => bcrypt('password'), 'client_role_id' => $clientRoleId, 'status' => 'active']
+                );
+
+            $sportsUser = ClientUser::where('client_id', $dailyStar->id)->where('email', 'like', '%sports%')->first()
+                ?? ClientUser::firstOrCreate(
+                    ['client_id' => $dailyStar->id, 'email' => 'sports@dailystar.com'],
+                    ['name' => 'Sports Desk', 'password' => bcrypt('password'), 'client_role_id' => $clientRoleId, 'status' => 'active']
+                );
+
+            $mRizvi = MediaAsset::where('title', 'like', '%Rizvi%')->first() ?? MediaAsset::first();
+            $mAp1 = MediaAsset::where('source', 'ap')->first() ?? MediaAsset::first();
+            $mAp2 = MediaAsset::where('source', 'ap')->skip(1)->first() ?? MediaAsset::first();
+            $mTigers = MediaAsset::where('title', 'like', '%Tigers%')->orWhere('title', 'like', '%cricket%')->first() ?? MediaAsset::first();
+            $mPadma = MediaAsset::where('title', 'like', '%Padma%')->orWhere('kind', 'video')->first() ?? MediaAsset::first();
+
+            $downloadsData = [
+                [
+                    'client_id' => $dailyStar->id,
+                    'client_user_id' => $photoUser->id,
+                    'item_type' => 'media',
+                    'item_id' => $mRizvi?->id ?? 1,
+                    'format' => 'JPEG',
+                    'size_bytes' => 524288,
+                    'ip' => '103.118.19.26',
+                    'created_at' => Carbon::parse('2026-08-24 09:32:00'),
+                ],
+                [
+                    'client_id' => $dailyStar->id,
+                    'client_user_id' => $photoUser->id,
+                    'item_type' => 'media',
+                    'item_id' => $mAp1?->id ?? 1,
+                    'format' => 'JPEG',
+                    'size_bytes' => 450000,
+                    'ip' => '103.118.19.26',
+                    'created_at' => Carbon::parse('2026-08-23 20:15:00'),
+                ],
+                [
+                    'client_id' => $dailyStar->id,
+                    'client_user_id' => $newsUser->id,
+                    'item_type' => 'media',
+                    'item_id' => $mAp2?->id ?? 1,
+                    'format' => 'JPEG',
+                    'size_bytes' => 480000,
+                    'ip' => '103.118.19.26',
+                    'created_at' => Carbon::parse('2026-08-23 18:41:00'),
+                ],
+                [
+                    'client_id' => $dailyStar->id,
+                    'client_user_id' => $sportsUser->id,
+                    'item_type' => 'media',
+                    'item_id' => $mTigers?->id ?? 1,
+                    'format' => 'JPEG',
+                    'size_bytes' => 610000,
+                    'ip' => '103.118.19.26',
+                    'created_at' => Carbon::parse('2026-08-22 17:20:00'),
+                ],
+                [
+                    'client_id' => $dailyStar->id,
+                    'client_user_id' => null, // video desk (FTP auto-push)
+                    'item_type' => 'media',
+                    'item_id' => $mPadma?->id ?? 1,
+                    'format' => 'MP4',
+                    'size_bytes' => 12582912,
+                    'ip' => '103.118.19.26',
+                    'created_at' => Carbon::parse('2026-08-22 11:05:00'),
+                ],
+            ];
+
+            foreach ($downloadsData as $d) {
+                Download::create($d);
+            }
         }
     }
 }

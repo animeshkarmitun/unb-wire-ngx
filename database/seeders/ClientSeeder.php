@@ -16,6 +16,7 @@ class ClientSeeder extends Seeder
     public function run(): void
     {
         // Safe clear of existing client tables
+        DB::table('downloads')->delete();
         DB::table('client_api_keys')->delete();
         DB::table('client_channels')->delete();
         DB::table('client_packages')->delete();
