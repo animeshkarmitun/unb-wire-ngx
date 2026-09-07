@@ -9,9 +9,11 @@ use App\Models\ClientPackage;
 use App\Models\Package;
 use App\Models\Role;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ClientService
 {
@@ -569,7 +571,7 @@ class ClientService
 
     // ─── CSV Export ─────────────────────────────────────────────────
 
-    public function exportCsv(\Illuminate\Database\Eloquent\Collection $clients, bool $selectedOnly = false): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function exportCsv(Collection $clients, bool $selectedOnly = false): StreamedResponse
     {
         $filename = $selectedOnly ? 'unb-clients-selected.csv' : 'unb-clients.csv';
 

@@ -3,7 +3,6 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Client;
-use App\Models\ClientChannel;
 use App\Models\Package;
 use App\Services\ClientService;
 use App\Services\RbacService;
