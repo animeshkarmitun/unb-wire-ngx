@@ -9,8 +9,6 @@ use App\Models\Category;
 use App\Models\MediaAsset;
 use App\Models\Role;
 use App\Models\Story;
-use App\Models\StoryEvent;
-use App\Models\StoryNote;
 use App\Models\Tag;
 use App\Models\User;
 use Database\Seeders\CategorySeeder;
@@ -75,6 +73,7 @@ class AddNewsTest extends TestCase
     private function createDraftStory(?User $owner = null): Story
     {
         $owner = $owner ?? $this->editor;
+
         return Story::factory()->create([
             'status' => 'draft',
             'language' => 'en',
