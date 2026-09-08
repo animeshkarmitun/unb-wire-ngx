@@ -1,6 +1,6 @@
 # Task: M10-HIST-003 — `RevisionService::diff` + `restore` (non-destructive, lock-safe)
 
-**Status:** ⏳ Pending
+**Status:** ✅ Completed
 **Dependencies:** M10-HIST-002
 **Parent ADR:** NFR §15 (`RevisionService: version snapshots, diff(v1,v2), restore`), `docs/plans/history-audit-design.md` §3
 
@@ -48,10 +48,10 @@
 ---
 
 ## 6. Completion Notes
-- **Shipped:** —
-- **Tests:** —
-- **Live Smoke:** —
-- **Review:** —
+- **Shipped:** `RevisionService::diff(a,b)` — field-level rows for meta + word-level token diff for body_html (server-side, pure). `restore(story, version, actor, expectedVersion)` — status guard (draft/in_review/changes_requested), optimistic version 409, applies snapshot fields (tags re-attach by name, is_breaking/priority defaulted for NOT NULL safety), bumps version, writes NEW snapshot + story_events `restored` {from_version, to_version}. Snapshot `is_breaking` boolean-cast + `priority` defaulted to 'routine' to prevent NOT NULL violations. Circular dependency with StoryService avoided by inlining lock logic.
+- **Tests:** `RevisionServiceDiffTest` 5/5 (unit: identical→empty, field diff, tags diff, body changes, body no-change). `RevisionRestoreTest` 7/7 (feature: new version row, old versions intact, published/killed→denied, stale 409, event payload, tag reattach). Full suite: 357 passed. Schema parity green.
+- **Live Smoke:** sqlite :memory: (CI env). No pgsql schema drift.
+- **Review:** — (milestone-end review in M10-HIST-010)
 
 ---
 

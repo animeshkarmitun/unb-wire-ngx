@@ -131,7 +131,7 @@
 |---------|-------|--------------|--------|--------|-----------|
 | `M10-HIST-001` | RBAC `history` + `audit` permission modules (seeder, matrix UI, DEC-012) | — | ✅ | — | 2026-09-08 |
 | `M10-HIST-002` | Full-field version snapshots + snapshot-on-transition (`RevisionService::snapshot`) | — | ✅ | — | 2026-09-08 |
-| `M10-HIST-003` | `RevisionService::diff` + `restore` (non-destructive, lock-safe) | M10-HIST-002 | ⏳ | — | — |
+| `M10-HIST-003` | `RevisionService::diff` + `restore` (non-destructive, lock-safe) | M10-HIST-002 | ✅ | — | 2026-09-08 |
 | `M10-HIST-004` | `story_events` payload enrichment + spec action vocabulary | M10-HIST-002 | ⏳ | — | — |
 | `M10-HIST-005` | Sensitive actions → `audit_logs` (ip/ua/correlation/diff) + `AuditQueryService` | M10-HIST-001, M10-HIST-004 | ⏳ | — | — |
 | `M10-HIST-006` | Story view: Timeline + Versions sections | M10-HIST-001, M10-HIST-004 | ⏳ | — | — |
