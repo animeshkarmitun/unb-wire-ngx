@@ -45,6 +45,11 @@
 2. **Services** (the NFR §15/§15.1 inventory — 48 domain classes): all business
    logic; own transactions (content write + `index_outbox` row commit together).
    Cross-module talk is service-to-service, never model-to-model.
+   - **`RevisionService`** (M10-HIST): `snapshot(Story, User)`, `diff(StoryVersion a, StoryVersion b)`,
+     `restore(Story, int version, User, ?int expectedVersion)` — full-field version snapshots,
+     field-level + word-level diff, non-destructive restore with optimistic version.
+   - **`AuditQueryService`** (M10-HIST): `forEntity(type, id)`, `search(filters)` — paginated
+     read-only queries over `audit_logs` for admin audit browser + per-entity drill.
 3. **Repositories (one per aggregate):** the ONLY place Eloquent/query-builder is
    used — read-replica routing, partition-aware queries (date bounds on
    `deliveries`/`audit_logs`), eager loading, cursor pagination. Concrete classes;

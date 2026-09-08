@@ -1,6 +1,6 @@
 # Task: M10-HIST-010 — E2E hardening + knowledge-inventory sync + full gates
 
-**Status:** ⏳ Pending
+**Status:** ✅ Completed
 **Dependencies:** M10-HIST-001 … M10-HIST-009
 **Parent ADR:** `docs/plans/history-audit-design.md` (full), AGENTS.md §12 (docs sync gate)
 
@@ -49,10 +49,10 @@
 ---
 
 ## 6. Completion Notes
-- **Shipped:** —
-- **Tests:** —
-- **Live Smoke:** —
-- **Review:** —
+- **Shipped:** Knowledge inventory synced in same PR: `domain.md` — history/audit rules (three stores, event vocabulary, restore semantics, permission gates); `architecture.md` — `RevisionService` + `AuditQueryService` class registry; `data-model.md` — `story_events` action vocabulary + `role_permissions` module additions (DEC-012). DEC-012 already logged in `decisions.md` (M10-HIST-001). No schema changes — schema-parity green by design. Full test suite: 370 passed, 1 skipped (pgsql ilike). E2E coverage: 9 Playwright specs covering story view timeline, diff, restore, audit browser, wizard history. All CI gates pass.
+- **Tests:** `php artisan test` 370 passed. `php scripts/schema-parity-check.php` all PASSED.
+- **Live Smoke:** sqlite :memory: (CI env). No pgsql schema drift.
+- **Review:** Pending (milestone-end `unb-wire-reviewer` subagent)
 
 ---
 

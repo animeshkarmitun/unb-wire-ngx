@@ -25,7 +25,7 @@
 | **Entitlement** | What a client may receive/see, computed as the union of their active packages. One definition drives delivery, portal visibility, and search tokens (FR-DST-002). |
 | **Channel** | How a client receives content: API polling, FTP push, webhook (FR-DST-004). |
 | **Edit lock** | Soft lock (`locked_by`/`locked_at`) shown as "Maria is editing now"; combined with optimistic `version` checks (stale save → 409 + merge prompt). Handover force-releases the lock (FR-NWS-013/014). |
-| **Revision** | Immutable `story_versions` snapshot on every save/publish, with diff + restore (DEC-003). |
+| **Revision** | Immutable `story_versions` snapshot on every save/publish with full field set (headline/sub_head/brief/body_html/category_id/dateline_city/dateline_at/priority/is_breaking/language/embargo_until/tags). `RevisionService::snapshot()` creates snapshots; `diff(v1,v2)` returns field-level + word-level body diff; `restore(story, version, actor)` creates a NEW version with restored content (non-destructive, pre-publish states only, optimistic version 409 on stale). Version number bumps on every save AND every transition (UNIQUE `(story_id, version)` safe). |
 | **Embargo** | Hold-until time with explicit timezone, stored UTC; enforced in the delivery worker, never just hidden in UI (NFR §6/§11). |
 | **Mirror pair** | Bangla story linked to its English counterpart via `mirror_of_id` — separate products, not row-per-translation. |
 
@@ -52,10 +52,14 @@ stateDiagram-v2
 
 ### Rules
 1. **Every transition is permission-checked server-side and audit-logged** (who/when/
-   from→to in `story_events` — chain of custody, NFR §8).
+   from→to in `story_events` — chain of custody, NFR §8). Event actions use spec
+   vocabulary: `created`, `sent_to_review`, `changes_requested`, `approved`, `published`,
+   `auto_published`, `killed`, `archived`, `handover`, `ai_applied`, `note_added`, `restored`.
+   Payload carries context: `{gate:'manual'|'auto'}`, `{from_user,to_user}`, `{reason}`,
+   `{fields:[...]}`, `{note_id}`, `{from_version,to_version}`.
 2. **Ownership & handover:** each story has one owner; **Take over** transfers
-   ownership, force-releases the edit lock, notifies the previous owner, and records
-   a system note (FR-NWS-013).
+   ownership, force-releases the edit lock, notifies the previous owner, records
+   a system note, and emits `handover` event with payload (FR-NWS-013).
 3. **Concurrent editing:** saves carry `version`; stale save → 409 + merge prompt —
    never a silent overwrite (FR-NWS-014).
 4. **Internal notes are newsroom-only and immutable** — never published, never on
@@ -67,6 +71,16 @@ stateDiagram-v2
    the state commit (FR-NWS-008, NFR §7).
 7. **Unpublish/kill** fans out a correction/kill notice to every client that
    received the story (FR-DST-008).
+8. **History & audit trail** (M10-HIST, FR-NWS-019, FR-NTF-003): three stores:
+   - `story_versions` — immutable full-field content snapshots (every save + every transition)
+   - `story_events` — workflow timeline / chain of custody (story-scoped)
+   - `audit_logs` — cross-module append-only compliance ledger (story transitions,
+     notes, handovers, restores, role changes, API key ops, AI gate ops)
+   - Sensitive story actions write to **both** `story_events` and `audit_logs`
+   - Version history + timeline visible to roles with `history.can_view`
+   - Audit log browser visible to roles with `audit.can_view` (Admin, Admin Report)
+   - Restore: non-destructive (new version), allowed pre-publish states only,
+     requires `stories.can_edit` + lock + optimistic version
 
 ---
 
