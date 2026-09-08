@@ -122,7 +122,27 @@
 
 ---
 
-## 8. How to Add a Task
+## 8. History & Audit Trail (`M10-HIST`) — 2026-09-08 Design: `docs/plans/history-audit-design.md` (+DEC-012)
+
+> Backend-first build order: data enrichment (001–005) → UI (006–009) → hardening (010).
+> Closes FR-NWS-019 version history/audit history, FR-NWS-003 revision history, FR-NTF-003 audit trail, NFR §15 `RevisionService`/`AuditQueryService`. No new tables/columns — seed data + code paths only.
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M10-HIST-001` | RBAC `history` + `audit` permission modules (seeder, matrix UI, DEC-012) | — | ⏳ | — | — |
+| `M10-HIST-002` | Full-field version snapshots + snapshot-on-transition (`RevisionService::snapshot`) | — | ⏳ | — | — |
+| `M10-HIST-003` | `RevisionService::diff` + `restore` (non-destructive, lock-safe) | M10-HIST-002 | ⏳ | — | — |
+| `M10-HIST-004` | `story_events` payload enrichment + spec action vocabulary | M10-HIST-002 | ⏳ | — | — |
+| `M10-HIST-005` | Sensitive actions → `audit_logs` (ip/ua/correlation/diff) + `AuditQueryService` | M10-HIST-001, M10-HIST-004 | ⏳ | — | — |
+| `M10-HIST-006` | Story view: Timeline + Versions sections | M10-HIST-001, M10-HIST-004 | ⏳ | — | — |
+| `M10-HIST-007` | Version diff viewer + restore action (story view) | M10-HIST-003, M10-HIST-006 | ⏳ | — | — |
+| `M10-HIST-008` | Wizard History modal → server-side versions | M10-HIST-003 | ⏳ | — | — |
+| `M10-HIST-009` | Global audit log browser (`/admin/audit`) | M10-HIST-005 | ⏳ | — | — |
+| `M10-HIST-010` | E2E hardening + knowledge-inventory sync + full CI gates | M10-HIST-001…009 | ⏳ | — | — |
+
+---
+
+## 9. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.
