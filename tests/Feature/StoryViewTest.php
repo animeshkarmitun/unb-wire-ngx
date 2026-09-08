@@ -6,6 +6,7 @@ use App\Livewire\Admin\StoryView;
 use App\Models\Category;
 use App\Models\Role;
 use App\Models\Story;
+use App\Models\StoryEvent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -155,5 +156,35 @@ class StoryViewTest extends TestCase
 
         $this->assertNotEmpty($component->get('relatedStories'));
         $this->assertNotEmpty($component->get('latestRail'));
+    }
+
+    public function test_timeline_renders_when_history_permission_granted(): void
+    {
+        $this->editor->role->permissions()->create([
+            'module' => 'history',
+            'can_view' => true,
+        ]);
+        $this->story->events()->create([
+            'actor_id' => $this->editor->id,
+            'action' => 'sent_to_review',
+            'from_status' => 'draft',
+            'to_status' => 'in_review',
+        ]);
+
+        $response = $this->actingAs($this->editor)->get(route('admin.story', $this->story->public_id));
+
+        $response->assertOk();
+        $response->assertSee('Workflow Timeline');
+        $response->assertSee('Version History');
+        $response->assertSee('Sent to review');
+    }
+
+    public function test_timeline_hidden_when_history_permission_denied(): void
+    {
+        $response = $this->actingAs($this->editor)->get(route('admin.story', $this->story->public_id));
+
+        $response->assertOk();
+        $response->assertDontSee('Workflow Timeline');
+        $response->assertDontSee('Version History');
     }
 }

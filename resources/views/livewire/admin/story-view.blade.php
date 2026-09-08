@@ -568,6 +568,82 @@
                 </div>
             </div>
 
+            {{-- Timeline + Versions (gated history.can_view) --}}
+            @if($this->canViewHistory)
+                {{-- Workflow Timeline --}}
+                <div class="story-editorial-panel mt-4">
+                    <div class="story-editorial-title">
+                        <span>Workflow Timeline</span>
+                        <span class="text-[10px] text-muted font-normal">{{ $story->events->count() }} events</span>
+                    </div>
+                    <div class="max-h-64 overflow-y-auto space-y-2 pr-1">
+                        @forelse($story->events->sortByDesc('created_at') as $evt)
+                            @php
+                                $label = \App\Models\StoryEvent::ACTIONS[$evt->action] ?? $evt->action;
+                                $actorName = $evt->actor?->name ?? 'System';
+                                $isSystem = in_array($evt->action, ['created', 'sent_to_review', 'auto_published']);
+                            @endphp
+                            <div class="flex gap-2 text-[11px] leading-snug">
+                                <div class="flex-shrink-0 w-2 h-2 mt-1.5 rounded-full {{ $evt->action === 'published' ? 'bg-green-500' : ($evt->action === 'killed' ? 'bg-crimson' : ($evt->action === 'handover' ? 'bg-amber-500' : 'bg-navy-300')) }}"></div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="font-semibold text-ink">{{ $actorName }}</span>
+                                        <span class="text-muted">{{ $label }}</span>
+                                    </div>
+                                    @if($evt->payload)
+                                        <div class="text-muted mt-0.5">
+                                            @if(isset($evt->payload['gate']))
+                                                <span class="px-1 py-0.5 rounded text-[9px] font-bold uppercase {{ $evt->payload['gate'] === 'auto' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600' }}">{{ $evt->payload['gate'] }}</span>
+                                            @endif
+                                            @if(isset($evt->payload['from_user']) && isset($evt->payload['to_user']))
+                                                {{ $evt->payload['from_user'] }} → {{ $evt->payload['to_user'] }}
+                                            @endif
+                                            @if(isset($evt->payload['reason']))
+                                                "{{ $evt->payload['reason'] }}"
+                                            @endif
+                                            @if(isset($evt->payload['fields']))
+                                                {{ implode(', ', $evt->payload['fields']) }}
+                                            @endif
+                                        </div>
+                                    @endif
+                                    @if($evt->from_status && $evt->to_status && $evt->from_status !== $evt->to_status)
+                                        <div class="text-muted mt-0.5">
+                                            <span class="px-1 py-0.5 rounded text-[9px] bg-gray-100">{{ str_replace('_', ' ', $evt->from_status) }}</span>
+                                            <span class="mx-0.5">→</span>
+                                            <span class="px-1 py-0.5 rounded text-[9px] bg-gray-100">{{ str_replace('_', ' ', $evt->to_status) }}</span>
+                                        </div>
+                                    @endif
+                                    <div class="text-muted text-[10px] mt-0.5">{{ $evt->created_at?->timezone('Asia/Dhaka')->format('M j, h:i A') }}</div>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="text-xs text-muted italic py-2 text-center">No events recorded.</div>
+                        @endforelse
+                    </div>
+                </div>
+
+                {{-- Version History --}}
+                <div class="story-editorial-panel mt-4">
+                    <div class="story-editorial-title">
+                        <span>Version History</span>
+                        <span class="text-[10px] text-muted font-normal">{{ $story->versions->count() }} snapshots</span>
+                    </div>
+                    <div class="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                        @forelse($story->versions->sortByDesc('version') as $ver)
+                            <div class="flex items-center justify-between text-[11px] py-1 px-2 rounded {{ $ver->version === $story->version ? 'bg-navy-50 border border-navy-200' : 'hover:bg-gray-50' }}">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-mono font-bold text-ink">v{{ $ver->version }}</span>
+                                    <span class="text-muted">{{ $ver->creator?->name ?? 'System' }}</span>
+                                </div>
+                                <span class="text-muted text-[10px]">{{ $ver->created_at?->timezone('Asia/Dhaka')->format('M j, h:i A') }}</span>
+                            </div>
+                        @empty
+                            <div class="text-xs text-muted italic py-2 text-center">No versions recorded.</div>
+                        @endforelse
+                    </div>
+                </div>
+            @endif
+
             {{-- Latest News Wire Rail --}}
             <div class="story-wire-rail">
                 <div class="story-rail-header">Latest wire news</div>

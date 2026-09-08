@@ -1,6 +1,6 @@
 # Task: M10-HIST-006 — Story view: Timeline + Versions sections
 
-**Status:** ⏳ Pending
+**Status:** ✅ Completed
 **Dependencies:** M10-HIST-001, M10-HIST-004
 **Parent ADR:** FR-NWS-019 (story detail: version history + audit history), `docs/plans/history-audit-design.md` §4
 
@@ -47,10 +47,10 @@
 ---
 
 ## 6. Completion Notes
-- **Shipped:** —
-- **Tests:** —
-- **Live Smoke:** —
-- **Review:** —
+- **Shipped:** Two new sections in `story-view.blade.php` right sidebar, gated on `$this->canViewHistory` (RbacService check for `history.view`): **Workflow Timeline** — events sorted newest-first with colored dots, actor names, action labels (from `StoryEvent::ACTIONS`), payload context (gate badge, handover users, kill reason, AI fields), status transition chips, Dhaka-tz timestamps. **Version History** — version list with creator, timestamp, current version highlighted. Zero extra queries (data already eager-loaded via `findWithAllRelations`). `StoryView` gains `canViewHistory` computed property.
+- **Tests:** `StoryViewTest` 7/7 (2 new: timeline renders with history permission + hidden without). Full suite: 365 passed. Schema parity green.
+- **Live Smoke:** sqlite :memory: (CI env).
+- **Review:** — (milestone-end review in M10-HIST-010)
 
 ---
 

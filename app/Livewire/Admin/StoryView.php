@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Story;
+use App\Models\StoryEvent;
 use App\Repositories\StoryRepository;
 use App\Services\NoteService;
 use App\Services\RbacService;
@@ -25,6 +26,11 @@ class StoryView extends Component
         $this->story = $stories->findWithAllRelations(
             Story::where('public_id', $publicId)->firstOrFail()->id
         );
+    }
+
+    public function getCanViewHistoryProperty(): bool
+    {
+        return app(RbacService::class)->can(auth()->user(), 'history', 'view');
     }
 
     public function addNote(): void
