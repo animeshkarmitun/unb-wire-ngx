@@ -5,10 +5,10 @@ namespace App\Livewire\Admin;
 use App\Models\MediaAsset;
 use App\Models\MediaBatch;
 use App\Models\MediaReview;
+use App\Models\Story;
 use App\Models\User;
 use App\Repositories\MediaRepository;
 use App\Repositories\StoryRepository;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -256,7 +256,7 @@ class PhotoManager extends Component
         $storyRepo = app(StoryRepository::class);
         $story = is_numeric($query)
             ? $storyRepo->findWithMinimal((int) $query)
-            : \App\Models\Story::where('headline', 'like', '%'.$query.'%')->first();
+            : Story::where('headline', 'like', '%'.$query.'%')->first();
 
         if (! $story) {
             $this->dispatch('toast', message: 'No matching story found');

@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Models\MediaAsset;
+use App\Models\Story;
 use App\Repositories\MediaRepository;
 use App\Repositories\StoryRepository;
 use Illuminate\Support\Str;
@@ -119,7 +120,7 @@ class ApPhotoManager extends Component
         $storyRepo = app(StoryRepository::class);
         $story = $storyId
             ? $storyRepo->findWithMinimal($storyId)
-            : \App\Models\Story::whereIn('status', ['draft', 'in_review'])->latest()->first();
+            : Story::whereIn('status', ['draft', 'in_review'])->latest()->first();
 
         if ($story) {
             $story->media()->syncWithoutDetaching([

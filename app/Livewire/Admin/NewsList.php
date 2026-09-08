@@ -7,6 +7,7 @@ use App\Jobs\ProcessIndexOutbox;
 use App\Repositories\StoryRepository;
 use App\Services\NoteService;
 use App\Services\RbacService;
+use App\Services\StoryQueryService;
 use App\Services\StoryService;
 use Illuminate\Support\Facades\Response;
 use Livewire\Component;
@@ -241,7 +242,7 @@ class NewsList extends Component
         $repo = app(StoryRepository::class);
 
         $stories = $repo->filteredList($this->language, $this->status, $this->category, $this->search);
-        $categories = app(\App\Services\StoryQueryService::class)->categoriesTree();
+        $categories = app(StoryQueryService::class)->categoriesTree();
         $selected = $this->selectedId ? $repo->findWithDetails($this->selectedId) : null;
         $counts = $repo->statusCounts($this->language);
 

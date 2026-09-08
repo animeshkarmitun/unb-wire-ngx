@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Models\Category;
 use App\Models\MediaAsset;
 use App\Models\MediaBatch;
 use App\Models\MediaReview;
@@ -154,7 +155,7 @@ class MediaRepository
 
     public function getRootCategoriesList(): Collection
     {
-        return \App\Models\Category::whereNull('parent_id')->pluck('name_en')->filter()->values();
+        return Category::whereNull('parent_id')->pluck('name_en')->filter()->values();
     }
 
     // ─── Write Methods ─────────────────────────────────────────

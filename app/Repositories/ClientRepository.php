@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\ClientApiKey;
 use App\Models\ClientChannel;
 use App\Models\ClientPackage;
+use App\Models\Download;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -221,7 +222,7 @@ class ClientRepository
 
     public function recentDownloads(int $clientId, int $limit = 10): Collection
     {
-        return \App\Models\Download::where('client_id', $clientId)
+        return Download::where('client_id', $clientId)
             ->with(['mediaAsset', 'clientUser'])
             ->orderByDesc('created_at')
             ->limit($limit)

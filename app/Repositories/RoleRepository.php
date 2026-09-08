@@ -3,7 +3,6 @@
 namespace App\Repositories;
 
 use App\Models\Role;
-use App\Models\RolePermission;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
