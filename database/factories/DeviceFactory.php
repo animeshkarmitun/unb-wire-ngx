@@ -5,7 +5,6 @@ namespace Database\Factories;
 use App\Models\Device;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 
 class DeviceFactory extends Factory
 {

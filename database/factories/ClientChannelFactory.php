@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\Client;
 use App\Models\ClientChannel;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 class ClientChannelFactory extends Factory
 {
@@ -42,7 +43,7 @@ class ClientChannelFactory extends Factory
             'type' => 'api',
             'config' => [
                 'endpoint' => 'https://api.example.com/unb',
-                'key' => 'unb_live_'.\Illuminate\Support\Str::random(16),
+                'key' => 'unb_live_'.Str::random(16),
                 'webhook' => '',
                 'health' => 'ok',
             ],
