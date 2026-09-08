@@ -1,6 +1,6 @@
 # Task: M10-HIST-001 — RBAC `history` + `audit` permission modules
 
-**Status:** ⏳ Pending
+**Status:** ✅ Completed
 **Dependencies:** None
 **Parent ADR:** DEC-012 + `docs/plans/history-audit-design.md` §5
 
@@ -46,10 +46,10 @@
 ---
 
 ## 6. Completion Notes
-- **Shipped:** —
-- **Tests:** —
-- **Live Smoke:** —
-- **Review:** —
+- **Shipped:** `history` + `audit` view-only modules in `RoleSeeder` matrix (design §5 grants); `RolesManager::$modules` += 2 view-only entries (blade renders dynamically, no blade change); `uploader`/`editor` presets grant `history.view`, `audit` stays manual-grant; DEC-012 logged in `decisions.md`.
+- **Tests:** `RbacServiceTest` 13/13 (6 new: editor/strategist/uploaders history-only, admin-report history+audit, business/client denied both). Full suite: 341 passed, 1 pre-existing skip (pgsql `ilike`). `schema-parity-check.php` green.
+- **Live Smoke:** `optimize:clear` + `db:seed --class=RoleSeeder` on pgsql dev DB clean; verified 16 rows match design §5 matrix exactly.
+- **Review:** — (milestone-end review in M10-HIST-010)
 
 ---
 

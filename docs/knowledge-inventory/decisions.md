@@ -237,3 +237,22 @@ Audit `docs/schema-code-mismatch-report.md` (2026-08-29, 25 mismatches) found dr
 - Schema now matches canonical design + DEC-011; `docs/schema-code-mismatch-report.md` appendix marks C/M/L as resolved or ratified with migration IDs.
 - Partitioning remains deferred by design §9 guidance (revisit at ~5M rows); no RANGE partitions in v1 — documented, not implemented.
 - `migrate:fresh --seed` green on pgsql+sqlite; `append_only_grants` is pgsql-only (sqlite no-op).
+
+---
+
+## `DEC-012`: RBAC `history` + `audit` Permission Modules (M10-HIST)
+
+### Context
+`role_permissions` had 8 modules (`stories…ai`). History visibility was uncontrolled: anyone who could view a story would implicitly see its timeline/versions once rendered (FR-NWS-019), and the Roles Manager "Activity" tab had no permission gate. FR-NTF-003 requires per-entity audit history "viewable by admins" only. Design §`role_permissions` module list is open-ended ("…"), so this is seed data, not a schema change.
+
+### Decision
+- Two view-only modules (`actions => ['view']` in RolesManager matrix):
+  - `history` — story timeline + version history + diff visibility. Granted: Admin, Editor, Strategist, Admin Report, Uploader-Bangla, Uploader-English. Denied: Business Team, Client Bangla (newsroom-internal data, never client-facing).
+  - `audit` — `audit_logs` browsing (global browser + per-entity drill). Granted: Admin, Admin Report (read-only management reporting). All others denied.
+- Restore action additionally requires `stories.can_edit` + soft-lock + optimistic version (enforced in `RevisionService`, M10-HIST-003) — `history.can_view` alone never mutates.
+- RolesManager `uploader`/`editor` presets grant `history.view`; `audit` stays manual-grant only.
+- Logged in `RoleSeeder` matrix (idempotent `updateOrInsert` — existing installs pick it up on next `db:seed`).
+
+### Consequences
+- Server-side `RbacService.assertCan(user, 'history'|'audit', 'view')` gates every history/audit surface (M10-HIST-006…009); UI hides but API 403s.
+- `php scripts/schema-parity-check.php` unaffected — no migration, no model change.

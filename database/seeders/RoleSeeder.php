@@ -20,32 +20,32 @@ class RoleSeeder extends Seeder
             ['name' => 'Uploader-English', 'type' => 'custom', 'description' => 'English desk uploader — drafts only, cannot publish', 'is_locked' => false],
         ];
 
-        $modules = ['stories', 'stories_bn', 'media', 'clients', 'packages', 'distribution', 'settings', 'ai'];
+        $modules = ['stories', 'stories_bn', 'media', 'clients', 'packages', 'distribution', 'settings', 'ai', 'history', 'audit'];
 
         $perms = [
             'Admin' => [
-                'stories' => [1, 1, 1, 1, 1], 'stories_bn' => [1, 1, 1, 1, 1], 'media' => [1, 1, 1, 1, 1], 'clients' => [1, 1, 1, 1, 1], 'packages' => [1, 1, 1, 1, 1], 'distribution' => [1, 1, 1, 1, 1], 'settings' => [1, 1, 1, 1, 1], 'ai' => [1, 1, 1, 1, 1],
+                'stories' => [1, 1, 1, 1, 1], 'stories_bn' => [1, 1, 1, 1, 1], 'media' => [1, 1, 1, 1, 1], 'clients' => [1, 1, 1, 1, 1], 'packages' => [1, 1, 1, 1, 1], 'distribution' => [1, 1, 1, 1, 1], 'settings' => [1, 1, 1, 1, 1], 'ai' => [1, 1, 1, 1, 1], 'history' => [1, 0, 0, 0, 0], 'audit' => [1, 0, 0, 0, 0],
             ],
             'Editor' => [
-                'stories' => [1, 1, 1, 1, 1], 'stories_bn' => [1, 1, 1, 1, 1], 'media' => [1, 1, 1, 0, 1], 'clients' => [1, 0, 0, 0, 0], 'packages' => [0, 0, 0, 0, 0], 'distribution' => [1, 0, 0, 0, 0], 'settings' => [0, 0, 0, 0, 0], 'ai' => [1, 1, 0, 0, 0],
+                'stories' => [1, 1, 1, 1, 1], 'stories_bn' => [1, 1, 1, 1, 1], 'media' => [1, 1, 1, 0, 1], 'clients' => [1, 0, 0, 0, 0], 'packages' => [0, 0, 0, 0, 0], 'distribution' => [1, 0, 0, 0, 0], 'settings' => [0, 0, 0, 0, 0], 'ai' => [1, 1, 0, 0, 0], 'history' => [1, 0, 0, 0, 0], 'audit' => [0, 0, 0, 0, 0],
             ],
             'Strategist' => [
-                'stories' => [1, 0, 1, 0, 0], 'stories_bn' => [1, 0, 1, 0, 0], 'media' => [1, 0, 0, 0, 0], 'clients' => [1, 0, 0, 0, 0], 'packages' => [0, 0, 0, 0, 0], 'distribution' => [0, 0, 0, 0, 0], 'settings' => [0, 0, 0, 0, 0], 'ai' => [0, 0, 0, 0, 0],
+                'stories' => [1, 0, 1, 0, 0], 'stories_bn' => [1, 0, 1, 0, 0], 'media' => [1, 0, 0, 0, 0], 'clients' => [1, 0, 0, 0, 0], 'packages' => [0, 0, 0, 0, 0], 'distribution' => [0, 0, 0, 0, 0], 'settings' => [0, 0, 0, 0, 0], 'ai' => [0, 0, 0, 0, 0], 'history' => [1, 0, 0, 0, 0], 'audit' => [0, 0, 0, 0, 0],
             ],
             'Admin Report' => [
-                'stories' => [1, 0, 0, 0, 0], 'stories_bn' => [1, 0, 0, 0, 0], 'media' => [1, 0, 0, 0, 0], 'clients' => [1, 0, 0, 0, 0], 'packages' => [0, 0, 0, 0, 0], 'distribution' => [1, 0, 0, 0, 0], 'settings' => [0, 0, 0, 0, 0], 'ai' => [0, 0, 0, 0, 0],
+                'stories' => [1, 0, 0, 0, 0], 'stories_bn' => [1, 0, 0, 0, 0], 'media' => [1, 0, 0, 0, 0], 'clients' => [1, 0, 0, 0, 0], 'packages' => [0, 0, 0, 0, 0], 'distribution' => [1, 0, 0, 0, 0], 'settings' => [0, 0, 0, 0, 0], 'ai' => [0, 0, 0, 0, 0], 'history' => [1, 0, 0, 0, 0], 'audit' => [1, 0, 0, 0, 0],
             ],
             'Business Team' => [
-                'stories' => [0, 0, 0, 0, 0], 'stories_bn' => [0, 0, 0, 0, 0], 'media' => [0, 0, 0, 0, 0], 'clients' => [1, 1, 1, 0, 1], 'packages' => [1, 1, 1, 0, 1], 'distribution' => [1, 1, 0, 0, 0], 'settings' => [0, 0, 0, 0, 0], 'ai' => [0, 0, 0, 0, 0],
+                'stories' => [0, 0, 0, 0, 0], 'stories_bn' => [0, 0, 0, 0, 0], 'media' => [0, 0, 0, 0, 0], 'clients' => [1, 1, 1, 0, 1], 'packages' => [1, 1, 1, 0, 1], 'distribution' => [1, 1, 0, 0, 0], 'settings' => [0, 0, 0, 0, 0], 'ai' => [0, 0, 0, 0, 0], 'history' => [0, 0, 0, 0, 0], 'audit' => [0, 0, 0, 0, 0],
             ],
             'Client Bangla (Without AP)' => [
-                'stories' => [0, 0, 0, 0, 0], 'stories_bn' => [1, 0, 0, 0, 0], 'media' => [1, 0, 0, 0, 0], 'clients' => [0, 0, 0, 0, 0], 'packages' => [0, 0, 0, 0, 0], 'distribution' => [0, 0, 0, 0, 0], 'settings' => [0, 0, 0, 0, 0], 'ai' => [0, 0, 0, 0, 0],
+                'stories' => [0, 0, 0, 0, 0], 'stories_bn' => [1, 0, 0, 0, 0], 'media' => [1, 0, 0, 0, 0], 'clients' => [0, 0, 0, 0, 0], 'packages' => [0, 0, 0, 0, 0], 'distribution' => [0, 0, 0, 0, 0], 'settings' => [0, 0, 0, 0, 0], 'ai' => [0, 0, 0, 0, 0], 'history' => [0, 0, 0, 0, 0], 'audit' => [0, 0, 0, 0, 0],
             ],
             'Uploader-Bangla' => [
-                'stories' => [0, 0, 0, 0, 0], 'stories_bn' => [1, 1, 1, 0, 0], 'media' => [1, 1, 0, 0, 0], 'clients' => [0, 0, 0, 0, 0], 'packages' => [0, 0, 0, 0, 0], 'distribution' => [0, 0, 0, 0, 0], 'settings' => [0, 0, 0, 0, 0], 'ai' => [1, 0, 0, 0, 0],
+                'stories' => [0, 0, 0, 0, 0], 'stories_bn' => [1, 1, 1, 0, 0], 'media' => [1, 1, 0, 0, 0], 'clients' => [0, 0, 0, 0, 0], 'packages' => [0, 0, 0, 0, 0], 'distribution' => [0, 0, 0, 0, 0], 'settings' => [0, 0, 0, 0, 0], 'ai' => [1, 0, 0, 0, 0], 'history' => [1, 0, 0, 0, 0], 'audit' => [0, 0, 0, 0, 0],
             ],
             'Uploader-English' => [
-                'stories' => [1, 1, 1, 0, 0], 'stories_bn' => [0, 0, 0, 0, 0], 'media' => [1, 1, 0, 0, 0], 'clients' => [0, 0, 0, 0, 0], 'packages' => [0, 0, 0, 0, 0], 'distribution' => [0, 0, 0, 0, 0], 'settings' => [0, 0, 0, 0, 0], 'ai' => [1, 0, 0, 0, 0],
+                'stories' => [1, 1, 1, 0, 0], 'stories_bn' => [0, 0, 0, 0, 0], 'media' => [1, 1, 0, 0, 0], 'clients' => [0, 0, 0, 0, 0], 'packages' => [0, 0, 0, 0, 0], 'distribution' => [0, 0, 0, 0, 0], 'settings' => [0, 0, 0, 0, 0], 'ai' => [1, 0, 0, 0, 0], 'history' => [1, 0, 0, 0, 0], 'audit' => [0, 0, 0, 0, 0],
             ],
         ];
 
