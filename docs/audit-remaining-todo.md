@@ -16,15 +16,15 @@
 
 ---
 
-## Phase 2 — Remaining
+## Phase 2 — Architecture & Code Quality (COMPLETED)
 
-- [ ] **C7 — ClientsManager service extraction** (1095 lines → `ClientService`)
-  - Extract onboarding wizard logic into service
-  - Extract channel management (toggle, FTP, API key, webhook) into service
-  - Extract package/subscription operations into service
-  - Extract bulk actions (pause, apply package) into service
-  - Extract stats computation into service
-  - Component should retain only UI state + thin orchestration
+- [x] **C7 — ClientsManager service extraction** (1095 lines → `ClientService`) — Commit `6ba8e7f`
+  - Extracted onboarding wizard logic into service
+  - Extracted channel management (toggle, FTP, API key, webhook) into service
+  - Extracted package/subscription operations into service
+  - Extracted bulk actions (pause, apply package) into service
+  - Extracted stats computation into service
+  - Component now strictly retains UI state + thin orchestration (1,094 → 654 lines)
 
 ---
 
@@ -34,8 +34,8 @@
   - `editorial-flow.spec.ts` — rewritten with real Playwright interactions: login → create draft → step through wizard → publish → verify DB & Portal API feed
   - RBAC test — verified actual access denied behavior for Business Team role across add-news & news-list
   - `web-auth-rbac.spec.ts` — rewritten with deterministic URL redirections and login authentication tests
-- [ ] **Add Feature tests for AddNews** — core editorial UI, highest priority gap
-- [ ] **Add Feature tests for Portal API** — `/v1/portal/feed`, `/v1/portal/search-token`, `/v1/portal/story/{id}`
+- [x] **Add Feature tests for AddNews** — Commit `58909cd` (34 tests, 105 assertions covering stepper, tags, media, takeover, notes, syncFromDoc, AI flags, publish lifecycle)
+- [x] **Add Feature tests for Portal API** — Commit `15cbad4` (24 tests, 333 assertions covering all 4 endpoints: feed, story/{id}, search-token, context, throttling)
 - [ ] **Add Feature tests for TusController** — chunked upload endpoints
 - [ ] **Add Job tests with `Queue::fake()`:**
   - `GenerateDerivatives` — media processing
