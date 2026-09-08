@@ -3,7 +3,8 @@
 namespace App\Livewire\Admin;
 
 use App\Models\MediaAsset;
-use App\Models\Story;
+use App\Repositories\MediaRepository;
+use App\Repositories\StoryRepository;
 use Illuminate\Support\Str;
 use Livewire\Component;
 
@@ -109,14 +110,16 @@ class ApPhotoManager extends Component
 
     public function attachToStory(int $assetId, ?int $storyId = null): void
     {
-        $asset = MediaAsset::find($assetId);
+        $mediaRepo = app(MediaRepository::class);
+        $asset = $mediaRepo->findById($assetId);
         if (! $asset) {
             return;
         }
 
+        $storyRepo = app(StoryRepository::class);
         $story = $storyId
-            ? Story::find($storyId)
-            : Story::whereIn('status', ['draft', 'in_review'])->latest()->first();
+            ? $storyRepo->findWithMinimal($storyId)
+            : \App\Models\Story::whereIn('status', ['draft', 'in_review'])->latest()->first();
 
         if ($story) {
             $story->media()->syncWithoutDetaching([
@@ -125,7 +128,7 @@ class ApPhotoManager extends Component
         }
 
         if ($asset->status !== 'library') {
-            $asset->update(['status' => 'library']);
+            $mediaRepo->update($asset, ['status' => 'library']);
         }
 
         $this->attachedIds[$assetId] = true;
@@ -134,7 +137,7 @@ class ApPhotoManager extends Component
 
     public function downloadOriginal(int $assetId): void
     {
-        $asset = MediaAsset::find($assetId);
+        $asset = app(MediaRepository::class)->findById($assetId);
         if ($asset) {
             $asset->increment('download_count');
             $this->dispatch('toast', message: 'Downloading original AP photo: '.Str::limit($asset->caption ?: $asset->title, 35));
@@ -205,7 +208,7 @@ class ApPhotoManager extends Component
         $visibleCount = $assets->count();
         $remainingCount = max(0, $filteredTotal - $visibleCount);
 
-        $selected = $this->selectedId ? MediaAsset::find($this->selectedId) : null;
+        $selected = $this->selectedId ? app(MediaRepository::class)->findById($this->selectedId) : null;
 
         $syncLogs = [
             [

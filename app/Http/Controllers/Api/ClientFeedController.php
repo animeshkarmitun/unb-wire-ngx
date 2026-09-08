@@ -4,19 +4,21 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FeedRequest;
-use App\Models\Story;
+use App\Repositories\StoryRepository;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 
 class ClientFeedController extends Controller
 {
+    public function __construct(private StoryRepository $stories) {}
+
     public function index(FeedRequest $request): JsonResponse
     {
         $validated = $request->validated();
         $since = $validated['since'] ?? null;
         $limit = min(50, (int) ($validated['limit'] ?? 20));
-        $q = Story::with('category')->where('status', 'published');
+        $q = \App\Models\Story::with('category')->where('status', 'published');
         if ($since) {
             try {
                 $decoded = base64_decode($since, true);

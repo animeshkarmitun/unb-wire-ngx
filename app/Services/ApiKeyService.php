@@ -45,7 +45,7 @@ class ApiKeyService
     public function authenticate(string $raw): ?ClientApiKey
     {
         $hash = hash('sha256', $raw);
-        $key = ClientApiKey::where('key_hash', $hash)->whereNull('revoked_at')->first();
+        $key = ClientApiKey::with('client')->where('key_hash', $hash)->whereNull('revoked_at')->first();
         if (! $key) {
             return null;
         }

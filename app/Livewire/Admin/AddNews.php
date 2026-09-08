@@ -6,17 +6,14 @@ use App\Jobs\FanoutStory;
 use App\Jobs\ProcessIndexOutbox;
 use App\Models\Category;
 use App\Models\MediaAsset;
-use App\Models\Story;
-use App\Models\StoryEvent;
 use App\Models\StoryNote;
-use App\Models\Tag;
+use App\Repositories\StoryRepository;
 use App\Services\AiService;
 use App\Services\HtmlSanitizer;
 use App\Services\NotificationService;
 use App\Services\RbacService;
 use App\Services\StoryService;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Component;
 
@@ -104,7 +101,12 @@ class AddNews extends Component
         $this->datelineAt = now()->setTimezone('Asia/Dhaka')->format('Y-m-d\TH:i');
 
         if ($id) {
-            $s = Story::with(['tags', 'category', 'subCategory', 'owner.role', 'notes.user'])->findOrFail($id);
+            $repo = app(StoryRepository::class);
+            $s = $repo->findWithAllRelations($id);
+            if (! $s) {
+                return;
+            }
+
             $this->storyId = $s->id;
             $this->status = $s->status;
             $this->language = $s->language;
@@ -128,12 +130,7 @@ class AddNews extends Component
             $this->tags = $s->tags->pluck('name')->toArray();
 
             // Load media
-            $mediaRows = DB::table('story_media')
-                ->join('media_assets', 'media_assets.id', '=', 'story_media.asset_id')
-                ->where('story_media.story_id', $s->id)
-                ->orderBy('story_media.sort_order')
-                ->select('media_assets.id', 'media_assets.title', 'media_assets.caption', 'media_assets.kind', 'story_media.role', 'story_media.caption_override')
-                ->get();
+            $mediaRows = $repo->getAttachedMedia($s->id);
 
             foreach ($mediaRows as $m) {
                 $item = [
@@ -430,8 +427,10 @@ class AddNews extends Component
             'word_count' => str_word_count(strip_tags($cleanHtml)),
         ];
 
+        $repo = app(StoryRepository::class);
+
         if ($this->storyId) {
-            $s = Story::findOrFail($this->storyId);
+            $s = $repo->findOrFail($this->storyId);
             $stories->updateDraft($s, $data, $s->version, auth()->user());
         } else {
             $s = $stories->createDraft($data, auth()->user());
@@ -439,40 +438,11 @@ class AddNews extends Component
             $this->status = $s->status;
         }
 
-        // Sync story_media
-        DB::table('story_media')->where('story_id', $this->storyId)->delete();
-        if ($this->featuredMediaId) {
-            DB::table('story_media')->insert([
-                'story_id' => $this->storyId,
-                'asset_id' => $this->featuredMediaId,
-                'role' => 'featured',
-                'sort_order' => 0,
-                'caption_override' => $this->featuredCaption ?: null,
-            ]);
-        }
-        foreach ($this->attachedMedia as $idx => $att) {
-            if ($att['id'] === $this->featuredMediaId) {
-                continue;
-            }
-            DB::table('story_media')->insert([
-                'story_id' => $this->storyId,
-                'asset_id' => $att['id'],
-                'role' => 'inline',
-                'sort_order' => $idx + 1,
-                'caption_override' => $att['cap'] ?: null,
-            ]);
-        }
+        // Sync story_media via repository
+        $repo->syncMedia($this->storyId, $this->featuredMediaId, $this->featuredCaption, $this->attachedMedia);
 
-        // Sync tags
-        if (! empty($this->tags)) {
-            $tagIds = [];
-            foreach ($this->tags as $tName) {
-                $slug = Str::slug($tName);
-                $tagObj = Tag::firstOrCreate(['name' => $tName], ['slug' => $slug ?: Str::random(8)]);
-                $tagIds[] = $tagObj->id;
-            }
-            $s->tags()->sync($tagIds);
-        }
+        // Sync tags via repository
+        $repo->syncTags($repo->findOrFail($this->storyId), $this->tags);
 
         $this->dispatch('draft-autosaved', [
             'id' => $this->storyId,
@@ -493,7 +463,7 @@ class AddNews extends Component
     {
         $stories = $stories ?? app(StoryService::class);
         if ($this->storyId) {
-            $s = Story::findOrFail($this->storyId);
+            $s = app(StoryRepository::class)->findOrFail($this->storyId);
             $stories->takeOver($s, auth()->user());
             $this->ownerId = auth()->id();
             $this->ownerName = auth()->user()->name;
@@ -517,7 +487,7 @@ class AddNews extends Component
         ]);
 
         $this->autosave($rbac, $svc);
-        $s = Story::findOrFail($this->storyId);
+        $s = app(StoryRepository::class)->findOrFail($this->storyId);
         $svc->transition($s, 'in_review', auth()->user());
         $this->status = 'in_review';
 
@@ -541,7 +511,7 @@ class AddNews extends Component
         ]);
 
         $this->autosave($rbac, $svc);
-        $s = Story::findOrFail($this->storyId);
+        $s = app(StoryRepository::class)->findOrFail($this->storyId);
 
         // Wizard publish may be invoked from draft by an editor/admin with publish permission.
         // Walk through the workflow so every transition is audited.
@@ -581,15 +551,16 @@ class AddNews extends Component
             $this->autosave();
         }
 
-        StoryNote::create([
-            'story_id' => $this->storyId,
+        $repo = app(StoryRepository::class);
+        $story = $repo->findOrFail($this->storyId);
+
+        $repo->createNote($story, [
             'user_id' => auth()->id(),
             'body' => $this->noteBody,
             'is_internal' => true,
         ]);
 
-        StoryEvent::create([
-            'story_id' => $this->storyId,
+        $repo->createEvent($story, [
             'actor_id' => auth()->id(),
             'action' => 'note_added',
             'from_status' => $this->status,

@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Story;
+use App\Repositories\ClientRepository;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
@@ -22,9 +23,10 @@ class FanoutStory implements ShouldQueue
         $this->onQueue('fanout');
     }
 
-    public function handle(): void
+    public function handle(?ClientRepository $clients = null): void
     {
-        $story = Story::find($this->storyId);
+        $clients = $clients ?? app(ClientRepository::class);
+        $story = Story::with('media')->find($this->storyId);
         if (! $story || $story->status !== 'published') {
             return;
         }
@@ -34,7 +36,7 @@ class FanoutStory implements ShouldQueue
             ->where('client_packages.status', 'active')
             ->select('client_packages.client_id', 'packages.entitlement_filter')->get();
 
-        $clients = $raw->filter(function ($r) use ($story) {
+        $matchedClients = $raw->filter(function ($r) use ($story) {
             $f = is_string($r->entitlement_filter) ? json_decode($r->entitlement_filter, true) : $r->entitlement_filter;
             if (! is_array($f)) {
                 return false;
@@ -52,7 +54,7 @@ class FanoutStory implements ShouldQueue
 
             $kinds = (array) ($f['media_kinds'] ?? []);
             if (! empty($kinds)) {
-                $storyKinds = $story->media()->pluck('kind')->unique()->all();
+                $storyKinds = $story->media->pluck('kind')->unique()->all();
                 if (empty(array_intersect($kinds, $storyKinds))) {
                     return false;
                 }
@@ -61,8 +63,8 @@ class FanoutStory implements ShouldQueue
             return true;
         })->values();
 
-        foreach ($clients as $row) {
-            $channels = DB::table('client_channels')->where('client_id', $row->client_id)->where('status', 'active')->get();
+        foreach ($matchedClients as $row) {
+            $channels = $clients->activeChannelsFor($row->client_id);
             foreach ($channels as $ch) {
                 $key = hash('sha256', $story->id.'-'.$ch->id.'-'.$story->version);
                 $payloadHash = hash('sha256', $story->body_text ?? '');
@@ -75,17 +77,13 @@ class FanoutStory implements ShouldQueue
                         Http::timeout(5)->post($config['url'], ['public_id' => $story->public_id, 'headline' => $story->headline]);
                         DB::table('deliveries')->where('idempotency_key', $key)->update(['status' => 'sent', 'sent_at' => now()]);
                     }
-                    DB::table('client_channels')->where('id', $ch->id)->update(['last_success_at' => now(), 'failure_count' => 0]);
+                    $clients->recordChannelSuccess($ch->id);
                 } catch (\Throwable $e) {
                     if (str_contains($e->getMessage(), 'duplicate') || str_contains($e->getMessage(), 'Unique')) {
                         continue;
                     }
                     Log::warning('fanout failed', ['client' => $row->client_id, 'channel' => $ch->id, 'error' => $e->getMessage()]);
-                    DB::table('client_channels')->where('id', $ch->id)->increment('failure_count');
-                    $failures = DB::table('client_channels')->where('id', $ch->id)->value('failure_count');
-                    if ($failures >= 5) {
-                        DB::table('client_channels')->where('id', $ch->id)->update(['status' => 'paused']);
-                    }
+                    $clients->recordChannelFailure($ch->id);
                 }
             }
         }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Repositories\ClientRepository;
 use App\Services\ApiKeyService;
 use Closure;
 use Illuminate\Http\Request;
@@ -9,7 +10,10 @@ use Illuminate\Support\Facades\RateLimiter;
 
 class EnsureClientApiKey
 {
-    public function __construct(private ApiKeyService $svc) {}
+    public function __construct(
+        private ApiKeyService $svc,
+        private ClientRepository $clients,
+    ) {}
 
     public function handle(Request $request, Closure $next, string $scope = '')
     {
@@ -33,7 +37,10 @@ class EnsureClientApiKey
         }
         RateLimiter::hit($rateLimitKey, 60);
         $request->attributes->set('clientApiKey', $key);
-        $request->attributes->set('client', $key->client);
+
+        // Eager-load client to avoid lazy-load violation
+        $client = $key->client ?? $this->clients->findWithRelations($key->client_id, ['clientChannels']);
+        $request->attributes->set('client', $client);
 
         return $next($request);
     }

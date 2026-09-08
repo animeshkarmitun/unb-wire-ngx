@@ -3,47 +3,31 @@
 namespace App\Services;
 
 use App\Models\Category;
-use App\Models\Story;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use App\Repositories\StoryRepository;
 use Illuminate\Support\Collection;
 
 class StoryQueryService
 {
-    public function filteredList(string $language, string $status, string $category, string $search, int $perPage = 15): LengthAwarePaginator
+    public function __construct(private StoryRepository $stories) {}
+
+    public function filteredList(string $language, string $status, string $category, string $search, int $perPage = 15)
     {
-        return $this->buildFilterQuery($language, $status, $category, $search)
-            ->with(['category', 'subCategory', 'owner.role', 'assignedEditor', 'lockedBy', 'notes.user.role'])
-            ->orderByDesc('updated_at')
-            ->paginate($perPage);
+        return $this->stories->filteredList($language, $status, $category, $search, $perPage);
     }
 
     public function filteredIds(string $language, string $status, string $category, string $search, int $perPage = 15): array
     {
-        return $this->buildFilterQuery($language, $status, $category, $search)
-            ->orderByDesc('updated_at')
-            ->paginate($perPage)
-            ->pluck('id')
-            ->map(fn ($id) => (string) $id)
-            ->toArray();
+        return $this->stories->filteredIds($language, $status, $category, $search, $perPage);
     }
 
-    public function findWithDetails(int $id): ?Story
+    public function findWithDetails(int $id)
     {
-        return Story::with([
-            'category', 'subCategory', 'owner.role',
-            'assignedEditor', 'lockedBy', 'notes.user.role', 'events.actor',
-        ])->find($id);
+        return $this->stories->findWithDetails($id);
     }
 
     public function statusCounts(string $language): array
     {
-        return [
-            'all' => Story::where('language', $language)->count(),
-            'published' => Story::where('language', $language)->where('status', 'published')->count(),
-            'draft' => Story::where('language', $language)->where('status', 'draft')->count(),
-            'in_review' => Story::where('language', $language)->where('status', 'in_review')->count(),
-            'changes_requested' => Story::where('language', $language)->where('status', 'changes_requested')->count(),
-        ];
+        return $this->stories->statusCounts($language);
     }
 
     public function categoriesTree(): Collection
@@ -53,29 +37,6 @@ class StoryQueryService
 
     public function exportQuery(string $language, string $status, string $category, string $search): Collection
     {
-        return $this->buildFilterQuery($language, $status, $category, $search)
-            ->with(['category', 'subCategory', 'owner'])
-            ->orderByDesc('updated_at')
-            ->get();
-    }
-
-    private function buildFilterQuery(string $language, string $status, string $category, string $search)
-    {
-        $query = Story::where('language', $language);
-
-        if ($status !== 'all') {
-            $query->where('status', $status);
-        }
-        if ($category !== 'all') {
-            $query->where('category_id', $category);
-        }
-        if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->where('headline', 'like', '%'.$search.'%')
-                    ->orWhere('brief', 'like', '%'.$search.'%');
-            });
-        }
-
-        return $query;
+        return $this->stories->exportQuery($language, $status, $category, $search);
     }
 }

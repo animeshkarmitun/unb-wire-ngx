@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Models\Story;
+use App\Repositories\StoryRepository;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
@@ -58,7 +58,7 @@ class ProcessIndexOutbox implements ShouldQueue
     private function buildPayload(object $row): ?array
     {
         if (in_array($row->index_name, ['main', 'archive'])) {
-            $story = Story::where('public_id', $row->document_id)->first();
+            $story = app(StoryRepository::class)->findByPublicId($row->document_id);
             if (! $story) {
                 return null;
             }

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClientApiKey;
-use App\Models\Story;
+use App\Repositories\StoryRepository;
 use App\Services\Search\TenantTokenIssuer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,6 +13,8 @@ use Illuminate\Support\Str;
 
 class PortalController extends Controller
 {
+    public function __construct(private StoryRepository $stories) {}
+
     public function searchToken(Request $request, TenantTokenIssuer $issuer): JsonResponse
     {
         $client = null;
@@ -34,7 +36,7 @@ class PortalController extends Controller
     {
         $key = 'portal:feed:'.md5($request->fullUrl());
         $stories = Cache::remember($key, 60, function () use ($request) {
-            $q = Story::with(['category', 'tags', 'media'])->where('status', 'published');
+            $q = \App\Models\Story::with(['category', 'tags', 'media'])->where('status', 'published');
 
             if ($request->filled('category') && $request->query('category') !== 'All') {
                 $cat = (string) $request->query('category');
@@ -84,12 +86,16 @@ class PortalController extends Controller
 
     public function show(string $publicId): JsonResponse
     {
-        $s = Story::with(['category', 'tags', 'media'])->where('public_id', $publicId)->where('status', 'published')->firstOrFail();
+        $s = $this->stories->findPublishedByPublicId($publicId);
+
+        if (! $s) {
+            return response()->json(['error' => 'Story not found'], 404);
+        }
 
         return response()->json(['data' => self::formatStory($s)]);
     }
 
-    private static function formatStory(Story $s): array
+    private static function formatStory($s): array
     {
         return [
             'public_id' => $s->public_id,

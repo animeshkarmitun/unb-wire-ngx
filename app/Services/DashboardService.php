@@ -3,12 +3,20 @@
 namespace App\Services;
 
 use App\Models\Client;
-use App\Models\Delivery;
 use App\Models\Story;
+use App\Repositories\ClientRepository;
+use App\Repositories\DeliveryRepository;
+use App\Repositories\StoryRepository;
 use Carbon\Carbon;
 
 class DashboardService
 {
+    public function __construct(
+        private StoryRepository $stories,
+        private ClientRepository $clients,
+        private DeliveryRepository $deliveries,
+    ) {}
+
     /**
      * Get dashboard view data including live KPIs, deltas, recent stories, and top clients.
      *
@@ -23,25 +31,25 @@ class DashboardService
         $fourteenDaysAgo = Carbon::now('Asia/Dhaka')->subDays(14);
 
         // 1. Stories published today & delta vs yesterday
-        $publishedToday = Story::whereDate('published_at', $today)->where('status', 'published')->count();
-        $publishedYesterday = Story::whereDate('published_at', $yesterday)->where('status', 'published')->count();
+        $publishedToday = $this->stories->countByDateAndStatus($today, 'published');
+        $publishedYesterday = $this->stories->countByDateAndStatus($yesterday, 'published');
         $deltaPublished = $publishedToday - $publishedYesterday;
         $deltaPublishedText = ($deltaPublished >= 0 ? '+' : '').$deltaPublished.' from yesterday';
         $deltaPublishedDirection = $deltaPublished >= 0 ? 'up' : 'down';
 
         // 2. Active clients & delta this week
-        $activeClients = Client::where('status', 'active')->count();
-        $clientsThisWeek = Client::where('status', 'active')->where('created_at', '>=', $startOfWeek)->count();
+        $activeClients = $this->clients->activeCount();
+        $clientsThisWeek = $this->clients->activeClientsThisWeek($startOfWeek);
         $deltaClientsText = '+'.$clientsThisWeek.' this week';
         $deltaClientsDirection = 'up';
 
         // 3. Distribution success rate (last 7 days vs previous 7 days)
-        $recentDel = Delivery::where('created_at', '>=', $sevenDaysAgo)->count();
-        $recentDelOk = Delivery::where('created_at', '>=', $sevenDaysAgo)->where('status', 'delivered')->count();
+        $recentDel = $this->deliveries->recentCount($sevenDaysAgo);
+        $recentDelOk = $this->deliveries->recentDeliveredCount($sevenDaysAgo);
         $successRate = $recentDel > 0 ? round(($recentDelOk / $recentDel) * 100, 1) : 98.4;
 
-        $priorDel = Delivery::whereBetween('created_at', [$fourteenDaysAgo, $sevenDaysAgo])->count();
-        $priorDelOk = Delivery::whereBetween('created_at', [$fourteenDaysAgo, $sevenDaysAgo])->where('status', 'delivered')->count();
+        $priorDel = $this->deliveries->countBetween($fourteenDaysAgo, $sevenDaysAgo);
+        $priorDelOk = $this->deliveries->deliveredCountBetween($fourteenDaysAgo, $sevenDaysAgo);
         $priorRate = $priorDel > 0 ? round(($priorDelOk / $priorDel) * 100, 1) : 98.7;
 
         $deltaRate = round($successRate - $priorRate, 1);
@@ -49,39 +57,14 @@ class DashboardService
         $deltaRateDirection = $deltaRate >= 0 ? 'up' : 'down';
 
         // 4. Exclusive content sent (breaking, urgent/flash priority, or tagged exclusive)
-        $exclusiveFilter = function ($query, $date) {
-            $query->whereDate('published_at', $date)
-                ->where('status', 'published')
-                ->where(function ($q) {
-                    $q->where('is_breaking', true)
-                        ->orWhereIn('priority', ['urgent', 'flash'])
-                        ->orWhereHas('tags', function ($t) {
-                            $t->where('name', 'exclusive')->orWhere('slug', 'exclusive');
-                        });
-                });
-        };
-
-        $exclusiveToday = Story::where(fn ($q) => $exclusiveFilter($q, $today))->count();
-        $exclusiveYesterday = Story::where(fn ($q) => $exclusiveFilter($q, $yesterday))->count();
+        $exclusiveToday = $this->stories->countExclusive($today);
+        $exclusiveYesterday = $this->stories->countExclusive($yesterday);
         $deltaExclusive = $exclusiveToday - $exclusiveYesterday;
         $deltaExclusiveText = ($deltaExclusive >= 0 ? '+' : '').$deltaExclusive.' from yesterday';
         $deltaExclusiveDirection = $deltaExclusive >= 0 ? 'up' : 'down';
 
         // 5. Recent stories (4 items, eager loaded)
-        $recentStories = Story::with(['category', 'tags', 'owner', 'deliveries'])
-            ->whereIn('status', ['published', 'approved'])
-            ->latest('published_at')
-            ->limit(4)
-            ->get();
-
-        if ($recentStories->count() < 4) {
-            $fallback = Story::with(['category', 'tags', 'owner', 'deliveries'])
-                ->whereNotIn('id', $recentStories->pluck('id'))
-                ->latest('updated_at')
-                ->limit(4 - $recentStories->count())
-                ->get();
-            $recentStories = $recentStories->concat($fallback);
-        }
+        $recentStories = $this->stories->recentPublished(4);
 
         // Decorate stories with presentation attributes
         $decoratedStories = $recentStories->map(function (Story $story) {
@@ -120,16 +103,7 @@ class DashboardService
         });
 
         // 6. Top clients today (3 items)
-        $clients = Client::where('status', 'active')
-            ->with(['clientPackages.package'])
-            ->withCount(['downloads as downloads_today_count' => function ($q) use ($today) {
-                $q->whereDate('created_at', $today);
-            }])
-            ->withCount('downloads')
-            ->orderByDesc('downloads_today_count')
-            ->orderByDesc('downloads_count')
-            ->limit(3)
-            ->get();
+        $clients = $this->clients->topClients($today, 3);
 
         $avatarTints = ['crimson', 'blue', 'amber'];
         $decoratedClients = $clients->map(function (Client $client, int $index) use ($avatarTints) {

@@ -2,13 +2,12 @@
 
 namespace App\Livewire\Admin;
 
-use App\Models\Category;
 use App\Models\MediaAsset;
 use App\Models\MediaBatch;
 use App\Models\MediaReview;
-use App\Models\Package;
-use App\Models\Story;
 use App\Models\User;
+use App\Repositories\MediaRepository;
+use App\Repositories\StoryRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Attributes\On;
@@ -174,7 +173,7 @@ class PhotoManager extends Component
         }
 
         $this->selectedAssetId = $id;
-        $asset = MediaAsset::with(['category', 'packages', 'stories', 'photographer'])->find($id);
+        $asset = app(MediaRepository::class)->findWithRelations($id);
         if (! $asset) {
             $this->selectedAssetId = null;
 
@@ -202,33 +201,24 @@ class PhotoManager extends Component
             return;
         }
 
-        $asset = MediaAsset::find($this->selectedAssetId);
+        $repo = app(MediaRepository::class);
+        $asset = $repo->findById($this->selectedAssetId);
         if (! $asset) {
             return;
         }
 
         $tags = array_values(array_filter(array_map('trim', explode(',', $this->inspKeywords))));
 
-        $asset->caption = $this->inspCaption;
-        $asset->title = Str::limit($this->inspCaption, 120);
-        $asset->credit_line = 'Photo: '.$this->inspPhotographer.' / UNB';
-        $asset->location_city = $this->inspLocation;
-        $asset->en_tags = $tags;
-        $asset->save();
+        $repo->update($asset, [
+            'caption' => $this->inspCaption,
+            'title' => Str::limit($this->inspCaption, 120),
+            'credit_line' => 'Photo: '.$this->inspPhotographer.' / UNB',
+            'location_city' => $this->inspLocation,
+            'en_tags' => $tags,
+        ]);
 
         // Update package assignment
-        DB::table('package_media')->where('asset_id', $asset->id)->delete();
-        if ($this->inspPackage !== '—') {
-            $pkgCode = $this->inspPackage === 'Exclusive' ? 'PREMIUM-BUNDLE' : 'STANDARD-NEWS';
-            $pkg = Package::where('code', $pkgCode)->first();
-            if ($pkg) {
-                DB::table('package_media')->insert([
-                    'package_id' => $pkg->id,
-                    'asset_id' => $asset->id,
-                    'added_at' => now(),
-                ]);
-            }
-        }
+        $repo->syncPackages($asset->id, $this->inspPackage);
 
         $this->dispatch('toast', message: '✓ Metadata saved');
     }
@@ -239,9 +229,10 @@ class PhotoManager extends Component
             return;
         }
 
-        $asset = MediaAsset::find($this->selectedAssetId);
+        $repo = app(MediaRepository::class);
+        $asset = $repo->findById($this->selectedAssetId);
         if ($asset) {
-            $asset->update([
+            $repo->update($asset, [
                 'status' => 'library',
                 'approved_at' => now(),
                 'approved_by' => auth()->id() ?? User::first()?->id,
@@ -262,9 +253,10 @@ class PhotoManager extends Component
             return;
         }
 
+        $storyRepo = app(StoryRepository::class);
         $story = is_numeric($query)
-            ? Story::find((int) $query)
-            : Story::where('headline', 'like', '%'.$query.'%')->first();
+            ? $storyRepo->findWithMinimal((int) $query)
+            : \App\Models\Story::where('headline', 'like', '%'.$query.'%')->first();
 
         if (! $story) {
             $this->dispatch('toast', message: 'No matching story found');
@@ -272,10 +264,7 @@ class PhotoManager extends Component
             return;
         }
 
-        DB::table('story_media')->updateOrInsert(
-            ['story_id' => $story->id, 'asset_id' => $this->selectedAssetId],
-            ['role' => 'featured', 'sort_order' => 1]
-        );
+        app(MediaRepository::class)->linkToStory($story->id, $this->selectedAssetId);
 
         $this->inspStoryInput = '';
         $this->dispatch('toast', message: '✓ Linked to story: '.Str::limit($story->headline, 30));
@@ -308,18 +297,7 @@ class PhotoManager extends Component
             return;
         }
 
-        $pkgCode = $packageName === 'Exclusive' ? 'PREMIUM-BUNDLE' : 'STANDARD-NEWS';
-        $pkg = Package::where('code', $pkgCode)->first();
-        if (! $pkg) {
-            return;
-        }
-
-        foreach ($this->selectedIds as $assetId) {
-            DB::table('package_media')->updateOrInsert(
-                ['package_id' => $pkg->id, 'asset_id' => $assetId],
-                ['added_at' => now()]
-            );
-        }
+        app(MediaRepository::class)->bulkSyncPackages($this->selectedIds, $packageName);
 
         $count = count($this->selectedIds);
         $this->dispatch('toast', message: '✓ '.$count.' assets assigned to '.$packageName.' package');
@@ -333,33 +311,29 @@ class PhotoManager extends Component
 
     public function approveFieldAsset(int $id): void
     {
-        $asset = MediaAsset::find($id);
+        $repo = app(MediaRepository::class);
+        $asset = $repo->findById($id);
         if (! $asset) {
             return;
         }
 
-        $asset->update([
+        $reviewerId = auth()->id() ?? User::first()?->id;
+
+        $repo->update($asset, [
             'status' => 'library',
             'approved_at' => now(),
-            'approved_by' => auth()->id() ?? User::first()?->id,
+            'approved_by' => $reviewerId,
         ]);
 
         // Auto assign package based on urgency if no package
         if (! $asset->packages()->exists()) {
             $pkgCode = $asset->event_label && str_contains(strtolower($asset->event_label), 'breaking') ? 'PREMIUM-BUNDLE' : 'STANDARD-NEWS';
-            $pkg = Package::where('code', $pkgCode)->first();
-            if ($pkg) {
-                DB::table('package_media')->insert([
-                    'package_id' => $pkg->id,
-                    'asset_id' => $asset->id,
-                    'added_at' => now(),
-                ]);
-            }
+            $repo->syncPackages($asset->id, $pkgCode === 'PREMIUM-BUNDLE' ? 'Exclusive' : 'Standard');
         }
 
-        MediaReview::create([
+        $repo->createReview([
             'asset_id' => $asset->id,
-            'reviewer_id' => auth()->id() ?? User::first()?->id,
+            'reviewer_id' => $reviewerId,
             'action' => 'approve',
             'created_at' => now(),
         ]);
@@ -370,7 +344,8 @@ class PhotoManager extends Component
 
     public function approveFieldBatch(int $batchId): void
     {
-        $batch = MediaBatch::with('assets')->find($batchId);
+        $repo = app(MediaRepository::class);
+        $batch = $repo->findBatchWithAssets($batchId);
         if (! $batch) {
             return;
         }
@@ -379,13 +354,13 @@ class PhotoManager extends Component
         $count = $batch->assets->count();
 
         foreach ($batch->assets as $asset) {
-            $asset->update([
+            $repo->update($asset, [
                 'status' => 'library',
                 'approved_at' => now(),
                 'approved_by' => $reviewerId,
             ]);
 
-            MediaReview::create([
+            $repo->createReview([
                 'asset_id' => $asset->id,
                 'reviewer_id' => $reviewerId,
                 'action' => 'approve',
@@ -393,7 +368,7 @@ class PhotoManager extends Component
             ]);
         }
 
-        $batch->update([
+        $repo->updateBatch($batch, [
             'status' => 'reviewed',
             'reviewed_by' => $reviewerId,
             'reviewed_at' => now(),
@@ -557,115 +532,32 @@ class PhotoManager extends Component
 
     public function render()
     {
+        $repo = app(MediaRepository::class);
+
         // 1. Live Tab Counts
-        $counts = [
-            'all' => MediaAsset::whereNotIn('status', ['field', 'rejected', 'reedit'])->count(),
-            'field' => MediaAsset::where('status', 'field')->whereNotNull('batch_id')->count(),
-            'review' => MediaAsset::where(function ($q) {
-                $q->where(function ($sq) {
-                    $sq->where('status', 'field')->whereNull('batch_id');
-                })->orWhere(function ($sq) {
-                    $sq->where('status', 'library')->whereNull('approved_at');
-                });
-            })->count(),
-            'library' => MediaAsset::where('status', 'library')->whereNotNull('approved_at')->count(),
-            'packaged' => MediaAsset::whereHas('packages')->count(),
-            'published' => MediaAsset::whereHas('stories', fn ($q) => $q->where('stories.status', 'published'))->count(),
-            'embargo' => MediaAsset::whereNotNull('embargo_until')->where('embargo_until', '>', now())->count(),
-        ];
+        $counts = $repo->getWorkflowTabCounts();
 
         // 2. Field Batches (for field intake tab)
-        $fieldBatches = null;
-        if ($this->tab === 'field') {
-            $fieldBatches = MediaBatch::with([
-                'uploader',
-                'assets' => fn ($q) => $q->where('status', 'field')->orderBy('id'),
-            ])
-                ->whereHas('assets', fn ($q) => $q->where('status', 'field'))
-                ->where('status', 'pending')
-                ->orderByDesc('submitted_at')
-                ->get();
-        }
+        $fieldBatches = $this->tab === 'field' ? $repo->getPendingBatches() : null;
 
         // 3. Asset Query (for photo grid)
-        $query = MediaAsset::with(['category', 'photographer', 'packages', 'stories']);
-
-        // Tab conditions
-        if ($this->tab === 'all') {
-            $query->whereNotIn('status', ['field', 'rejected', 'reedit']);
-        } elseif ($this->tab === 'review') {
-            $query->where(function ($q) {
-                $q->where(function ($sq) {
-                    $sq->where('status', 'field')->whereNull('batch_id');
-                })->orWhere(function ($sq) {
-                    $sq->where('status', 'library')->whereNull('approved_at');
-                });
-            });
-        } elseif ($this->tab === 'library') {
-            $query->where('status', 'library')->whereNotNull('approved_at');
-        } elseif ($this->tab === 'packaged') {
-            $query->whereHas('packages');
-        } elseif ($this->tab === 'published') {
-            $query->whereHas('stories', fn ($q) => $q->where('stories.status', 'published'));
-        } elseif ($this->tab === 'embargo') {
-            $query->whereNotNull('embargo_until')->where('embargo_until', '>', now());
-        }
-
-        // Search query
-        if ($this->search !== '') {
-            $term = '%'.$this->search.'%';
-            $query->where(function ($q) use ($term) {
-                $q->where('caption', 'like', $term)
-                    ->orWhere('title', 'like', $term)
-                    ->orWhere('credit_line', 'like', $term)
-                    ->orWhere('event_label', 'like', $term)
-                    ->orWhere('location_city', 'like', $term);
-            });
-        }
-
-        // Photographer filter
-        if ($this->photographer !== 'all') {
-            $query->where(function ($q) {
-                $q->where('credit_line', 'like', '%'.$this->photographer.'%')
-                    ->orWhereHas('photographer', fn ($pq) => $pq->where('name', $this->photographer));
-            });
-        }
-
-        // Category filter
-        if ($this->category !== 'all') {
-            $query->whereHas('category', fn ($cq) => $cq->where('name_en', $this->category)->orWhere('slug', Str::slug($this->category)));
-        }
-
-        // Unattached only filter
-        if ($this->unattachedOnly) {
-            $query->doesntHave('stories');
-        }
-
-        // Sorting
-        if ($this->sort === 'dl') {
-            $query->orderByDesc('download_count')->orderByDesc('id');
-        } else {
-            $query->orderByDesc('created_at')->orderByDesc('id');
-        }
-
-        $assets = $this->tab === 'field' ? collect([]) : $query->paginate(36);
+        $assets = $this->tab === 'field' ? collect([]) : $repo->paginateAssets(
+            $this->tab,
+            $this->search,
+            $this->photographer,
+            $this->category,
+            $this->unattachedOnly,
+            $this->sort,
+        );
 
         // Photographers list for filter
-        $photographersList = User::whereHas('role', fn ($q) => $q->where('name', 'like', '%Uploader%'))
-            ->orWhereNotNull('name')
-            ->pluck('name')
-            ->unique()
-            ->filter()
-            ->values();
+        $photographersList = $repo->getPhotographersList();
 
         // Categories list for filter
-        $categoriesList = Category::whereNull('parent_id')->pluck('name_en')->filter()->values();
+        $categoriesList = $repo->getRootCategoriesList();
 
         // Selected Asset for Inspector
-        $selected = null;
-        if ($this->selectedAssetId) {
-            $selected = MediaAsset::with(['category', 'photographer', 'packages', 'stories'])->find($this->selectedAssetId);
-        }
+        $selected = $this->selectedAssetId ? $repo->findWithRelations($this->selectedAssetId) : null;
 
         return view('livewire.admin.photo-manager', compact(
             'counts',

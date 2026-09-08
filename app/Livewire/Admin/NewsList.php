@@ -4,7 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Jobs\FanoutStory;
 use App\Jobs\ProcessIndexOutbox;
-use App\Models\Story;
+use App\Repositories\StoryRepository;
 use App\Services\NoteService;
 use App\Services\RbacService;
 use App\Services\StoryService;
@@ -60,7 +60,7 @@ class NewsList extends Component
     public function updatedSelectAll(bool $value): void
     {
         if ($value) {
-            $this->selectedStories = app(\App\Services\StoryQueryService::class)
+            $this->selectedStories = app(StoryRepository::class)
                 ->filteredIds($this->language, $this->status, $this->category, $this->search);
         } else {
             $this->selectedStories = [];
@@ -92,7 +92,7 @@ class NewsList extends Component
             return;
         }
 
-        $story = Story::findOrFail($this->selectedId);
+        $story = app(StoryRepository::class)->findOrFail($this->selectedId);
         $user = auth()->user();
         app(RbacService::class)->assertCan($user, 'stories', 'edit');
 
@@ -117,7 +117,7 @@ class NewsList extends Component
             'noteText' => 'required|string|min:1|max:2000',
         ]);
 
-        $story = Story::findOrFail($this->selectedId);
+        $story = app(StoryRepository::class)->findOrFail($this->selectedId);
         $user = auth()->user();
 
         app(NoteService::class)->add($story, $user, $this->noteText);
@@ -127,7 +127,7 @@ class NewsList extends Component
 
     public function togglePublish(int $id): void
     {
-        $story = Story::findOrFail($id);
+        $story = app(StoryRepository::class)->findOrFail($id);
         $user = auth()->user();
         $svc = app(StoryService::class);
 
@@ -156,7 +156,7 @@ class NewsList extends Component
 
     public function deleteStory(int $id): void
     {
-        $story = Story::findOrFail($id);
+        $story = app(StoryRepository::class)->findOrFail($id);
         app(RbacService::class)->assertCan(auth()->user(), 'stories', 'delete');
         $story->delete();
         $this->dispatch('toast', message: 'Story moved to trash.');
@@ -171,8 +171,9 @@ class NewsList extends Component
         $user = auth()->user();
         app(RbacService::class)->assertCan($user, 'stories', 'publish');
         $svc = app(StoryService::class);
+        $repo = app(StoryRepository::class);
 
-        $stories = Story::whereIn('id', $this->selectedStories)->get();
+        $stories = $repo->findMany($this->selectedStories);
         foreach ($stories as $story) {
             if ($story->status === 'draft') {
                 $svc->transition($story, 'in_review', $user);
@@ -201,7 +202,7 @@ class NewsList extends Component
         }
 
         app(RbacService::class)->assertCan(auth()->user(), 'stories', 'delete');
-        Story::whereIn('id', $this->selectedStories)->delete();
+        app(StoryRepository::class)->deleteMany($this->selectedStories);
 
         $this->selectedStories = [];
         $this->selectAll = false;
@@ -210,7 +211,7 @@ class NewsList extends Component
 
     public function export(): StreamedResponse
     {
-        $stories = app(\App\Services\StoryQueryService::class)
+        $stories = app(StoryRepository::class)
             ->exportQuery($this->language, $this->status, $this->category, $this->search);
         $fileName = 'unb-stories-'.$this->language.'-'.now()->format('Ymd-His').'.csv';
 
@@ -237,12 +238,12 @@ class NewsList extends Component
 
     public function render()
     {
-        $svc = app(\App\Services\StoryQueryService::class);
+        $repo = app(StoryRepository::class);
 
-        $stories = $svc->filteredList($this->language, $this->status, $this->category, $this->search);
-        $categories = $svc->categoriesTree();
-        $selected = $this->selectedId ? $svc->findWithDetails($this->selectedId) : null;
-        $counts = $svc->statusCounts($this->language);
+        $stories = $repo->filteredList($this->language, $this->status, $this->category, $this->search);
+        $categories = app(\App\Services\StoryQueryService::class)->categoriesTree();
+        $selected = $this->selectedId ? $repo->findWithDetails($this->selectedId) : null;
+        $counts = $repo->statusCounts($this->language);
 
         return view('livewire.admin.news-list', compact('stories', 'categories', 'selected', 'counts'));
     }

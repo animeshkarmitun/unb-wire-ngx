@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Admin;
 
-use App\Models\Delivery;
+use App\Repositories\DeliveryRepository;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -26,21 +26,15 @@ class DistributionLog extends Component
 
     public function retry(int $id): void
     {
-        Delivery::where('id', $id)->update(['status' => 'queued', 'attempt_count' => 0]);
+        app(DeliveryRepository::class)->markQueued($id);
         $this->dispatch('toast', message: 'Queued for retry');
     }
 
     public function render()
     {
-        $q = Delivery::with(['client', 'channel'])->orderByDesc('created_at');
-        if ($this->status !== 'all') {
-            $q->where('status', $this->status);
-        }
-        if ($this->search !== '') {
-            $q->where('payload_hash', 'like', '%'.$this->search.'%');
-        }
-        $deliveries = $q->paginate(20);
-        $stats = ['total' => Delivery::count(), 'failed' => Delivery::where('status', 'failed')->count(), 'delivered' => Delivery::where('status', 'delivered')->count()];
+        $repo = app(DeliveryRepository::class);
+        $deliveries = $repo->paginateWithFilters($this->status, $this->search);
+        $stats = $repo->getDistributionCounts();
 
         return view('livewire.admin.distribution-log', compact('deliveries', 'stats'));
     }
