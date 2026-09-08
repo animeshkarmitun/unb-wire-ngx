@@ -391,6 +391,17 @@ class AddNews extends Component
         $this->dispatch('toast', message: 'Applied AI '.$field);
         $this->dispatch('story-updated');
         $this->autosave();
+
+        if ($this->storyId) {
+            $story = app(StoryRepository::class)->findOrFail($this->storyId);
+            $story->events()->create([
+                'actor_id' => auth()->id(),
+                'action' => 'ai_applied',
+                'from_status' => $story->status,
+                'to_status' => $story->status,
+                'payload' => ['fields' => [$field]],
+            ]);
+        }
     }
 
     public function autosave(?RbacService $rbac = null, ?StoryService $stories = null): void

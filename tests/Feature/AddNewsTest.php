@@ -327,7 +327,7 @@ class AddNewsTest extends TestCase
 
         $this->assertDatabaseHas('story_events', [
             'story_id' => $story->id,
-            'action' => 'take_over',
+            'action' => 'handover',
         ]);
     }
 
@@ -541,7 +541,7 @@ class AddNewsTest extends TestCase
 
         $storyId = $cmp->get('storyId');
 
-        $this->assertDatabaseHas('story_events', ['story_id' => $storyId, 'action' => 'in_review']);
+        $this->assertDatabaseHas('story_events', ['story_id' => $storyId, 'action' => 'sent_to_review']);
         $this->assertDatabaseHas('story_events', ['story_id' => $storyId, 'action' => 'approved']);
         $this->assertDatabaseHas('story_events', ['story_id' => $storyId, 'action' => 'published']);
     }
@@ -637,7 +637,7 @@ class AddNewsTest extends TestCase
         $this->assertEquals('in_review', $story->status);
         $this->assertDatabaseHas('story_events', [
             'story_id' => $story->id,
-            'action' => 'in_review',
+            'action' => 'sent_to_review',
         ]);
     }
 

@@ -92,7 +92,7 @@ class LivewireTest extends TestCase
         $cmp->call('sendToReview');
         $story = Story::first();
         $this->assertEquals('in_review', $story->status);
-        $this->assertDatabaseHas('story_events', ['action' => 'in_review']);
+        $this->assertDatabaseHas('story_events', ['action' => 'sent_to_review']);
     }
 
     public function test_newslist_filters_and_pagination(): void

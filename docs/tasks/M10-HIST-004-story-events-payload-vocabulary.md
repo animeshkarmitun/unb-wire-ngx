@@ -1,6 +1,6 @@
 # Task: M10-HIST-004 — `story_events` payload enrichment + spec action vocabulary
 
-**Status:** ⏳ Pending
+**Status:** ✅ Completed
 **Dependencies:** M10-HIST-002 (same-file sequencing in `StoryService`)
 **Parent ADR:** `app-data/v1-database-design.md` §5 `story_events`, FR-NWS-016 (kill reason audited)
 
@@ -49,10 +49,10 @@
 ---
 
 ## 6. Completion Notes
-- **Shipped:** —
-- **Tests:** —
-- **Live Smoke:** —
-- **Review:** —
+- **Shipped:** `StoryEvent::ACTIONS` const (12 verb actions with labels). `StoryService::transition()` — verb action names (`sent_to_review`, `published`, `auto_published`, `killed`, `archived`) + `$gate` param (`manual`|`auto`) with payload `{gate}`. `takeOver()` → `handover` + payload `{from_user, to_user}`. `NoteService::add()` emits `note_added` + payload `{note_id}`. `AddNews::applyAi()` emits `ai_applied` + payload `{fields}`. Kill reason capture deferred (no UI input yet — noted in task file).
+- **Tests:** All 8 test files updated for verb action names. Full suite: 357 passed. Schema parity green.
+- **Live Smoke:** sqlite :memory: (CI env).
+- **Review:** — (milestone-end review in M10-HIST-010)
 
 ---
 

@@ -104,9 +104,10 @@ class StoryService
             ]);
             $story->events()->create([
                 'actor_id' => $actor->id,
-                'action' => 'take_over',
+                'action' => 'handover',
                 'from_status' => $story->status,
                 'to_status' => $story->status,
+                'payload' => ['from_user' => $prevName, 'to_user' => $actor->name],
             ]);
         });
     }
@@ -116,7 +117,7 @@ class StoryService
         return app(NoteService::class)->add($story, $actor, $body, $kind);
     }
 
-    public function transition(Story $story, string $to, User $actor): Story
+    public function transition(Story $story, string $to, User $actor, string $gate = 'manual'): Story
     {
         $from = $story->status;
         $allowed = self::TRANSITIONS[$from] ?? [];
@@ -137,18 +138,25 @@ class StoryService
             }
         }
 
-        return DB::transaction(function () use ($story, $from, $to, $actor) {
+        return DB::transaction(function () use ($story, $from, $to, $actor, $gate) {
             $extra = [];
             if ($to === 'published' && ! $story->published_at) {
                 $extra['published_at'] = now();
             }
             $story->update(array_merge(['status' => $to, 'version' => $story->version + 1], $extra));
             $this->revisions->snapshot($story, $actor);
+            $action = match ($to) {
+                'published' => $gate === 'auto' ? 'auto_published' : 'published',
+                'killed' => 'killed',
+                'archived' => 'archived',
+                default => $to === 'in_review' ? 'sent_to_review' : $to,
+            };
             $story->events()->create([
                 'actor_id' => $actor->id,
-                'action' => $to,
+                'action' => $action,
                 'from_status' => $from,
                 'to_status' => $to,
+                'payload' => $to === 'published' ? ['gate' => $gate] : null,
             ]);
             Cache::forget('portal:feed:*');
             Cache::forget('feed:v1:*');

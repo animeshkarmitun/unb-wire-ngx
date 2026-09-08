@@ -134,7 +134,7 @@ class StoryWorkflowTest extends TestCase
         $svc->takeOver($s->refresh(), $other);
         $this->assertEquals($other->id, $s->refresh()->locked_by);
         $this->assertDatabaseHas('story_notes', ['kind' => 'system']);
-        $this->assertDatabaseHas('story_events', ['action' => 'take_over']);
+        $this->assertDatabaseHas('story_events', ['action' => 'handover']);
     }
 
     public function test_ai_touched_clears_on_human_edit(): void

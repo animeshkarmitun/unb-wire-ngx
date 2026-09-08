@@ -197,7 +197,7 @@ class NewsListTest extends TestCase
 
         $this->assertDatabaseHas('story_events', [
             'story_id' => $story->id,
-            'action' => 'take_over',
+            'action' => 'handover',
             'actor_id' => $this->editor->id,
         ]);
     }
