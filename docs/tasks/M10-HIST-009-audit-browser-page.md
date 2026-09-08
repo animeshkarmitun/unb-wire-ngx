@@ -1,6 +1,6 @@
 # Task: M10-HIST-009 — Global audit log browser (`/admin/audit`)
 
-**Status:** ⏳ Pending
+**Status:** ✅ Completed
 **Dependencies:** M10-HIST-005
 **Parent ADR:** FR-NTF-003 ("per-entity audit history is viewable by admins"), NFR §15 (`AuditQueryService`), `docs/plans/history-audit-design.md` §4
 
@@ -48,10 +48,10 @@
 ---
 
 ## 6. Completion Notes
-- **Shipped:** —
-- **Tests:** —
-- **Live Smoke:** —
-- **Review:** —
+- **Shipped:** `AuditLogBrowser` Livewire component with filters (action, entity_type, entity_id, date range), paginated results (25/page) from `AuditQueryService::search()`. Route `GET /admin/audit` with `rbac:audit,view` middleware. `audit.blade.php` admin view. Sidebar "Audit log" entry conditional on `audit.can_view`. Table: Dhaka-tz time, actor, action (color-coded badge), entity (Story links to story view), diff summary, IP, correlation ID. Deep-link support via `?entity_type=&entity_id=` query params.
+- **Tests:** `AuditBrowserTest` 3/3 (admin access, editor denied 403, renders filters). Full suite: 370 passed. Schema parity green.
+- **Live Smoke:** sqlite :memory: (CI env).
+- **Review:** — (milestone-end review in M10-HIST-010)
 
 ---
 
