@@ -23,6 +23,10 @@ class StoryService
         'archived' => [],
     ];
 
+    public function __construct(
+        private RevisionService $revisions,
+    ) {}
+
     public function createDraft(array $data, User $actor): Story
     {
         if (isset($data['body_html'])) {
@@ -38,12 +42,7 @@ class StoryService
 
         return DB::transaction(function () use ($data, $actor) {
             $story = Story::create($data);
-            $story->versions()->create([
-                'version' => 1,
-                'snapshot' => ['headline' => $story->headline, 'body_html' => $story->body_html],
-                'created_by' => $actor->id,
-                'created_at' => now(),
-            ]);
+            $this->revisions->snapshot($story, $actor);
             $story->events()->create([
                 'actor_id' => $actor->id,
                 'action' => 'created',
@@ -72,14 +71,9 @@ class StoryService
 
         return DB::transaction(function () use ($story, $data, $actor) {
             $story->update(array_merge($data, ['version' => $story->version + 1]));
-            $story->versions()->create([
-                'version' => $story->version,
-                'snapshot' => ['headline' => $story->headline, 'brief' => $story->brief, 'body_html' => $story->body_html],
-                'created_by' => $actor->id,
-                'created_at' => now(),
-            ]);
+            $this->revisions->snapshot($story->refresh(), $actor);
 
-            return $story->refresh();
+            return $story;
         });
     }
 
@@ -148,7 +142,8 @@ class StoryService
             if ($to === 'published' && ! $story->published_at) {
                 $extra['published_at'] = now();
             }
-            $story->update(array_merge(['status' => $to], $extra));
+            $story->update(array_merge(['status' => $to, 'version' => $story->version + 1], $extra));
+            $this->revisions->snapshot($story, $actor);
             $story->events()->create([
                 'actor_id' => $actor->id,
                 'action' => $to,

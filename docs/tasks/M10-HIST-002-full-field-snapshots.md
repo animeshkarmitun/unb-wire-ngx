@@ -1,6 +1,6 @@
 # Task: M10-HIST-002 — Full-field version snapshots + snapshot-on-transition
 
-**Status:** ⏳ Pending
+**Status:** ✅ Completed
 **Dependencies:** None (parallel-safe with M10-HIST-001)
 **Parent ADR:** `docs/plans/history-audit-design.md` §3 + NFR §15 (`RevisionService`), AGENTS.md §2.1
 
@@ -46,10 +46,10 @@
 ---
 
 ## 6. Completion Notes
-- **Shipped:** —
-- **Tests:** —
-- **Live Smoke:** —
-- **Review:** —
+- **Shipped:** `RevisionService::snapshot()` created (12 fields + tags name list) via `StoryRepository::createVersion`; `StoryService::createDraft/updateDraft` now call `RevisionService::snapshot` (replacing inline partial arrays); `transition()` bumps `stories.version +1` and snapshots at new version (UNIQUE-safe); `StoryRepository::createVersion` return type fixed `void → StoryVersion`.
+- **Tests:** `StoryWorkflowTest` 16/16 (4 new: transition snapshot fields, publish snapshot fields, version bump stale 409, save-then-publish no UNIQUE violation). Full suite: 345 passed. `schema-parity-check.php` green.
+- **Live Smoke:** `php artisan test` + `php scripts/schema-parity-check.php` clean on sqlite :memory: (CI env). No pgsql schema drift (no migration changes).
+- **Review:** — (milestone-end review in M10-HIST-010)
 
 ---
 
