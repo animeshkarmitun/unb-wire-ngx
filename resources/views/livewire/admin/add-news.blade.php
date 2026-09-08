@@ -242,6 +242,37 @@
         </div>
       </section>
 
+      {{-- Server Version History (visible when story is saved) --}}
+      @if($storyId)
+        <div class="card" style="margin-top:8px">
+          <div class="card-title" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between" wire:click="$toggle('showServerHistory')">
+            <span>Server version history</span>
+            <span style="font-size:11px; color:var(--muted)">{{ $showServerHistory ? '▲ Collapse' : '▼ Expand' }}</span>
+          </div>
+          @if($showServerHistory)
+            <div style="max-height:200px; overflow-y:auto; margin-top:8px">
+              @php $versions = $this->listVersions(); @endphp
+              @forelse($versions as $ver)
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 8px; border-radius:6px; font-size:11px; {{ $ver['version'] === $version ? 'background:var(--navy-50); border:1px solid var(--navy-200)' : '' }}">
+                  <div style="display:flex; align-items:center; gap:8px">
+                    <span style="font-family:monospace; font-weight:bold">v{{ $ver['version'] }}</span>
+                    <span style="color:var(--muted)">{{ $ver['creator'] }}</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px">
+                    <span style="color:var(--muted); font-size:10px">{{ $ver['created_at'] }}</span>
+                    @if($ver['version'] !== $version)
+                      <button type="button" wire:click="restoreVersion({{ $ver['version'] }})" style="font-size:9px; padding:2px 6px; border-radius:4px; background:var(--amber-100); color:var(--amber-700); font-weight:bold; text-transform:uppercase">Restore</button>
+                    @endif
+                  </div>
+                </div>
+              @empty
+                <div style="font-size:11px; color:var(--muted); font-style:italic; padding:8px 0; text-align:center">No server versions yet.</div>
+              @endforelse
+            </div>
+          @endif
+        </div>
+      @endif
+
       <!-- ================================================================= -->
       <!-- ===== STEP 2: MEDIA ===== -->
       <!-- ================================================================= -->

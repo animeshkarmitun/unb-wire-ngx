@@ -1,6 +1,6 @@
 # Task: M10-HIST-008 — Wizard History modal → server-side versions
 
-**Status:** ⏳ Pending
+**Status:** ✅ Completed
 **Dependencies:** M10-HIST-003
 **Parent ADR:** `app-data/README.md` prototype→implementation mapping (`localStorage('unb_rev_v1')` → `story_versions` via `RevisionService`), FR-NWS-003
 
@@ -47,10 +47,10 @@
 ---
 
 ## 6. Completion Notes
-- **Shipped:** —
-- **Tests:** —
-- **Live Smoke:** —
-- **Review:** —
+- **Shipped:** `AddNews` gains `listVersions()` (returns version list with creator/time) and `restoreVersion(int $v)` (calls `RevisionService::restore`, rehydrates editor fields, dispatches `quill-set-content`). `showServerHistory` boolean + toggle. `add-news.blade.php`: collapsible "Server version history" card between Step1 and Step2, visible when `storyId` is set. Version list with per-row restore button (hidden for current version). Server-side Livewire — no JS↔Livewire coordination needed. Existing localStorage `unb_rev_v1` modal untouched (still works for unsaved drafts).
+- **Tests:** Full suite: 367 passed. Schema parity green.
+- **Live Smoke:** sqlite :memory: (CI env).
+- **Review:** — (milestone-end review in M10-HIST-010)
 
 ---
 
