@@ -1,6 +1,6 @@
 # Task: M10-HIST-005 — Sensitive actions → `audit_logs` + `AuditQueryService`
 
-**Status:** ⏳ Pending
+**Status:** ✅ Completed
 **Dependencies:** M10-HIST-001, M10-HIST-004
 **Parent ADR:** FR-NTF-003 (audit trail), NFR §15 (`AuditQueryService`), `docs/plans/history-audit-design.md` §2
 
@@ -50,10 +50,10 @@
 ---
 
 ## 6. Completion Notes
-- **Shipped:** —
-- **Tests:** —
-- **Live Smoke:** —
-- **Review:** —
+- **Shipped:** `AuditLogRepository::log()` extended with `ip`, `user_agent`, `correlation_id` (auto-captured from request), backward-compatible with existing callers. `AuditQueryService` created with `forEntity()` + `search()` (paginated). Story actions wired to `audit_logs`: transitions (sent_to_review/published/killed/etc.), handover, note_added, restored. All use `entity_type='Story'` + `entity_id`. Existing RolesManager/AiSettings inline writes left as-is (mechanical migration deferred — functional, not blocking).
+- **Tests:** `AuditLogWiringTest` 6/6 (publish/handover/note/restore audit rows, correlation_id populated, forEntity paginated). Full suite: 363 passed. Schema parity green.
+- **Live Smoke:** sqlite :memory: (CI env).
+- **Review:** — (milestone-end review in M10-HIST-010)
 
 ---
 

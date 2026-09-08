@@ -6,6 +6,7 @@ use App\Jobs\FanoutStory;
 use App\Models\Story;
 use App\Models\StoryNote;
 use App\Models\User;
+use App\Repositories\AuditLogRepository;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
@@ -25,6 +26,7 @@ class StoryService
 
     public function __construct(
         private RevisionService $revisions,
+        private AuditLogRepository $audit,
     ) {}
 
     public function createDraft(array $data, User $actor): Story
@@ -109,6 +111,7 @@ class StoryService
                 'to_status' => $story->status,
                 'payload' => ['from_user' => $prevName, 'to_user' => $actor->name],
             ]);
+            $this->audit->log('handover', 'Story', $story->id, ['from' => $prevName, 'to' => $actor->name]);
         });
     }
 
@@ -158,6 +161,12 @@ class StoryService
                 'to_status' => $to,
                 'payload' => $to === 'published' ? ['gate' => $gate] : null,
             ]);
+            $this->audit->log(
+                $action,
+                'Story',
+                $story->id,
+                ['from' => $from, 'to' => $to],
+            );
             Cache::forget('portal:feed:*');
             Cache::forget('feed:v1:*');
             if ($to === 'published') {

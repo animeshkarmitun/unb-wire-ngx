@@ -38,6 +38,13 @@ class NoteService
             'payload' => ['note_id' => $note->id],
         ]);
 
+        app(\App\Repositories\AuditLogRepository::class)->log(
+            'note_added',
+            'Story',
+            $story->id,
+            ['note_id' => $note->id],
+        );
+
         return $note;
     }
 }

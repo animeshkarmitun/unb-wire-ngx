@@ -119,6 +119,12 @@ class RevisionService
                 'to_status' => $story->status,
                 'payload' => ['from_version' => $fromVersion, 'to_version' => $version],
             ]);
+            app(\App\Repositories\AuditLogRepository::class)->log(
+                'restored',
+                'Story',
+                $story->id,
+                ['from_version' => $fromVersion, 'to_version' => $version],
+            );
 
             return $story->refresh();
         });
