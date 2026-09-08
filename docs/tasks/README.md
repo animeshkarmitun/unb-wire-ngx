@@ -135,7 +135,7 @@
 | `M10-HIST-004` | `story_events` payload enrichment + spec action vocabulary | M10-HIST-002 | ✅ | — | 2026-09-08 |
 | `M10-HIST-005` | Sensitive actions → `audit_logs` (ip/ua/correlation/diff) + `AuditQueryService` | M10-HIST-001, M10-HIST-004 | ✅ | — | 2026-09-08 |
 | `M10-HIST-006` | Story view: Timeline + Versions sections | M10-HIST-001, M10-HIST-004 | ✅ | — | 2026-09-08 |
-| `M10-HIST-007` | Version diff viewer + restore action (story view) | M10-HIST-003, M10-HIST-006 | ⏳ | — | — |
+| `M10-HIST-007` | Version diff viewer + restore action (story view) | M10-HIST-003, M10-HIST-006 | ✅ | — | 2026-09-08 |
 | `M10-HIST-008` | Wizard History modal → server-side versions | M10-HIST-003 | ⏳ | — | — |
 | `M10-HIST-009` | Global audit log browser (`/admin/audit`) | M10-HIST-005 | ⏳ | — | — |
 | `M10-HIST-010` | E2E hardening + knowledge-inventory sync + full CI gates | M10-HIST-001…009 | ⏳ | — | — |

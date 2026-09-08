@@ -1,6 +1,6 @@
 # Task: M10-HIST-007 — Version diff viewer + restore action (story view)
 
-**Status:** ⏳ Pending
+**Status:** ✅ Completed
 **Dependencies:** M10-HIST-003, M10-HIST-006
 **Parent ADR:** FR-NWS-003 (revision history), NFR §15, `docs/plans/history-audit-design.md` §4
 
@@ -45,10 +45,10 @@
 ---
 
 ## 6. Completion Notes
-- **Shipped:** —
-- **Tests:** —
-- **Live Smoke:** —
-- **Review:** —
+- **Shipped:** `StoryView` gains diff/restore Livewire state (`diffA`, `diffB`, `diffResult`, `restoreTarget`, `showRestoreConfirm`) + methods (`compareVersions`, `clearDiff`, `requestRestore`, `confirmRestore`, `cancelRestore`). Version History section in `story-view.blade.php`: checkbox-based two-version select → `compareVersions` → server-rendered diff panel (field rows + body token diff with added/removed highlights). Restore button per non-current version (gated `stories.can_edit` + pre-publish states) → confirm modal → `RevisionService::restore` with 409 handling → server re-render. `render()` uses `loadMissing` to fix Livewire serialization lazy-loading issue. `canEditStory` computed property for UI gating.
+- **Tests:** `StoryViewTest` 9/9 (2 new: compare versions shows diff, restore button visible for editable stories). Full suite: 367 passed. Schema parity green.
+- **Live Smoke:** sqlite :memory: (CI env).
+- **Review:** — (milestone-end review in M10-HIST-010)
 
 ---
 
