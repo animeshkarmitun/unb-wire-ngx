@@ -63,7 +63,7 @@ class IndexOutboxRepository
     {
         $oldest = DB::table('index_outbox')->where('status', 'pending')->min('created_at');
 
-        return $oldest ? now()->diffInSeconds($oldest) : 0;
+        return $oldest ? (int) abs(now()->diffInSeconds($oldest)) : 0;
     }
 
     public function getFailedCount(): int
