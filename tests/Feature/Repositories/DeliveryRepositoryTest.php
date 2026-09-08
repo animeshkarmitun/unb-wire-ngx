@@ -2,9 +2,10 @@
 
 namespace Tests\Feature\Repositories;
 
+use App\Models\Client;
+use App\Models\ClientChannel;
 use App\Models\Delivery;
 use App\Repositories\DeliveryRepository;
-use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -22,7 +23,7 @@ class DeliveryRepositoryTest extends TestCase
 
     // ─── Read Methods ───────────────────────────────────────────
 
-    public function test_paginateWithFilters_returns_paginated(): void
+    public function test_paginate_with_filters_returns_paginated(): void
     {
         Delivery::factory()->create(['status' => 'delivered']);
         Delivery::factory()->create(['status' => 'failed']);
@@ -32,7 +33,7 @@ class DeliveryRepositoryTest extends TestCase
         $this->assertEquals(2, $result->total());
     }
 
-    public function test_paginateWithFilters_filters_by_status(): void
+    public function test_paginate_with_filters_filters_by_status(): void
     {
         Delivery::factory()->create(['status' => 'delivered']);
         Delivery::factory()->create(['status' => 'failed']);
@@ -43,7 +44,7 @@ class DeliveryRepositoryTest extends TestCase
         $this->assertEquals('failed', $result->items()[0]->status);
     }
 
-    public function test_getDistributionCounts_returns_counts(): void
+    public function test_get_distribution_counts_returns_counts(): void
     {
         Delivery::factory()->create(['status' => 'delivered']);
         Delivery::factory()->create(['status' => 'delivered']);
@@ -56,7 +57,7 @@ class DeliveryRepositoryTest extends TestCase
         $this->assertEquals(1, $counts['failed']);
     }
 
-    public function test_recentCount_counts_since_date(): void
+    public function test_recent_count_counts_since_date(): void
     {
         Delivery::factory()->create(['created_at' => now()]);
         Delivery::factory()->create(['created_at' => now()->subDays(10)]);
@@ -66,7 +67,7 @@ class DeliveryRepositoryTest extends TestCase
         $this->assertEquals(1, $count);
     }
 
-    public function test_countBetween_counts_in_range(): void
+    public function test_count_between_counts_in_range(): void
     {
         Delivery::factory()->create(['created_at' => now()->subDays(3)]);
         Delivery::factory()->create(['created_at' => now()->subDays(10)]);
@@ -79,11 +80,11 @@ class DeliveryRepositoryTest extends TestCase
 
     // ─── Write Methods ─────────────────────────────────────────
 
-    public function test_createQueued_inserts_delivery(): void
+    public function test_create_queued_inserts_delivery(): void
     {
         // Create parent records for FK constraints
-        $client = \App\Models\Client::factory()->create();
-        $channel = \App\Models\ClientChannel::factory()->create(['client_id' => $client->id]);
+        $client = Client::factory()->create();
+        $channel = ClientChannel::factory()->create(['client_id' => $client->id]);
 
         $this->repo->createQueued([
             'deliverable_type' => 'story',
@@ -100,7 +101,7 @@ class DeliveryRepositoryTest extends TestCase
         ]);
     }
 
-    public function test_markSent_updates_status(): void
+    public function test_mark_sent_updates_status(): void
     {
         Delivery::factory()->create(['idempotency_key' => 'test-key', 'status' => 'queued']);
 
@@ -109,7 +110,7 @@ class DeliveryRepositoryTest extends TestCase
         $this->assertDatabaseHas('deliveries', ['idempotency_key' => 'test-key', 'status' => 'sent']);
     }
 
-    public function test_markQueued_resets_status(): void
+    public function test_mark_queued_resets_status(): void
     {
         $delivery = Delivery::factory()->create(['status' => 'failed', 'attempt_count' => 3]);
 

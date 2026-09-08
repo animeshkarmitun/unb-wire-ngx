@@ -37,7 +37,7 @@ class IndexOutboxRepositoryTest extends TestCase
 
     // ─── Read Methods ───────────────────────────────────────────
 
-    public function test_getPendingBatch_returns_pending_only(): void
+    public function test_get_pending_batch_returns_pending_only(): void
     {
         $this->insertOutbox(['status' => 'pending']);
         $this->insertOutbox(['status' => 'pending', 'document_id' => 'doc-2']);
@@ -48,7 +48,7 @@ class IndexOutboxRepositoryTest extends TestCase
         $this->assertEquals(2, $batch->count());
     }
 
-    public function test_getPendingBatch_respects_limit(): void
+    public function test_get_pending_batch_respects_limit(): void
     {
         for ($i = 0; $i < 5; $i++) {
             $this->insertOutbox(['document_id' => "doc-{$i}"]);
@@ -59,7 +59,7 @@ class IndexOutboxRepositoryTest extends TestCase
         $this->assertEquals(3, $batch->count());
     }
 
-    public function test_getLagSeconds_returns_lag(): void
+    public function test_get_lag_seconds_returns_lag(): void
     {
         $this->insertOutbox(['created_at' => now()->subSeconds(60)]);
 
@@ -68,14 +68,14 @@ class IndexOutboxRepositoryTest extends TestCase
         $this->assertGreaterThanOrEqual(55, $lag);
     }
 
-    public function test_getLagSeconds_returns_zero_when_empty(): void
+    public function test_get_lag_seconds_returns_zero_when_empty(): void
     {
         $lag = $this->repo->getLagSeconds();
 
         $this->assertEquals(0, $lag);
     }
 
-    public function test_getFailedCount_returns_failed(): void
+    public function test_get_failed_count_returns_failed(): void
     {
         $this->insertOutbox(['status' => 'failed']);
         $this->insertOutbox(['status' => 'pending', 'document_id' => 'doc-2']);
@@ -87,7 +87,7 @@ class IndexOutboxRepositoryTest extends TestCase
 
     // ─── Write Methods ─────────────────────────────────────────
 
-    public function test_markProcessing_increments_attempts(): void
+    public function test_mark_processing_increments_attempts(): void
     {
         $row = $this->insertOutbox(['attempts' => 0]);
 
@@ -96,7 +96,7 @@ class IndexOutboxRepositoryTest extends TestCase
         $this->assertDatabaseHas('index_outbox', ['id' => $row->id, 'attempts' => 1]);
     }
 
-    public function test_markDone_sets_status_and_processed_at(): void
+    public function test_mark_done_sets_status_and_processed_at(): void
     {
         $row = $this->insertOutbox();
 
@@ -106,7 +106,7 @@ class IndexOutboxRepositoryTest extends TestCase
         $this->assertNotNull(DB::table('index_outbox')->where('id', $row->id)->value('processed_at'));
     }
 
-    public function test_markFailed_sets_status(): void
+    public function test_mark_failed_sets_status(): void
     {
         $row = $this->insertOutbox();
 
@@ -115,7 +115,7 @@ class IndexOutboxRepositoryTest extends TestCase
         $this->assertDatabaseHas('index_outbox', ['id' => $row->id, 'status' => 'failed']);
     }
 
-    public function test_markPending_resets_status(): void
+    public function test_mark_pending_resets_status(): void
     {
         $row = $this->insertOutbox(['status' => 'failed']);
 
@@ -137,7 +137,7 @@ class IndexOutboxRepositoryTest extends TestCase
         $this->assertDatabaseHas('index_outbox', ['document_id' => 'new-doc', 'status' => 'pending']);
     }
 
-    public function test_purgeCompleted_removes_old_done(): void
+    public function test_purge_completed_removes_old_done(): void
     {
         $old = $this->insertOutbox(['status' => 'done', 'processed_at' => now()->subDays(10)]);
         $recent = $this->insertOutbox(['status' => 'done', 'processed_at' => now()->subDays(1), 'document_id' => 'doc-recent']);

@@ -8,7 +8,6 @@ use App\Models\ClientChannel;
 use App\Models\ClientPackage;
 use App\Models\Package;
 use App\Repositories\ClientRepository;
-use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -33,7 +32,7 @@ class ClientRepositoryTest extends TestCase
 
     // ─── Read Methods ───────────────────────────────────────────
 
-    public function test_findOrFail_returns_client(): void
+    public function test_find_or_fail_returns_client(): void
     {
         $client = $this->createClient();
 
@@ -42,7 +41,7 @@ class ClientRepositoryTest extends TestCase
         $this->assertEquals($client->id, $result->id);
     }
 
-    public function test_findWithRelations_eager_loads_specified(): void
+    public function test_find_with_relations_eager_loads_specified(): void
     {
         $client = $this->createClient();
 
@@ -52,7 +51,7 @@ class ClientRepositoryTest extends TestCase
         $this->assertTrue($result->relationLoaded('clientChannels'));
     }
 
-    public function test_findWithFullRelations_eager_loads_all(): void
+    public function test_find_with_full_relations_eager_loads_all(): void
     {
         $client = $this->createClient();
 
@@ -64,7 +63,7 @@ class ClientRepositoryTest extends TestCase
         $this->assertTrue($result->relationLoaded('clientUsers'));
     }
 
-    public function test_findByCode_returns_client(): void
+    public function test_find_by_code_returns_client(): void
     {
         $client = $this->createClient(['code' => 'DST']);
 
@@ -74,7 +73,7 @@ class ClientRepositoryTest extends TestCase
         $this->assertEquals($client->id, $result->id);
     }
 
-    public function test_activeCount_returns_active_clients(): void
+    public function test_active_count_returns_active_clients(): void
     {
         $this->createClient(['status' => 'active']);
         $this->createClient(['status' => 'suspended']);
@@ -94,7 +93,7 @@ class ClientRepositoryTest extends TestCase
         $this->assertEquals(2, $count);
     }
 
-    public function test_activeClientsThisWeek_returns_recent(): void
+    public function test_active_clients_this_week_returns_recent(): void
     {
         $this->createClient(['created_at' => now()]);
         $this->createClient(['created_at' => now()->subMonth()]);
@@ -129,7 +128,7 @@ class ClientRepositoryTest extends TestCase
 
     // ─── API Keys ──────────────────────────────────────────────
 
-    public function test_findActiveKeyByHash_returns_key(): void
+    public function test_find_active_key_by_hash_returns_key(): void
     {
         $client = $this->createClient();
         $hash = hash('sha256', 'test_key');
@@ -144,7 +143,7 @@ class ClientRepositoryTest extends TestCase
         $this->assertEquals($key->id, $result->id);
     }
 
-    public function test_findActiveKeyByHash_returns_null_for_revoked(): void
+    public function test_find_active_key_by_hash_returns_null_for_revoked(): void
     {
         $client = $this->createClient();
         $hash = hash('sha256', 'revoked_key');
@@ -159,7 +158,7 @@ class ClientRepositoryTest extends TestCase
         $this->assertNull($result);
     }
 
-    public function test_rotateKey_creates_new_and_expires_old(): void
+    public function test_rotate_key_creates_new_and_expires_old(): void
     {
         $client = $this->createClient();
         $old = ClientApiKey::factory()->create(['client_id' => $client->id]);
@@ -172,7 +171,7 @@ class ClientRepositoryTest extends TestCase
         $this->assertNotNull($old->fresh()->expires_at);
     }
 
-    public function test_revokeKey_sets_revoked_at(): void
+    public function test_revoke_key_sets_revoked_at(): void
     {
         $client = $this->createClient();
         $key = ClientApiKey::factory()->create(['client_id' => $client->id]);
@@ -184,7 +183,7 @@ class ClientRepositoryTest extends TestCase
 
     // ─── Channels ──────────────────────────────────────────────
 
-    public function test_activeChannelsFor_returns_active_only(): void
+    public function test_active_channels_for_returns_active_only(): void
     {
         $client = $this->createClient();
         ClientChannel::factory()->create(['client_id' => $client->id, 'status' => 'active']);
@@ -195,7 +194,7 @@ class ClientRepositoryTest extends TestCase
         $this->assertEquals(1, $channels->count());
     }
 
-    public function test_recordChannelSuccess_updates_last_success(): void
+    public function test_record_channel_success_updates_last_success(): void
     {
         $client = $this->createClient();
         $channel = ClientChannel::factory()->create(['client_id' => $client->id, 'failure_count' => 3]);
@@ -206,7 +205,7 @@ class ClientRepositoryTest extends TestCase
         $this->assertNotNull($channel->fresh()->last_success_at);
     }
 
-    public function test_recordChannelFailure_increments_and_auto_pauses(): void
+    public function test_record_channel_failure_increments_and_auto_pauses(): void
     {
         $client = $this->createClient();
         $channel = ClientChannel::factory()->create(['client_id' => $client->id, 'failure_count' => 4, 'status' => 'active']);
@@ -219,7 +218,7 @@ class ClientRepositoryTest extends TestCase
 
     // ─── Subscriptions ─────────────────────────────────────────
 
-    public function test_activeSubscriptionsFor_returns_active(): void
+    public function test_active_subscriptions_for_returns_active(): void
     {
         $client = $this->createClient();
         $pkg = Package::factory()->create();
@@ -232,7 +231,7 @@ class ClientRepositoryTest extends TestCase
         $this->assertEquals(1, $subs->count());
     }
 
-    public function test_updateOrCreateSubscription_creates_or_updates(): void
+    public function test_update_or_create_subscription_creates_or_updates(): void
     {
         $client = $this->createClient();
         $pkg = Package::factory()->create();
