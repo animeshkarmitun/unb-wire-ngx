@@ -69,6 +69,10 @@ Route::get('/admin/delivery-settings', function () {
     return view('admin.delivery-settings');
 })->middleware(['auth', 'verified', 'rbac:distribution,view'])->name('admin.delivery-settings');
 
+Route::get('/admin/audit', function () {
+    return view('admin.audit');
+})->middleware(['auth', 'verified', 'rbac:audit,view'])->name('admin.audit');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

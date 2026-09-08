@@ -22,12 +22,29 @@ class NoteService
             $kind = 'note';
         }
 
-        return $story->notes()->create([
+        $note = $story->notes()->create([
             'user_id' => $author->id,
             'kind' => $kind,
             'is_internal' => true,
             'body' => $body,
             'created_at' => now(),
         ]);
+
+        $story->events()->create([
+            'actor_id' => $author->id,
+            'action' => 'note_added',
+            'from_status' => $story->status,
+            'to_status' => $story->status,
+            'payload' => ['note_id' => $note->id],
+        ]);
+
+        app(\App\Repositories\AuditLogRepository::class)->log(
+            'note_added',
+            'Story',
+            $story->id,
+            ['note_id' => $note->id],
+        );
+
+        return $note;
     }
 }

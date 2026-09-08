@@ -6,6 +6,7 @@ use App\Jobs\FanoutStory;
 use App\Models\Story;
 use App\Models\StoryNote;
 use App\Models\User;
+use App\Repositories\AuditLogRepository;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
@@ -23,6 +24,11 @@ class StoryService
         'archived' => [],
     ];
 
+    public function __construct(
+        private RevisionService $revisions,
+        private AuditLogRepository $audit,
+    ) {}
+
     public function createDraft(array $data, User $actor): Story
     {
         if (isset($data['body_html'])) {
@@ -38,12 +44,7 @@ class StoryService
 
         return DB::transaction(function () use ($data, $actor) {
             $story = Story::create($data);
-            $story->versions()->create([
-                'version' => 1,
-                'snapshot' => ['headline' => $story->headline, 'body_html' => $story->body_html],
-                'created_by' => $actor->id,
-                'created_at' => now(),
-            ]);
+            $this->revisions->snapshot($story, $actor);
             $story->events()->create([
                 'actor_id' => $actor->id,
                 'action' => 'created',
@@ -72,14 +73,9 @@ class StoryService
 
         return DB::transaction(function () use ($story, $data, $actor) {
             $story->update(array_merge($data, ['version' => $story->version + 1]));
-            $story->versions()->create([
-                'version' => $story->version,
-                'snapshot' => ['headline' => $story->headline, 'brief' => $story->brief, 'body_html' => $story->body_html],
-                'created_by' => $actor->id,
-                'created_at' => now(),
-            ]);
+            $this->revisions->snapshot($story->refresh(), $actor);
 
-            return $story->refresh();
+            return $story;
         });
     }
 
@@ -110,10 +106,12 @@ class StoryService
             ]);
             $story->events()->create([
                 'actor_id' => $actor->id,
-                'action' => 'take_over',
+                'action' => 'handover',
                 'from_status' => $story->status,
                 'to_status' => $story->status,
+                'payload' => ['from_user' => $prevName, 'to_user' => $actor->name],
             ]);
+            $this->audit->log('handover', 'Story', $story->id, ['from' => $prevName, 'to' => $actor->name]);
         });
     }
 
@@ -122,7 +120,7 @@ class StoryService
         return app(NoteService::class)->add($story, $actor, $body, $kind);
     }
 
-    public function transition(Story $story, string $to, User $actor): Story
+    public function transition(Story $story, string $to, User $actor, string $gate = 'manual'): Story
     {
         $from = $story->status;
         $allowed = self::TRANSITIONS[$from] ?? [];
@@ -143,18 +141,32 @@ class StoryService
             }
         }
 
-        return DB::transaction(function () use ($story, $from, $to, $actor) {
+        return DB::transaction(function () use ($story, $from, $to, $actor, $gate) {
             $extra = [];
             if ($to === 'published' && ! $story->published_at) {
                 $extra['published_at'] = now();
             }
-            $story->update(array_merge(['status' => $to], $extra));
+            $story->update(array_merge(['status' => $to, 'version' => $story->version + 1], $extra));
+            $this->revisions->snapshot($story, $actor);
+            $action = match ($to) {
+                'published' => $gate === 'auto' ? 'auto_published' : 'published',
+                'killed' => 'killed',
+                'archived' => 'archived',
+                default => $to === 'in_review' ? 'sent_to_review' : $to,
+            };
             $story->events()->create([
                 'actor_id' => $actor->id,
-                'action' => $to,
+                'action' => $action,
                 'from_status' => $from,
                 'to_status' => $to,
+                'payload' => $to === 'published' ? ['gate' => $gate] : null,
             ]);
+            $this->audit->log(
+                $action,
+                'Story',
+                $story->id,
+                ['from' => $from, 'to' => $to],
+            );
             Cache::forget('portal:feed:*');
             Cache::forget('feed:v1:*');
             if ($to === 'published') {

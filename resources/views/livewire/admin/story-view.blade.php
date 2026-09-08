@@ -568,6 +568,168 @@
                 </div>
             </div>
 
+            {{-- Timeline + Versions (gated history.can_view) --}}
+            @if($this->canViewHistory)
+                {{-- Workflow Timeline --}}
+                <div class="story-editorial-panel mt-4">
+                    <div class="story-editorial-title">
+                        <span>Workflow Timeline</span>
+                        <span class="text-[10px] text-muted font-normal">{{ $story->events->count() }} events</span>
+                    </div>
+                    <div class="max-h-64 overflow-y-auto space-y-2 pr-1">
+                        @forelse($story->events->sortByDesc('created_at') as $evt)
+                            @php
+                                $label = \App\Models\StoryEvent::ACTIONS[$evt->action] ?? $evt->action;
+                                $actorName = $evt->actor?->name ?? 'System';
+                                $isSystem = in_array($evt->action, ['created', 'sent_to_review', 'auto_published']);
+                            @endphp
+                            <div class="flex gap-2 text-[11px] leading-snug">
+                                <div class="flex-shrink-0 w-2 h-2 mt-1.5 rounded-full {{ $evt->action === 'published' ? 'bg-green-500' : ($evt->action === 'killed' ? 'bg-crimson' : ($evt->action === 'handover' ? 'bg-amber-500' : 'bg-navy-300')) }}"></div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="font-semibold text-ink">{{ $actorName }}</span>
+                                        <span class="text-muted">{{ $label }}</span>
+                                    </div>
+                                    @if($evt->payload)
+                                        <div class="text-muted mt-0.5">
+                                            @if(isset($evt->payload['gate']))
+                                                <span class="px-1 py-0.5 rounded text-[9px] font-bold uppercase {{ $evt->payload['gate'] === 'auto' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600' }}">{{ $evt->payload['gate'] }}</span>
+                                            @endif
+                                            @if(isset($evt->payload['from_user']) && isset($evt->payload['to_user']))
+                                                {{ $evt->payload['from_user'] }} → {{ $evt->payload['to_user'] }}
+                                            @endif
+                                            @if(isset($evt->payload['reason']))
+                                                "{{ $evt->payload['reason'] }}"
+                                            @endif
+                                            @if(isset($evt->payload['fields']))
+                                                {{ implode(', ', $evt->payload['fields']) }}
+                                            @endif
+                                        </div>
+                                    @endif
+                                    @if($evt->from_status && $evt->to_status && $evt->from_status !== $evt->to_status)
+                                        <div class="text-muted mt-0.5">
+                                            <span class="px-1 py-0.5 rounded text-[9px] bg-gray-100">{{ str_replace('_', ' ', $evt->from_status) }}</span>
+                                            <span class="mx-0.5">→</span>
+                                            <span class="px-1 py-0.5 rounded text-[9px] bg-gray-100">{{ str_replace('_', ' ', $evt->to_status) }}</span>
+                                        </div>
+                                    @endif
+                                    <div class="text-muted text-[10px] mt-0.5">{{ $evt->created_at?->timezone('Asia/Dhaka')->format('M j, h:i A') }}</div>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="text-xs text-muted italic py-2 text-center">No events recorded.</div>
+                        @endforelse
+                    </div>
+                </div>
+
+                {{-- Version History --}}
+                <div class="story-editorial-panel mt-4">
+                    <div class="story-editorial-title">
+                        <span>Version History</span>
+                        <span class="text-[10px] text-muted font-normal">{{ $story->versions->count() }} snapshots</span>
+                    </div>
+
+                    {{-- Version list with compare checkboxes --}}
+                    <div class="max-h-48 overflow-y-auto space-y-1.5 pr-1 mb-3">
+                        @php $sortedVersions = $story->versions->sortByDesc('version'); @endphp
+                        @forelse($sortedVersions as $ver)
+                            <div class="flex items-center justify-between text-[11px] py-1 px-2 rounded {{ $ver->version === $story->version ? 'bg-navy-50 border border-navy-200' : 'hover:bg-gray-50' }}">
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox"
+                                        wire:model.live="diffA"
+                                        value="{{ $ver->version }}"
+                                        x-on:change="
+                                            if ($el.checked) {
+                                                if (!@js($diffA)) { $wire.set('diffA', {{ $ver->version }}) }
+                                                else if (!@js($diffB)) { $wire.set('diffB', {{ $ver->version }}) }
+                                                else { $el.checked = false }
+                                            } else {
+                                                if (@js($diffA) === {{ $ver->version }}) { $wire.set('diffA', null) }
+                                                if (@js($diffB) === {{ $ver->version }}) { $wire.set('diffB', null) }
+                                            }
+                                        "
+                                        class="rounded border-gray-300 text-navy-800 focus:ring-navy-800"
+                                    >
+                                    <span class="font-mono font-bold text-ink">v{{ $ver->version }}</span>
+                                    <span class="text-muted">{{ $ver->creator?->name ?? 'System' }}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-muted text-[10px]">{{ $ver->created_at?->timezone('Asia/Dhaka')->format('M j, h:i A') }}</span>
+                                    @if($this->canEditStory && $ver->version !== $story->version && in_array($story->status, ['draft', 'in_review', 'changes_requested']))
+                                        <button type="button" wire:click="requestRestore({{ $ver->version }})" class="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 hover:bg-amber-200 font-bold uppercase">Restore</button>
+                                    @endif
+                                </div>
+                            </div>
+                        @empty
+                            <div class="text-xs text-muted italic py-2 text-center">No versions recorded.</div>
+                        @endforelse
+                    </div>
+
+                    {{-- Compare button --}}
+                    @if($diffA && $diffB && $diffA !== $diffB && !$diffResult)
+                        <button type="button" wire:click="compareVersions" class="w-full py-1.5 px-3 bg-navy-800 text-white text-xs font-semibold rounded-lg hover:bg-navy-900 transition">
+                            Compare v{{ $diffA }} ↔ v{{ $diffB }}
+                        </button>
+                    @endif
+
+                    {{-- Diff result panel --}}
+                    @if($diffResult)
+                        <div class="border-t border-border pt-3 mt-2">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[11px] font-bold text-ink">Diff: v{{ $diffA }} ↔ v{{ $diffB }}</span>
+                                <button type="button" wire:click="clearDiff" class="text-[10px] text-muted hover:text-ink">✕ Close</button>
+                            </div>
+
+                            {{-- Field changes --}}
+                            @if(!empty($diffResult['fields']))
+                                <div class="space-y-1 mb-3">
+                                    @foreach($diffResult['fields'] as $f)
+                                        <div class="text-[10px] flex items-start gap-2 py-0.5">
+                                            <span class="font-mono font-bold text-ink min-w-[60px]">{{ $f['field'] }}</span>
+                                            <span class="text-crimson line-through flex-1">{{ is_array($f['from']) ? implode(', ', $f['from']) : ($f['from'] ?? '—') }}</span>
+                                            <span class="text-green-600 flex-1">{{ is_array($f['to']) ? implode(', ', $f['to']) : ($f['to'] ?? '—') }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="text-[10px] text-muted italic mb-2">No field changes.</div>
+                            @endif
+
+                            {{-- Body diff --}}
+                            @if(!empty($diffResult['body']))
+                                <div class="bg-paper border border-border rounded-lg p-2 text-[10px] leading-relaxed max-h-32 overflow-y-auto">
+                                    @foreach($diffResult['body'] as $seg)
+                                        @if(($seg['type'] ?? '') === 'added')
+                                            <span class="bg-green-100 text-green-800 px-0.5 rounded">{{ $seg['token'] }}</span>
+                                        @elseif(($seg['type'] ?? '') === 'removed')
+                                            <span class="bg-red-100 text-red-800 line-through px-0.5 rounded">{{ $seg['token'] }}</span>
+                                        @else
+                                            <span>{{ $seg['token'] }}</span>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="text-[10px] text-muted italic">Body unchanged.</div>
+                            @endif
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Restore confirmation modal --}}
+                @if($showRestoreConfirm)
+                    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" wire:click="cancelRestore">
+                        <div class="bg-white rounded-xl shadow-2xl p-5 w-80" wire:click.stop>
+                            <h3 class="text-sm font-bold text-ink mb-2">Restore to v{{ $restoreTarget }}?</h3>
+                            <p class="text-xs text-muted mb-4">This will create a new version with the content from v{{ $restoreTarget }}. Current version (v{{ $story->version }}) is preserved. This cannot be undone.</p>
+                            <div class="flex gap-2">
+                                <button type="button" wire:click="cancelRestore" class="flex-1 py-1.5 px-3 border border-border text-xs font-semibold rounded-lg hover:bg-gray-50">Cancel</button>
+                                <button type="button" wire:click="confirmRestore" class="flex-1 py-1.5 px-3 bg-amber-600 text-white text-xs font-semibold rounded-lg hover:bg-amber-700">Restore</button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            @endif
+
             {{-- Latest News Wire Rail --}}
             <div class="story-wire-rail">
                 <div class="story-rail-header">Latest wire news</div>

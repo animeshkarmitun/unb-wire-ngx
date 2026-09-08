@@ -47,6 +47,9 @@
         <div class="text-[10.5px] tracking-[0.14em] uppercase text-navy-label font-semibold mb-2.5 pl-2.5">Settings</div>
         <x-nav-item-admin href="{{ route('admin.roles') }}" icon="shield-check" :active="request()->routeIs('admin.roles')">Roles &amp; access</x-nav-item-admin>
         <x-nav-item-admin href="{{ route('admin.ai-settings') }}" icon="sparkles" :active="request()->routeIs('admin.ai-settings')">AI settings</x-nav-item-admin>
+        @if(auth()->user() && app(App\Services\RbacService::class)->can(auth()->user(), 'audit', 'view'))
+            <x-nav-item-admin href="{{ route('admin.audit') }}" icon="scroll-text" :active="request()->routeIs('admin.audit')">Audit log</x-nav-item-admin>
+        @endif
         <x-nav-item-admin href="{{ route('admin.preferences') }}" icon="settings" :active="request()->routeIs('admin.preferences')">Preferences</x-nav-item-admin>
     </nav>
 </aside>

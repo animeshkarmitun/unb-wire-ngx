@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Story;
 use App\Models\StoryEvent;
 use App\Models\StoryNote;
+use App\Models\StoryVersion;
 use App\Models\Tag;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -273,9 +274,9 @@ class StoryRepository
         return Story::whereIn('id', $ids)->delete();
     }
 
-    public function createVersion(Story $story, array $snapshot, int $actorId): void
+    public function createVersion(Story $story, array $snapshot, int $actorId): StoryVersion
     {
-        $story->versions()->create([
+        return $story->versions()->create([
             'version' => $story->version,
             'snapshot' => $snapshot,
             'created_by' => $actorId,

@@ -3,9 +3,11 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Story;
+use App\Models\StoryEvent;
 use App\Repositories\StoryRepository;
 use App\Services\NoteService;
 use App\Services\RbacService;
+use App\Services\RevisionService;
 use App\Services\StoryService;
 use Illuminate\Support\Collection;
 use Livewire\Component;
@@ -16,6 +18,16 @@ class StoryView extends Component
 
     public string $newNote = '';
 
+    public ?int $diffA = null;
+
+    public ?int $diffB = null;
+
+    public ?array $diffResult = null;
+
+    public ?int $restoreTarget = null;
+
+    public bool $showRestoreConfirm = false;
+
     protected array $rules = [
         'newNote' => 'required|string|min:2|max:2000',
     ];
@@ -25,6 +37,79 @@ class StoryView extends Component
         $this->story = $stories->findWithAllRelations(
             Story::where('public_id', $publicId)->firstOrFail()->id
         );
+    }
+
+    public function getCanViewHistoryProperty(): bool
+    {
+        return app(RbacService::class)->can(auth()->user(), 'history', 'view');
+    }
+
+    public function getCanEditStoryProperty(): bool
+    {
+        return app(RbacService::class)->can(auth()->user(), 'stories', 'edit');
+    }
+
+    public function compareVersions(): void
+    {
+        if (! $this->diffA || ! $this->diffB || $this->diffA === $this->diffB) {
+            $this->dispatch('toast', message: 'Select two different versions to compare');
+            return;
+        }
+        $a = $this->story->versions()->where('version', $this->diffA)->first();
+        $b = $this->story->versions()->where('version', $this->diffB)->first();
+        if (! $a || ! $b) {
+            $this->dispatch('toast', message: 'Version not found');
+            return;
+        }
+        $this->diffResult = app(RevisionService::class)->diff($a, $b);
+    }
+
+    public function clearDiff(): void
+    {
+        $this->diffA = null;
+        $this->diffB = null;
+        $this->diffResult = null;
+    }
+
+    public function requestRestore(int $version): void
+    {
+        app(RbacService::class)->assertCan(auth()->user(), 'stories', 'edit');
+        $this->restoreTarget = $version;
+        $this->showRestoreConfirm = true;
+    }
+
+    public function confirmRestore(): void
+    {
+        if (! $this->restoreTarget) {
+            return;
+        }
+        try {
+            app(RevisionService::class)->restore(
+                $this->story,
+                $this->restoreTarget,
+                auth()->user(),
+                $this->story->version,
+            );
+            $this->story = app(StoryRepository::class)->findWithAllRelations($this->story->id);
+            $this->showRestoreConfirm = false;
+            $this->restoreTarget = null;
+            $this->diffResult = null;
+            $this->diffA = null;
+            $this->diffB = null;
+            $this->dispatch('toast', message: 'Story restored to selected version');
+        } catch (\Symfony\Component\HttpKernel\Exception\ConflictHttpException $e) {
+            $this->showRestoreConfirm = false;
+            $this->dispatch('toast', message: 'Version conflict — story was modified since you loaded it. Refresh and try again.');
+        } catch (\Throwable $e) {
+            $this->showRestoreConfirm = false;
+            $this->dispatch('toast', message: $e->getMessage());
+        }
+    }
+
+    public function cancelRestore(): void
+    {
+        $this->showRestoreConfirm = false;
+        $this->restoreTarget = null;
     }
 
     public function addNote(): void
@@ -78,6 +163,8 @@ class StoryView extends Component
 
     public function render()
     {
+        $this->story->loadMissing('versions.creator', 'events.actor', 'notes.user', 'tags', 'media', 'category', 'owner');
+
         return view('livewire.admin.story-view');
     }
 }

@@ -83,4 +83,54 @@ class RbacServiceTest extends TestCase
         $svc = app(RbacService::class);
         $this->assertFalse($svc->can($user, 'nonexistent', 'view'));
     }
+
+    public function test_editor_can_view_history_not_audit(): void
+    {
+        $user = $this->makeUser('Editor');
+        $svc = app(RbacService::class);
+        $this->assertTrue($svc->can($user, 'history', 'view'));
+        $this->assertFalse($svc->can($user, 'audit', 'view'));
+    }
+
+    public function test_strategist_can_view_history_not_audit(): void
+    {
+        $user = $this->makeUser('Strategist');
+        $svc = app(RbacService::class);
+        $this->assertTrue($svc->can($user, 'history', 'view'));
+        $this->assertFalse($svc->can($user, 'audit', 'view'));
+    }
+
+    public function test_admin_report_can_view_history_and_audit(): void
+    {
+        $user = $this->makeUser('Admin Report');
+        $svc = app(RbacService::class);
+        $this->assertTrue($svc->can($user, 'history', 'view'));
+        $this->assertTrue($svc->can($user, 'audit', 'view'));
+    }
+
+    public function test_business_team_denied_history_and_audit(): void
+    {
+        $user = $this->makeUser('Business Team');
+        $svc = app(RbacService::class);
+        $this->assertFalse($svc->can($user, 'history', 'view'));
+        $this->assertFalse($svc->can($user, 'audit', 'view'));
+    }
+
+    public function test_client_denied_history_and_audit(): void
+    {
+        $user = $this->makeUser('Client Bangla (Without AP)');
+        $svc = app(RbacService::class);
+        $this->assertFalse($svc->can($user, 'history', 'view'));
+        $this->assertFalse($svc->can($user, 'audit', 'view'));
+    }
+
+    public function test_uploaders_can_view_history_not_audit(): void
+    {
+        $svc = app(RbacService::class);
+        foreach (['Uploader-Bangla', 'Uploader-English'] as $roleName) {
+            $user = $this->makeUser($roleName);
+            $this->assertTrue($svc->can($user, 'history', 'view'), $roleName);
+            $this->assertFalse($svc->can($user, 'audit', 'view'), $roleName);
+        }
+    }
 }

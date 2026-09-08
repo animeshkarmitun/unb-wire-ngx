@@ -6,6 +6,8 @@ use App\Livewire\Admin\StoryView;
 use App\Models\Category;
 use App\Models\Role;
 use App\Models\Story;
+use App\Models\StoryEvent;
+use App\Models\StoryVersion;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -155,5 +157,63 @@ class StoryViewTest extends TestCase
 
         $this->assertNotEmpty($component->get('relatedStories'));
         $this->assertNotEmpty($component->get('latestRail'));
+    }
+
+    public function test_timeline_renders_when_history_permission_granted(): void
+    {
+        $this->editor->role->permissions()->create([
+            'module' => 'history',
+            'can_view' => true,
+        ]);
+        $this->story->events()->create([
+            'actor_id' => $this->editor->id,
+            'action' => 'sent_to_review',
+            'from_status' => 'draft',
+            'to_status' => 'in_review',
+        ]);
+
+        $response = $this->actingAs($this->editor)->get(route('admin.story', $this->story->public_id));
+
+        $response->assertOk();
+        $response->assertSee('Workflow Timeline');
+        $response->assertSee('Version History');
+        $response->assertSee('Sent to review');
+    }
+
+    public function test_timeline_hidden_when_history_permission_denied(): void
+    {
+        $response = $this->actingAs($this->editor)->get(route('admin.story', $this->story->public_id));
+
+        $response->assertOk();
+        $response->assertDontSee('Workflow Timeline');
+        $response->assertDontSee('Version History');
+    }
+
+    public function test_compare_versions_shows_diff(): void
+    {
+        $this->editor->role->permissions()->where('module', 'stories')->update(['can_edit' => true]);
+        $this->editor->role->permissions()->create(['module' => 'history', 'can_view' => true]);
+        $this->story->update(['version' => 2]);
+        $this->story->versions()->create(['version' => 1, 'snapshot' => ['headline' => 'Old', 'body_html' => '<p>Old</p>', 'tags' => []], 'created_by' => $this->editor->id, 'created_at' => now()]);
+        $this->story->versions()->create(['version' => 2, 'snapshot' => ['headline' => 'New', 'body_html' => '<p>New</p>', 'tags' => []], 'created_by' => $this->editor->id, 'created_at' => now()]);
+
+        Livewire::actingAs($this->editor)
+            ->test(StoryView::class, ['publicId' => $this->story->public_id])
+            ->set('diffA', 1)
+            ->set('diffB', 2)
+            ->call('compareVersions')
+            ->assertSet('diffResult', fn ($r) => ! empty($r['fields']))
+            ->assertSee('Diff: v1 ↔ v2');
+    }
+
+    public function test_restore_button_visible_for_editable_stories(): void
+    {
+        $this->editor->role->permissions()->where('module', 'stories')->update(['can_edit' => true]);
+        $this->editor->role->permissions()->create(['module' => 'history', 'can_view' => true]);
+
+        $component = Livewire::actingAs($this->editor)
+            ->test(StoryView::class, ['publicId' => $this->story->public_id]);
+
+        $component->assertDontSee('Restore'); // only v1 exists, current = v1
     }
 }

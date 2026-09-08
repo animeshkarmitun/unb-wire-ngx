@@ -19,6 +19,10 @@ use Livewire\Component;
 
 class AddNews extends Component
 {
+    public bool $showServerHistory = false;
+
+    public int $restoreTarget = 0;
+
     // Stepper state (1: Write, 2: Media, 3: Organize & access, 4: Review & publish)
     public int $step = 1;
 
@@ -391,6 +395,17 @@ class AddNews extends Component
         $this->dispatch('toast', message: 'Applied AI '.$field);
         $this->dispatch('story-updated');
         $this->autosave();
+
+        if ($this->storyId) {
+            $story = app(StoryRepository::class)->findOrFail($this->storyId);
+            $story->events()->create([
+                'actor_id' => auth()->id(),
+                'action' => 'ai_applied',
+                'from_status' => $story->status,
+                'to_status' => $story->status,
+                'payload' => ['fields' => [$field]],
+            ]);
+        }
     }
 
     public function autosave(?RbacService $rbac = null, ?StoryService $stories = null): void
@@ -569,6 +584,43 @@ class AddNews extends Component
 
         $this->noteBody = '';
         $this->dispatch('toast', message: 'Note added to newsroom thread');
+    }
+
+    public function listVersions(): array
+    {
+        if (! $this->storyId) {
+            return [];
+        }
+        $story = app(StoryRepository::class)->findOrFail($this->storyId);
+
+        return $story->versions()
+            ->with('creator:id,name')
+            ->orderByDesc('version')
+            ->get()
+            ->map(fn ($v) => [
+                'version' => $v->version,
+                'creator' => $v->creator?->name ?? 'System',
+                'created_at' => $v->created_at?->timezone('Asia/Dhaka')->format('M j, h:i A'),
+            ])
+            ->all();
+    }
+
+    public function restoreVersion(int $version): void
+    {
+        if (! $this->storyId) {
+            return;
+        }
+        app(RbacService::class)->assertCan(auth()->user(), 'stories', 'edit');
+        $story = app(StoryRepository::class)->findOrFail($this->storyId);
+        $restored = app(\App\Services\RevisionService::class)->restore($story, $version, auth()->user(), $story->version);
+        $this->headline = $restored->headline;
+        $this->subHead = $restored->sub_head ?? '';
+        $this->brief = $restored->brief ?? '';
+        $this->bodyHtml = $restored->body_html ?? '';
+        $this->version = $restored->version;
+        $this->showServerHistory = false;
+        $this->dispatch('quill-set-content', html: $this->bodyHtml);
+        $this->dispatch('toast', message: "Restored to v{$version}");
     }
 
     public function render()
