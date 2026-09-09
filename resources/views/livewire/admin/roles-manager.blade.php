@@ -239,7 +239,7 @@
                     <span class="au-dot" style="background: {{ $color }}"></span>
                     <div>
                         @if(!empty($diff['message']))
-                            <div class="au-text">{!! $diff['message'] !!}</div>
+                            <div class="au-text">{!! \App\Services\HtmlSanitizer::clean($diff['message']) !!}</div>
                         @else
                             <div class="au-text">
                                 <b>{{ $a->actor_type }}</b> {{ $a->action }}

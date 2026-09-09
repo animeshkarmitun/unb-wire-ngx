@@ -4,8 +4,10 @@ namespace Tests\Feature;
 
 use App\Jobs\GenerateDerivatives;
 use App\Models\MediaAsset;
+use App\Models\Role;
 use App\Models\User;
 use App\Services\Media\PresignedUrlService;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -14,6 +16,12 @@ use Tests\TestCase;
 class MediaTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(RoleSeeder::class);
+    }
 
     public function test_presigned_url_service_generates_url(): void
     {
@@ -64,7 +72,8 @@ class MediaTest extends TestCase
 
     public function test_tus_create_and_patch(): void
     {
-        $user = User::factory()->create();
+        $editorRole = Role::where('name', 'Editor')->first();
+        $user = User::factory()->create(['role_id' => $editorRole->id]);
         $this->actingAs($user);
         $resp = $this->postJson('/api/uploads', ['upload_length' => 11, 'filename' => 'test.bin']);
         $resp->assertCreated();

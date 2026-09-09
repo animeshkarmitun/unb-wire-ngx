@@ -14,7 +14,7 @@ class TusController extends Controller
         $id = (string) Str::uuid();
         DB::table('upload_sessions')->insert([
             'id' => $id,
-            'user_id' => $request->user()?->id ?? 1,
+            'user_id' => $request->user()->id,
             'kind' => $request->input('kind', 'photo'),
             'filename' => $request->input('filename', 'upload.bin'),
             'size_bytes' => (int) ($request->header('Upload-Length') ?? $request->input('upload_length')),
@@ -29,11 +29,14 @@ class TusController extends Controller
         return response('', 201)->header('Location', url("/api/uploads/{$id}"))->header('Tus-Resumable', '1.0.0');
     }
 
-    public function head(string $id)
+    public function head(Request $request, string $id)
     {
         $s = DB::table('upload_sessions')->where('id', $id)->first();
         if (! $s) {
             abort(404);
+        }
+        if ((int) $s->user_id !== $request->user()->id) {
+            abort(403);
         }
 
         return response('', 200)->header('Upload-Offset', (string) $s->offset_bytes)->header('Upload-Length', (string) $s->size_bytes)->header('Tus-Resumable', '1.0.0');
@@ -44,6 +47,9 @@ class TusController extends Controller
         $s = DB::table('upload_sessions')->where('id', $id)->first();
         if (! $s) {
             abort(404);
+        }
+        if ((int) $s->user_id !== $request->user()->id) {
+            abort(403);
         }
         $offset = (int) $request->header('Upload-Offset', 0);
         if ($offset !== (int) $s->offset_bytes) {
