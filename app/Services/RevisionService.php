@@ -6,6 +6,7 @@ use App\Models\Story;
 use App\Models\StoryVersion;
 use App\Models\Tag;
 use App\Models\User;
+use App\Repositories\AuditLogRepository;
 use App\Repositories\StoryRepository;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
@@ -108,7 +109,7 @@ class RevisionService
             $story->update($data);
             if (isset($snap['tags'])) {
                 $story->tags()->sync(
-                    \App\Models\Tag::whereIn('name', $snap['tags'])->pluck('id')->all()
+                    Tag::whereIn('name', $snap['tags'])->pluck('id')->all()
                 );
             }
             $this->snapshot($story, $actor);
@@ -119,7 +120,7 @@ class RevisionService
                 'to_status' => $story->status,
                 'payload' => ['from_version' => $fromVersion, 'to_version' => $version],
             ]);
-            app(\App\Repositories\AuditLogRepository::class)->log(
+            app(AuditLogRepository::class)->log(
                 'restored',
                 'Story',
                 $story->id,

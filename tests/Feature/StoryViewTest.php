@@ -6,8 +6,6 @@ use App\Livewire\Admin\StoryView;
 use App\Models\Category;
 use App\Models\Role;
 use App\Models\Story;
-use App\Models\StoryEvent;
-use App\Models\StoryVersion;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;

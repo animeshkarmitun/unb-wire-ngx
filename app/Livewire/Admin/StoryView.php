@@ -3,7 +3,6 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Story;
-use App\Models\StoryEvent;
 use App\Repositories\StoryRepository;
 use App\Services\NoteService;
 use App\Services\RbacService;
@@ -11,6 +10,7 @@ use App\Services\RevisionService;
 use App\Services\StoryService;
 use Illuminate\Support\Collection;
 use Livewire\Component;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 class StoryView extends Component
 {
@@ -53,12 +53,14 @@ class StoryView extends Component
     {
         if (! $this->diffA || ! $this->diffB || $this->diffA === $this->diffB) {
             $this->dispatch('toast', message: 'Select two different versions to compare');
+
             return;
         }
         $a = $this->story->versions()->where('version', $this->diffA)->first();
         $b = $this->story->versions()->where('version', $this->diffB)->first();
         if (! $a || ! $b) {
             $this->dispatch('toast', message: 'Version not found');
+
             return;
         }
         $this->diffResult = app(RevisionService::class)->diff($a, $b);
@@ -97,7 +99,7 @@ class StoryView extends Component
             $this->diffA = null;
             $this->diffB = null;
             $this->dispatch('toast', message: 'Story restored to selected version');
-        } catch (\Symfony\Component\HttpKernel\Exception\ConflictHttpException $e) {
+        } catch (ConflictHttpException $e) {
             $this->showRestoreConfirm = false;
             $this->dispatch('toast', message: 'Version conflict — story was modified since you loaded it. Refresh and try again.');
         } catch (\Throwable $e) {

@@ -56,6 +56,17 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'sticky' => true,
+            'read' => [
+                'host' => [
+                    env('DB_READ_HOST', env('DB_HOST', '127.0.0.1')),
+                ],
+            ],
+            'write' => [
+                'host' => [
+                    env('DB_WRITE_HOST', env('DB_HOST', '127.0.0.1')),
+                ],
+            ],
         ],
 
     ],

@@ -12,6 +12,7 @@ use App\Services\AiService;
 use App\Services\HtmlSanitizer;
 use App\Services\NotificationService;
 use App\Services\RbacService;
+use App\Services\RevisionService;
 use App\Services\StoryService;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
@@ -612,7 +613,7 @@ class AddNews extends Component
         }
         app(RbacService::class)->assertCan(auth()->user(), 'stories', 'edit');
         $story = app(StoryRepository::class)->findOrFail($this->storyId);
-        $restored = app(\App\Services\RevisionService::class)->restore($story, $version, auth()->user(), $story->version);
+        $restored = app(RevisionService::class)->restore($story, $version, auth()->user(), $story->version);
         $this->headline = $restored->headline;
         $this->subHead = $restored->sub_head ?? '';
         $this->brief = $restored->brief ?? '';

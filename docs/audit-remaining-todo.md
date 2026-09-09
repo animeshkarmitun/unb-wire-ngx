@@ -52,8 +52,8 @@
 
 ## Phase 4 — Polish & Hardening
 
-- [ ] **W6 — Add read replica config** — PostgreSQL `read`/`write` array separation in `config/database.php`
-- [ ] **W8 — Form Request authorization** — `AiAssistRequest` and `TusCreateRequest` return `authorize() → true` unconditionally; add ownership/permission checks
+- [x] **W6 — Add read replica config** — PostgreSQL `read`/`write` array separation in `config/database.php`
+- [x] **W8 — Form Request authorization** — `AiAssistRequest` and `TusCreateRequest` return `authorize() → true` unconditionally; add ownership/permission checks
 - [ ] **W10 — Branch protection** — Add `.github/rulesets/` config (CI checks exist in `ci.yml` but protection relies on manual GitHub settings)
 - [ ] **W11 — Accessibility** — Add `alt` text and `aria-label` to image placeholders, icons, custom inputs across admin views
 - [ ] **W12 — Break up monolithic Blade files** — `add-news.blade.php` handles content editing, dateline, status toggles, taxonomy in one file; split into sub-components
