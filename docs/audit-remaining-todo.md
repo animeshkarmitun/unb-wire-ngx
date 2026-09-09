@@ -36,17 +36,17 @@
   - `web-auth-rbac.spec.ts` — rewritten with deterministic URL redirections and login authentication tests
 - [x] **Add Feature tests for AddNews** — Commit `58909cd` (34 tests, 105 assertions covering stepper, tags, media, takeover, notes, syncFromDoc, AI flags, publish lifecycle)
 - [x] **Add Feature tests for Portal API** — Commit `15cbad4` (24 tests, 333 assertions covering all 4 endpoints: feed, story/{id}, search-token, context, throttling)
-- [ ] **Add Feature tests for TusController** — chunked upload endpoints
-- [ ] **Add Job tests with `Queue::fake()`:**
-  - `GenerateDerivatives` — media processing
-  - `ProcessIndexOutbox` — Meilisearch sync (already has partial coverage)
+- [x] **Add Feature tests for TusController** — chunked upload endpoints — Commit `TEST-002` (8 tests covering guest/role auth, session create, HEAD offset, PATCH append, offset mismatch 409, completion, ownership isolation)
+- [x] **Add Job tests with `Queue::fake()`:**
+  - `GenerateDerivatives` — media processing — Commit `TEST-002` (2 tests: derivatives population, skip-if-already-processed)
+  - `ProcessIndexOutbox` — Meilisearch sync — Commit `TEST-002` (3 tests: done on no-config, failure after max attempts, retry on transient failure)
 - [ ] **W4 — Complete model factories** (currently 6 of 30 models)
   - Missing: `MediaAsset`, `Delivery`, `Tag`, `Role`, `MediaBatch`, `ClientChannel`, `ClientPackage`, `ClientApiKey`, `StoryVersion`, `StoryEvent`, `InternalNote`, `Setting`, and others
 - [ ] **W9 — Consider PostgreSQL test database** (blocked by Q3)
-- [ ] **Add tests for untested services:**
-  - `PresignedUrlService` — media URL generation
-  - `NoteService` — internal notes
-  - `NotificationService`
+- [x] **Add tests for untested services:**
+  - `PresignedUrlService` — media URL generation — Commit `TEST-002` (2 tests: download ledger + count increment, skip when no client)
+  - `NoteService` — internal notes — Commit `TEST-002` (1 test: creates internal note with event + audit)
+  - `NotificationService` — Commit `TEST-002` (2 tests: dispatches to Editor/Admin roles, burst dedup within window)
 
 ---
 
