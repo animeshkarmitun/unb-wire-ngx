@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\HtmlSanitizer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -127,5 +128,10 @@ class Story extends Model
     public function media(): BelongsToMany
     {
         return $this->belongsToMany(MediaAsset::class, 'story_media', 'story_id', 'asset_id')->withPivot(['role', 'sort_order', 'caption_override']);
+    }
+
+    public function getSafeBodyHtmlAttribute(): string
+    {
+        return HtmlSanitizer::clean($this->body_html ?? '');
     }
 }

@@ -2,13 +2,19 @@
 
 namespace App\Http\Requests;
 
+use App\Services\RbacService;
 use Illuminate\Foundation\Http\FormRequest;
 
 class AiAssistRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+        if (! $user) {
+            return false;
+        }
+
+        return app(RbacService::class)->can($user, 'ai', 'read');
     }
 
     public function rules(): array

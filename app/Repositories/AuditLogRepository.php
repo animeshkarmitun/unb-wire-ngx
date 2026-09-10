@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\AuditLog;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -32,7 +33,7 @@ class AuditLogRepository
         ]);
     }
 
-    public function forEntity(string $entityType, int|string $entityId, int $perPage = 25): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function forEntity(string $entityType, int|string $entityId, int $perPage = 25): LengthAwarePaginator
     {
         return AuditLog::where('entity_type', $entityType)
             ->where('entity_id', $entityId)
@@ -48,7 +49,7 @@ class AuditLogRepository
         ?string $dateFrom = null,
         ?string $dateTo = null,
         int $perPage = 25,
-    ): \Illuminate\Contracts\Pagination\LengthAwarePaginator {
+    ): LengthAwarePaginator {
         $q = AuditLog::query();
         if ($actorId) {
             $q->where('actor_id', $actorId);

@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Category;
 use App\Models\Story;
+use App\Models\Tag;
 use App\Models\User;
+use App\Services\RevisionService;
 use App\Services\StoryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
@@ -43,7 +45,7 @@ class RevisionRestoreTest extends TestCase
         $svc = app(StoryService::class);
         $s = $svc->updateDraft($s, ['headline' => 'Changed'], 1, $this->actor);
         $this->assertEquals(2, $s->versions()->count());
-        $s = app(\App\Services\RevisionService::class)->restore($s, 1, $this->actor);
+        $s = app(RevisionService::class)->restore($s, 1, $this->actor);
         $this->assertEquals(3, $s->versions()->count());
         $this->assertEquals(3, $s->version);
         $this->assertEquals('Original headline', $s->headline);
@@ -53,7 +55,7 @@ class RevisionRestoreTest extends TestCase
     {
         $s = $this->draft();
         $before = $s->versions()->pluck('version')->sort()->values()->all();
-        app(\App\Services\RevisionService::class)->restore($s, 1, $this->actor);
+        app(RevisionService::class)->restore($s, 1, $this->actor);
         $after = $s->versions()->pluck('version')->sort()->values()->all();
         $this->assertEquals(array_merge($before, [2]), $after);
     }
@@ -66,7 +68,7 @@ class RevisionRestoreTest extends TestCase
         $s = $svc->transition($s, 'approved', $this->actor);
         $s = $svc->transition($s, 'published', $this->actor);
         $this->expectException(UnprocessableEntityHttpException::class);
-        app(\App\Services\RevisionService::class)->restore($s, 1, $this->actor);
+        app(RevisionService::class)->restore($s, 1, $this->actor);
     }
 
     public function test_restore_on_killed_throws(): void
@@ -76,7 +78,7 @@ class RevisionRestoreTest extends TestCase
         $s = $svc->transition($s, 'in_review', $this->actor);
         $s = $svc->transition($s, 'killed', $this->actor);
         $this->expectException(UnprocessableEntityHttpException::class);
-        app(\App\Services\RevisionService::class)->restore($s, 1, $this->actor);
+        app(RevisionService::class)->restore($s, 1, $this->actor);
     }
 
     public function test_restore_stale_version_409(): void
@@ -86,7 +88,7 @@ class RevisionRestoreTest extends TestCase
         $s = $svc->updateDraft($s, ['headline' => 'v2'], 1, $this->actor);
         $s = $svc->updateDraft($s->refresh(), ['headline' => 'v3'], 2, $this->actor);
         $this->expectException(ConflictHttpException::class);
-        app(\App\Services\RevisionService::class)->restore($s, 1, $this->actor, 1);
+        app(RevisionService::class)->restore($s, 1, $this->actor, 1);
     }
 
     public function test_restore_emits_event_with_payload(): void
@@ -94,7 +96,7 @@ class RevisionRestoreTest extends TestCase
         $s = $this->draft();
         $svc = app(StoryService::class);
         $s = $svc->updateDraft($s, ['headline' => 'Changed'], 1, $this->actor);
-        $s = app(\App\Services\RevisionService::class)->restore($s, 1, $this->actor);
+        $s = app(RevisionService::class)->restore($s, 1, $this->actor);
         $event = $s->events()->where('action', 'restored')->first();
         $this->assertNotNull($event);
         $this->assertEquals(2, $event->payload['from_version']); // story was at v2 when restore ran
@@ -104,13 +106,13 @@ class RevisionRestoreTest extends TestCase
     public function test_restore_reattaches_tags(): void
     {
         $s = $this->draft();
-        $tag = \App\Models\Tag::create(['name' => 'politics', 'slug' => 'politics']);
+        $tag = Tag::create(['name' => 'politics', 'slug' => 'politics']);
         $s->tags()->attach($tag->id);
         $svc = app(StoryService::class);
         $s = $svc->updateDraft($s, ['headline' => 'Changed'], 1, $this->actor);
         $this->assertTrue($s->tags->contains('name', 'politics'));
         $s->tags()->detach();
-        $s = app(\App\Services\RevisionService::class)->restore($s, 2, $this->actor);
+        $s = app(RevisionService::class)->restore($s, 2, $this->actor);
         $this->assertTrue($s->tags->contains('name', 'politics'));
     }
 }

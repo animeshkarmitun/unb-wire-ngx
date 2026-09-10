@@ -220,7 +220,7 @@
               </div>
 
               <!-- Quill container -->
-              <div id="editorBody">{!! $bodyHtml !!}</div>
+              <div id="editorBody">{!! \App\Services\HtmlSanitizer::clean($bodyHtml) !!}</div>
 
               <!-- Editor Footer -->
               <div class="editor-foot">

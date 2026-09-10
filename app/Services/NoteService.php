@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Story;
 use App\Models\StoryNote;
 use App\Models\User;
+use App\Repositories\AuditLogRepository;
 use Illuminate\Validation\ValidationException;
 
 class NoteService
@@ -38,7 +39,7 @@ class NoteService
             'payload' => ['note_id' => $note->id],
         ]);
 
-        app(\App\Repositories\AuditLogRepository::class)->log(
+        app(AuditLogRepository::class)->log(
             'note_added',
             'Story',
             $story->id,

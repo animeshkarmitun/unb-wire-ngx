@@ -396,7 +396,7 @@
                 @endif
 
                 @if(!empty($story->body_html))
-                    {!! $story->body_html !!}
+                    {!! $story->safe_body_html !!}
                 @else
                     <p>{{ $story->body_text ?: 'Full dispatch content in review.' }}</p>
                 @endif

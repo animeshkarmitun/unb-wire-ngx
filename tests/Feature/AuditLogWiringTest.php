@@ -2,8 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\AuditLog;
 use App\Models\Category;
 use App\Models\User;
+use App\Services\AuditQueryService;
+use App\Services\NoteService;
+use App\Services\RevisionService;
 use App\Services\StoryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -52,7 +56,7 @@ class AuditLogWiringTest extends TestCase
         $s = app(StoryService::class)->createDraft([
             'language' => 'en', 'headline' => 'Test', 'brief' => 'B', 'body_html' => '<p>X</p>', 'category_id' => $this->cat->id,
         ], $this->actor);
-        app(\App\Services\NoteService::class)->add($s, $this->actor, 'A note');
+        app(NoteService::class)->add($s, $this->actor, 'A note');
         $this->assertDatabaseHas('audit_logs', ['action' => 'note_added', 'entity_type' => 'Story', 'entity_id' => $s->id]);
     }
 
@@ -63,7 +67,7 @@ class AuditLogWiringTest extends TestCase
         ], $this->actor);
         $svc = app(StoryService::class);
         $s = $svc->updateDraft($s, ['headline' => 'Changed'], 1, $this->actor);
-        app(\App\Services\RevisionService::class)->restore($s, 1, $this->actor);
+        app(RevisionService::class)->restore($s, 1, $this->actor);
         $this->assertDatabaseHas('audit_logs', ['action' => 'restored', 'entity_type' => 'Story', 'entity_id' => $s->id]);
     }
 
@@ -74,7 +78,7 @@ class AuditLogWiringTest extends TestCase
         ], $this->actor);
         $svc = app(StoryService::class);
         $s = $svc->transition($s, 'in_review', $this->actor);
-        $log = \App\Models\AuditLog::where('action', 'sent_to_review')->first();
+        $log = AuditLog::where('action', 'sent_to_review')->first();
         $this->assertNotNull($log->correlation_id);
     }
 
@@ -85,7 +89,7 @@ class AuditLogWiringTest extends TestCase
         ], $this->actor);
         $svc = app(StoryService::class);
         $s = $svc->transition($s, 'in_review', $this->actor);
-        $result = app(\App\Services\AuditQueryService::class)->forEntity('Story', $s->id);
+        $result = app(AuditQueryService::class)->forEntity('Story', $s->id);
         $this->assertGreaterThan(0, $result->total());
     }
 }
