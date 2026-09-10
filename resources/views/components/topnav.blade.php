@@ -17,14 +17,14 @@
         </div>
 
         {{-- Client portal (subscriber view) --}}
-        <a href="{{ config('app.portal_url', 'http://localhost:3000') }}" target="_blank" rel="noopener" title="Client portal (subscriber view)" class="relative w-[38px] h-[38px] rounded-[10px] border border-border bg-white text-[#4b4e5c] flex items-center justify-center transition-colors hover:border-navy-800 hover:text-navy-800">
+        <a href="{{ config('app.portal_url', 'http://localhost:3000') }}" target="_blank" rel="noopener" title="Client portal (subscriber view)" aria-label="Open client portal in new tab" class="relative w-[38px] h-[38px] rounded-[10px] border border-border bg-white text-[#4b4e5c] flex items-center justify-center transition-colors hover:border-navy-800 hover:text-navy-800">
             <x-lucide-globe class="w-[17px] h-[17px]" stroke-width="1.8" />
         </a>
 
         {{-- Notifications --}}
         @php $notifs = Auth::user()->notifications()->latest()->limit(5)->get(); $unread = Auth::user()->unreadNotifications()->count(); @endphp
         <div class="relative" x-data="{ open: false }" @click.outside="open = false">
-            <button type="button" @click="open = !open" title="Notifications" class="relative w-[38px] h-[38px] rounded-[10px] border border-border bg-white text-[#4b4e5c] flex items-center justify-center transition-colors hover:border-navy-800 hover:text-navy-800">
+            <button type="button" @click="open = !open" title="Notifications" aria-label="Notifications" class="relative w-[38px] h-[38px] rounded-[10px] border border-border bg-white text-[#4b4e5c] flex items-center justify-center transition-colors hover:border-navy-800 hover:text-navy-800">
                 <x-lucide-bell class="w-[17px] h-[17px]" stroke-width="1.8" />
                 @if($unread>0)<span class="absolute -top-[5px] -right-[5px] min-w-[17px] h-[17px] px-1 rounded-full bg-crimson text-white text-[10px] font-bold flex items-center justify-center border-2 border-white">{{ $unread }}</span>@endif
             </button>
@@ -47,7 +47,7 @@
 
         {{-- User --}}
         <div class="relative" x-data="{ open: false }" @click.outside="open = false">
-            <button type="button" @click="open = !open" class="flex items-center gap-2.5 border border-border bg-white rounded-[11px] pl-1.5 pr-3 py-[5px] transition-colors hover:border-navy-800">
+            <button type="button" @click="open = !open" aria-label="User menu" class="flex items-center gap-2.5 border border-border bg-white rounded-[11px] pl-1.5 pr-3 py-[5px] transition-colors hover:border-navy-800">
                 <span class="w-[30px] h-[30px] rounded-lg bg-navy-800 text-white text-[11px] font-bold flex items-center justify-center">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}{{ strtoupper(substr(strrpos(Auth::user()->name, ' ') !== false ? substr(Auth::user()->name, strrpos(Auth::user()->name, ' ') + 1) : '', 0, 1)) }}</span>
                 <span class="hidden lg:block text-left leading-[1.25]">
                     <span class="block text-[13px] font-semibold text-ink">{{ Auth::user()->name }}</span>

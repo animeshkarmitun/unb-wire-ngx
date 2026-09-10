@@ -77,14 +77,14 @@ class="relative">
     <div class="topbar">
         <h1>UNB Photo Manager</h1>
         <div class="topbar-actions">
-            <button wire:click="toggleUnattached" class="btn {{ $unattachedOnly ? 'btn-navy' : 'btn-outline' }}" id="unattachedBtn">
+            <button wire:click="toggleUnattached" class="btn {{ $unattachedOnly ? 'btn-navy' : 'btn-outline' }}" id="unattachedBtn" aria-label="Toggle unattached photos filter">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
                     <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
                 </svg>
                 Unattached only
             </button>
-            <button @click="$refs.uploadInput.click()" class="btn btn-primary" id="uploadBtn">
+            <button @click="$refs.uploadInput.click()" class="btn btn-primary" id="uploadBtn" aria-label="Upload photos">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                     <polyline points="17 8 12 3 7 8"/>
@@ -110,7 +110,7 @@ class="relative">
             ];
         @endphp
         @foreach($tabDefs as $key => $label)
-            <button wire:click="setTab('{{ $key }}')" class="wf-tab {{ $tab === $key ? 'active' : '' }}" data-st="{{ $key }}">
+            <button wire:click="setTab('{{ $key }}')" class="wf-tab {{ $tab === $key ? 'active' : '' }}" data-st="{{ $key }}" aria-label="Filter by {{ $label }}">
                 {{ $label }}
                 <span class="n {{ (($key === 'review' || $key === 'field') && ($counts[$key] ?? 0) > 0) ? 'alert' : '' }}">
                     {{ $counts[$key] ?? 0 }}
@@ -147,7 +147,7 @@ class="relative">
     <div class="bulkbar {{ count($selectedIds) > 0 ? 'show' : '' }}" id="bulkbar">
         <span class="bulk-count" id="bulkCount">{{ count($selectedIds) }} selected</span>
         
-        <button wire:click="bulkApprove" class="bulk-btn accent" id="bulkApprove">
+        <button wire:click="bulkApprove" class="bulk-btn accent" id="bulkApprove" aria-label="Approve selected photos and move to library">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
             </svg>
@@ -177,7 +177,7 @@ class="relative">
             }
         @endphp
 
-        <button @click="downloadZip({{ json_encode($selectedAssetsJson) }})" class="bulk-btn" id="bulkZip">
+        <button @click="downloadZip({{ json_encode($selectedAssetsJson) }})" class="bulk-btn" id="bulkZip" aria-label="Download selected photos as ZIP">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/>
@@ -186,7 +186,7 @@ class="relative">
             <span x-text="zipping ? 'Zipping…' : 'ZIP'"></span>
         </button>
 
-        <button wire:click="clearSelection" class="bulk-clear" id="bulkClear">Clear</button>
+        <button wire:click="clearSelection" class="bulk-clear" id="bulkClear" aria-label="Clear photo selection">Clear</button>
     </div>
 
     <!-- Main Grid + Sticky Inspector Area -->

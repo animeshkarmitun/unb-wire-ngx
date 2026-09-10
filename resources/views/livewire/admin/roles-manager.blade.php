@@ -124,14 +124,14 @@
                     </div>
 
                     <div class="rc-foot">
-                        <button type="button" class="rc-btn" wire:click="openDrawer({{ $role->id }})">
+                        <button type="button" class="rc-btn" wire:click="openDrawer({{ $role->id }})" aria-label="{{ $role->is_locked ? 'View' : 'Edit' }} permissions for {{ $role->name }}">
                             {{ $role->is_locked ? 'View permissions' : 'Edit permissions' }}
                         </button>
-                        <button type="button" class="rc-btn" wire:click="duplicateRole({{ $role->id }})">
+                        <button type="button" class="rc-btn" wire:click="duplicateRole({{ $role->id }})" aria-label="Duplicate role {{ $role->name }}">
                             Duplicate
                         </button>
                         @if(! $role->is_locked)
-                            <button type="button" class="rc-btn danger" wire:click="openDelete({{ $role->id }})">
+                            <button type="button" class="rc-btn danger" wire:click="openDelete({{ $role->id }})" aria-label="Delete role {{ $role->name }}">
                                 Delete
                             </button>
                         @endif
@@ -271,7 +271,7 @@
                             · {{ $editingRole ? $editingRole->users->count() : 0 }} member{{ ($editingRole && $editingRole->users->count() === 1) ? '' : 's' }}
                         </div>
                     </div>
-                    <button type="button" class="dr-close" wire:click="closeDrawer" title="Close">✕</button>
+                    <button type="button" class="dr-close" wire:click="closeDrawer" title="Close" aria-label="Close role editor">✕</button>
                 </div>
             </div>
             <div class="dr-body">
@@ -386,7 +386,7 @@
         <div class="modal">
             <div class="mo-head">
                 <div class="mo-title">Create a role</div>
-                <button type="button" class="mo-close" wire:click="closeNewModal" title="Close">✕</button>
+                <button type="button" class="mo-close" wire:click="closeNewModal" title="Close" aria-label="Close create role dialog">✕</button>
             </div>
             <div class="mo-body">
                 <div class="field">
@@ -431,7 +431,7 @@
         <div class="modal">
             <div class="mo-head">
                 <div class="mo-title">Delete "{{ $deleteRoleName }}"?</div>
-                <button type="button" class="mo-close" wire:click="closeDeleteModal" title="Close">✕</button>
+                <button type="button" class="mo-close" wire:click="closeDeleteModal" title="Close" aria-label="Close delete role dialog">✕</button>
             </div>
             <div class="mo-body">
                 @if($deleteRoleMemberCount > 0)
