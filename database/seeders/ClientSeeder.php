@@ -358,6 +358,7 @@ class ClientSeeder extends Seeder
                     'config' => json_encode([
                         'endpoint' => $c['channels']['api']['webhook'] ?: 'https://api.unb.com.bd',
                         'key' => $c['channels']['api']['key'],
+                        'url' => $c['channels']['api']['webhook'],
                         'webhook' => $c['channels']['api']['webhook'],
                         'health' => $c['channels']['api']['health'],
                     ]),

@@ -16,6 +16,7 @@ Route::prefix('v1/portal')->group(function () {
 
 Route::prefix('v1')->group(function () {
     Route::get('/feed', [ClientFeedController::class, 'index'])->middleware(['client.api:feed:read', 'throttle:60,1']);
+    Route::get('/media/{id}/download', [MediaController::class, 'clientPresigned'])->middleware(['client.api:media:read', 'throttle:60,1']);
 });
 
 Route::middleware(['auth', 'throttle:60,1'])->group(function () {

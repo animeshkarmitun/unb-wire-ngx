@@ -135,8 +135,13 @@ class DeliverySettingsTest extends TestCase
 
         $channel = ClientChannel::where('client_id', $this->client->id)->where('type', 'webhook')->first();
         $this->assertNotNull($channel);
-        $this->assertEquals('https://cms.dailystar.com/webhooks/unb-v2', $channel->config['webhook']);
+        $this->assertEquals('https://cms.dailystar.com/webhooks/unb-v2', $channel->config['url']);
         $this->assertTrue($channel->config['triggers']['embargoed']);
+
+        // Verify round-trip reading from config['url']
+        Livewire::actingAs($this->adminUser)
+            ->test(DeliverySettings::class)
+            ->assertSet('webhookUrl', 'https://cms.dailystar.com/webhooks/unb-v2');
     }
 
     public function test_email_recipient_add_and_remove_with_validation(): void

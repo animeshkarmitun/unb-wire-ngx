@@ -222,7 +222,7 @@ class ClientService
                 DB::table('client_channels')->insert([
                     'client_id' => $clientId,
                     'type' => 'api',
-                    'config' => json_encode(['endpoint' => '', 'key' => $apiKey, 'webhook' => '', 'health' => 'ok']),
+                    'config' => json_encode(['endpoint' => '', 'key' => $apiKey, 'url' => '', 'health' => 'ok']),
                     'status' => 'active',
                     'failure_count' => 0,
                     'created_at' => now(),
@@ -282,7 +282,7 @@ class ClientService
                 $config = ['host' => 'ftp.'.strtolower($client->code).'.com', 'username' => strtolower($client->code).'_unb', 'port' => '21', 'password' => 'Unb@'.rand(1000, 9999), 'health' => 'ok'];
             } elseif ($type === 'api') {
                 $key = 'unb_live_'.Str::random(16);
-                $config = ['endpoint' => 'https://api.'.strtolower($client->code).'.com/unb', 'key' => $key, 'webhook' => '', 'health' => 'ok'];
+                $config = ['endpoint' => 'https://api.'.strtolower($client->code).'.com/unb', 'key' => $key, 'url' => '', 'health' => 'ok'];
             }
 
             ClientChannel::create([
@@ -403,10 +403,11 @@ class ClientService
 
     public function saveWebhookUrl(Client $client, string $webhookUrl): void
     {
-        $apiChan = $client->clientChannels->firstWhere('type', 'api');
+        $apiChan = $client->clientChannels->firstWhere('type', 'api')
+            ?? $client->clientChannels->firstWhere('type', 'webhook');
         if ($apiChan) {
             $config = $apiChan->config;
-            $config['webhook'] = trim($webhookUrl);
+            $config['url'] = trim($webhookUrl);
             $apiChan->update(['config' => $config]);
         }
     }

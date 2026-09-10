@@ -192,6 +192,21 @@ class ClientsManagerTest extends TestCase
         $this->assertStringStartsWith('unb_live_', $newKey);
     }
 
+    public function test_drawer_channels_webhook_url_saving(): void
+    {
+        $dailyStar = Client::where('name', 'The Daily Star')->firstOrFail();
+
+        Livewire::test(ClientsManager::class)
+            ->call('selectClient', $dailyStar->id)
+            ->call('setDrawerTab', 'channels')
+            ->set('webhookUrl', 'https://cms.dailystar.com/webhooks/custom-hook')
+            ->call('saveWebhookUrl')
+            ->assertDispatched('toast', message: 'Webhook URL updated');
+
+        $chan = $dailyStar->fresh()->clientChannels()->whereIn('type', ['api', 'webhook'])->first();
+        $this->assertEquals('https://cms.dailystar.com/webhooks/custom-hook', $chan->config['url']);
+    }
+
     public function test_drawer_package_change_with_addons(): void
     {
         $samakal = Client::where('name', 'Samakal')->firstOrFail();

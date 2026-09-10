@@ -195,10 +195,11 @@ class DeliverySettings extends Component
         $this->isKeyRevealed = false;
         $this->regenStep = 0;
 
-        $apiChan = ClientChannel::where('client_id', $client->id)->whereIn('type', ['api', 'webhook'])->first();
+        $apiChan = ClientChannel::where('client_id', $client->id)->where('type', 'webhook')->first()
+            ?? ClientChannel::where('client_id', $client->id)->where('type', 'api')->first();
         if ($apiChan) {
             $apiCfg = $apiChan->config ?? [];
-            $this->webhookUrl = $apiCfg['webhook'] ?? 'https://cms.dailystar.com/hooks/unb';
+            $this->webhookUrl = $apiCfg['url'] ?? ($apiCfg['webhook'] ?? 'https://cms.dailystar.com/hooks/unb');
             $triggers = $apiCfg['triggers'] ?? [];
             $this->notifyBreaking = $triggers['breaking'] ?? true;
             $this->notifyMediaPack = $triggers['media_pack'] ?? true;
@@ -356,7 +357,7 @@ class DeliverySettings extends Component
             ]);
 
             $cfg = $channel->config ?? [];
-            $cfg['webhook'] = $this->webhookUrl;
+            $cfg['url'] = $this->webhookUrl;
             $cfg['triggers'] = [
                 'breaking' => $this->notifyBreaking,
                 'media_pack' => $this->notifyMediaPack,

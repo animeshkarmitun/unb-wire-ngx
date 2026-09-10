@@ -74,10 +74,14 @@ class FanoutStory implements ShouldQueue
                     ]);
                     $config = is_string($ch->config) ? json_decode($ch->config, true) : $ch->config;
                     if ($ch->type === 'webhook' && ! empty($config['url'])) {
-                        Http::timeout(5)->post($config['url'], ['public_id' => $story->public_id, 'headline' => $story->headline]);
-                        DB::table('deliveries')->where('idempotency_key', $key)->update(['status' => 'sent', 'sent_at' => now()]);
+                        $response = Http::timeout(5)->post($config['url'], ['public_id' => $story->public_id, 'headline' => $story->headline]);
+                        if ($response->successful()) {
+                            DB::table('deliveries')->where('idempotency_key', $key)->update(['status' => 'sent', 'sent_at' => now()]);
+                            $clients->recordChannelSuccess($ch->id);
+                        } else {
+                            $clients->recordChannelFailure($ch->id);
+                        }
                     }
-                    $clients->recordChannelSuccess($ch->id);
                 } catch (\Throwable $e) {
                     if (str_contains($e->getMessage(), 'duplicate') || str_contains($e->getMessage(), 'Unique')) {
                         continue;

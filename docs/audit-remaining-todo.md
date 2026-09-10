@@ -9,9 +9,9 @@
 
 > These need your input before the related items can be implemented.
 
-- [ ] **Q1 — Missing API surface (C8):** Many FRD endpoints are absent (Story CRUD, workflow transitions, internal notes, media approval, role management, package management, distribution/webhooks). Are these intentionally deferred (handled by Livewire server-side actions for now), or genuinely missing and need REST endpoints built?
+- [x] **Q1 — Missing API surface (C8):** Intentionally deferred to v2 (field apps, DEC-008). Editorial operations are handled via Livewire server-side actions which call decoupled services (`StoryWorkflowService`, `MediaService`, `NoteService`, `ClientService`, `RevisionService`). When field apps or third-party integrations arrive, thin API controllers will call the same services. Client/subscriber-facing Portal API (`/api/v1/portal/*`) is live and tested.
 - [ ] **Q2 — HTML purification strategy:** `HtmlSanitizer::clean()` already runs at write-time. Should we add render-time purification as a defense-in-depth layer (`{!! clean($bodyHtml) !!}`), or is write-time sufficient?
-- [ ] **Q3 — Test database:** Are you open to switching tests from SQLite in-memory to a dedicated PostgreSQL test database? SQLite can mask PG-specific behavior (JSONB, CHECK constraints, `timestamptz`). Tradeoff is slower tests.
+- [x] **Q3 — Test database:** Dedicated PostgreSQL test database (`unb_wire_testing`) configured. `phpunit.xml` keeps SQLite as fast local fallback; CI runs against `postgres:16` service container. `.env.testing` provided for local PG runs (`php artisan test --env=testing`).
 - [ ] **Q4 — CSS architecture:** Custom CSS files (wire-service.css, news-desk.css, etc.) are extensive. Full Tailwind migration now, or future concern?
 
 ---
@@ -42,7 +42,7 @@
   - `ProcessIndexOutbox` — Meilisearch sync — Commit `TEST-002` (3 tests: done on no-config, failure after max attempts, retry on transient failure)
 - [x] **W4 — Complete model factories** (currently 6 of 30 models)
   - Missing: `MediaAsset`, `Delivery`, `Tag`, `Role`, `MediaBatch`, `ClientChannel`, `ClientPackage`, `ClientApiKey`, `StoryVersion`, `StoryEvent`, `InternalNote`, `Setting`, and others
-- [ ] **W9 — Consider PostgreSQL test database** (blocked by Q3)
+- [x] **W9 — PostgreSQL test database** — CI now runs on `postgres:16`; `ILIKE` test un-skipped; `.env.testing` + `.env.testing.example` added; `phpunit.xml` documents dual-runner.
 - [x] **Add tests for untested services:**
   - `PresignedUrlService` — media URL generation — Commit `TEST-002` (2 tests: download ledger + count increment, skip when no client)
   - `NoteService` — internal notes — Commit `TEST-002` (1 test: creates internal note with event + audit)

@@ -125,7 +125,7 @@ class PortalApiTest extends TestCase
     public function test_feed_filters_by_search_query(): void
     {
         if (config('database.default') === 'sqlite') {
-            $this->markTestSkipped('ilike is PostgreSQL-specific');
+            $this->markTestSkipped('ILIKE is PostgreSQL-specific; run with --env=testing or DB_CONNECTION=pgsql');
         }
 
         Story::factory()->published()->create([
