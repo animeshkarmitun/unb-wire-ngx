@@ -40,7 +40,7 @@
 - [x] **Add Job tests with `Queue::fake()`:**
   - `GenerateDerivatives` — media processing — Commit `TEST-002` (2 tests: derivatives population, skip-if-already-processed)
   - `ProcessIndexOutbox` — Meilisearch sync — Commit `TEST-002` (3 tests: done on no-config, failure after max attempts, retry on transient failure)
-- [ ] **W4 — Complete model factories** (currently 6 of 30 models)
+- [x] **W4 — Complete model factories** (currently 6 of 30 models)
   - Missing: `MediaAsset`, `Delivery`, `Tag`, `Role`, `MediaBatch`, `ClientChannel`, `ClientPackage`, `ClientApiKey`, `StoryVersion`, `StoryEvent`, `InternalNote`, `Setting`, and others
 - [ ] **W9 — Consider PostgreSQL test database** (blocked by Q3)
 - [x] **Add tests for untested services:**
@@ -56,6 +56,6 @@
 - [x] **W8 — Form Request authorization** — `AiAssistRequest` and `TusCreateRequest` return `authorize() → true` unconditionally; add ownership/permission checks
 - [ ] **W10 — Branch protection** — Add `.github/rulesets/` config (CI checks exist in `ci.yml` but protection relies on manual GitHub settings)
 - [ ] **W11 — Accessibility** — Add `alt` text and `aria-label` to image placeholders, icons, custom inputs across admin views
-- [ ] **W12 — Break up monolithic Blade files** — `add-news.blade.php` handles content editing, dateline, status toggles, taxonomy in one file; split into sub-components
+- [x] **W12 — Break up monolithic Blade files** — `add-news.blade.php` split into 9 modular partials under `partials/` — Commit `REFACTOR-002` (990 → ~30 line orchestrator + 9 partials: header, stepper, step1-write, step2-media, step3-organize, step4-review, preview-panel, modals, ai-drawer)
 - [ ] **CSS consolidation** — Migrate custom CSS into Tailwind config (blocked by Q4)
 - [ ] **Pint formatting** — Run `./vendor/bin/pint` across the codebase to fix pre-existing style issues (several flagged non-blocking during commits)
