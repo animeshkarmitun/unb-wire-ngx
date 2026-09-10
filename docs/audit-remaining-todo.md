@@ -55,7 +55,7 @@
 - [x] **W6 — Add read replica config** — PostgreSQL `read`/`write` array separation in `config/database.php`
 - [x] **W8 — Form Request authorization** — `AiAssistRequest` and `TusCreateRequest` return `authorize() → true` unconditionally; add ownership/permission checks
 - [ ] **W10 — Branch protection** — Add `.github/rulesets/` config (CI checks exist in `ci.yml` but protection relies on manual GitHub settings)
-- [ ] **W11 — Accessibility** — Add `alt` text and `aria-label` to image placeholders, icons, custom inputs across admin views
+- [x] **W11 — Accessibility** — Add `alt` text and `aria-label` to image placeholders, icons, custom inputs across admin views — Commit `A11Y-001` (topnav: notifications bell, user menu, portal link; stepper: `aria-current="step"` + step labels; news-list: action buttons with story headline; photo-manager: tab/bulk/upload buttons; ap-photo-manager: sync/expand/download/attach buttons; roles-manager: modal close, edit/duplicate/delete role buttons; clients-manager: drawer close, tab buttons, modal close buttons)
 - [x] **W12 — Break up monolithic Blade files** — `add-news.blade.php` split into 9 modular partials under `partials/` — Commit `REFACTOR-002` (990 → ~30 line orchestrator + 9 partials: header, stepper, step1-write, step2-media, step3-organize, step4-review, preview-panel, modals, ai-drawer)
 - [ ] **CSS consolidation** — Migrate custom CSS into Tailwind config (blocked by Q4)
 - [ ] **Pint formatting** — Run `./vendor/bin/pint` across the codebase to fix pre-existing style issues (several flagged non-blocking during commits)
