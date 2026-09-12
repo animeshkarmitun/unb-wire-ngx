@@ -21,21 +21,21 @@ class EmailFanoutTest extends TestCase
         $clientWithEmail = Client::factory()->create([
             'notes' => json_encode([
                 'channels' => [
-                    'email' => ['on' => true, 'list' => ['test@example.com']]
-                ]
-            ])
+                    'email' => ['on' => true, 'list' => ['test@example.com']],
+                ],
+            ]),
         ]);
 
         $clientWithoutEmail = Client::factory()->create([
             'notes' => json_encode([
                 'channels' => [
-                    'email' => ['on' => false]
-                ]
-            ])
+                    'email' => ['on' => false],
+                ],
+            ]),
         ]);
-        
+
         $clientNoNotes = Client::factory()->create([
-            'notes' => null
+            'notes' => null,
         ]);
 
         $story = Story::factory()->create(['status' => 'published']);
@@ -49,7 +49,7 @@ class EmailFanoutTest extends TestCase
         Queue::assertNotPushed(SendStoryEmail::class, function ($job) use ($clientWithoutEmail) {
             return $job->clientId === $clientWithoutEmail->id;
         });
-        
+
         Queue::assertNotPushed(SendStoryEmail::class, function ($job) use ($clientNoNotes) {
             return $job->clientId === $clientNoNotes->id;
         });

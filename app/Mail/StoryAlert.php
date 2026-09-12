@@ -22,8 +22,9 @@ class StoryAlert extends Mailable
     public function envelope(): Envelope
     {
         $prefix = $this->isBreaking ? 'Breaking: ' : '';
+
         return new Envelope(
-            subject: '[UNB Wire] ' . $prefix . $this->story->headline,
+            subject: '[UNB Wire] '.$prefix.$this->story->headline,
         );
     }
 

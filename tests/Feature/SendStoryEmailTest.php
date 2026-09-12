@@ -9,7 +9,6 @@ use App\Models\Story;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
-use App\Models\Media;
 
 class SendStoryEmailTest extends TestCase
 {
@@ -20,9 +19,9 @@ class SendStoryEmailTest extends TestCase
         return Client::factory()->create([
             'notes' => json_encode([
                 'channels' => [
-                    'email' => $emailPrefs
-                ]
-            ])
+                    'email' => $emailPrefs,
+                ],
+            ]),
         ]);
     }
 
@@ -33,7 +32,7 @@ class SendStoryEmailTest extends TestCase
         $client = $this->createClientWithEmailPrefs([
             'on' => true,
             'list' => ['test1@example.com', 'test2@example.com'],
-            'alerts' => ['breaking' => true]
+            'alerts' => ['breaking' => true],
         ]);
 
         $story = Story::factory()->create(['is_breaking' => true]);
@@ -53,7 +52,7 @@ class SendStoryEmailTest extends TestCase
         $client = $this->createClientWithEmailPrefs([
             'on' => false,
             'list' => ['test@example.com'],
-            'alerts' => ['breaking' => true]
+            'alerts' => ['breaking' => true],
         ]);
 
         $story = Story::factory()->create(['is_breaking' => true]);
@@ -70,7 +69,7 @@ class SendStoryEmailTest extends TestCase
         $client = $this->createClientWithEmailPrefs([
             'on' => true,
             'list' => ['test@example.com'],
-            'alerts' => ['breaking' => true, 'exclusive' => false]
+            'alerts' => ['breaking' => true, 'exclusive' => false],
         ]);
 
         $storyBreaking = Story::factory()->create(['is_breaking' => true]);
@@ -91,7 +90,7 @@ class SendStoryEmailTest extends TestCase
         $client = $this->createClientWithEmailPrefs([
             'on' => true,
             'list' => ['test@example.com'],
-            'alerts' => [] // empty alerts
+            'alerts' => [], // empty alerts
         ]);
 
         $story = Story::factory()->create(['is_breaking' => false]);
@@ -108,7 +107,7 @@ class SendStoryEmailTest extends TestCase
         $client = $this->createClientWithEmailPrefs([
             'on' => true,
             'list' => [], // no recipients
-            'alerts' => ['breaking' => true]
+            'alerts' => ['breaking' => true],
         ]);
 
         $story = Story::factory()->create(['is_breaking' => true]);

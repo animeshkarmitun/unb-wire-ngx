@@ -2,9 +2,9 @@
 
 namespace App\Jobs;
 
+use App\Mail\StoryAlert;
 use App\Models\Client;
 use App\Models\Story;
-use App\Mail\StoryAlert;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -17,6 +17,7 @@ class SendStoryEmail implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $backoff = 60;
 
     public function __construct(
@@ -31,7 +32,7 @@ class SendStoryEmail implements ShouldQueue
         $client = Client::find($this->clientId);
         $story = Story::with(['category', 'tags', 'media'])->find($this->storyId);
 
-        if (!$client || !$story) {
+        if (! $client || ! $story) {
             return;
         }
 
@@ -46,27 +47,27 @@ class SendStoryEmail implements ShouldQueue
         // Alert preference matching (same OR logic as TriggerMatcher)
         $alerts = $emailConfig['alerts'] ?? [];
         $activeAlerts = array_filter($alerts);
-        
-        if (!empty($activeAlerts)) {
+
+        if (! empty($activeAlerts)) {
             $match = false;
-            
-            if (!empty($alerts['breaking']) && $story->is_breaking) {
+
+            if (! empty($alerts['breaking']) && $story->is_breaking) {
                 $match = true;
             }
-            if (!empty($alerts['media_pack']) && $story->media->isNotEmpty()) {
+            if (! empty($alerts['media_pack']) && $story->media->isNotEmpty()) {
                 $match = true;
             }
-            if (!empty($alerts['exclusive']) && ($story->getAttribute('is_exclusive') || $story->tags->contains('slug', 'exclusive'))) {
+            if (! empty($alerts['exclusive']) && ($story->getAttribute('is_exclusive') || $story->tags->contains('slug', 'exclusive'))) {
                 $match = true;
             }
             // TriggerMatcher also has embargoed but user request explicitly listed breaking, media_pack, exclusive, saved_search.
             // I'll stick to what the user requested for SendStoryEmail alert checking logic.
-            // User request says: 
+            // User request says:
             // if (!empty($alerts['breaking']) && $story->is_breaking) $match = true;
             // if (!empty($alerts['media_pack']) && $story->media->isNotEmpty()) $match = true;
             // if (!empty($alerts['exclusive']) && $story->is_exclusive) $match = true;
-            
-            if (!$match) {
+
+            if (! $match) {
                 return; // Story doesn't match any active alert preference
             }
         }
@@ -75,7 +76,7 @@ class SendStoryEmail implements ShouldQueue
         // Send to all recipients
         $recipients = $emailConfig['list'] ?? [];
         foreach ($recipients as $email) {
-            Mail::to($email)->queue(new StoryAlert($story, $client->name, (bool)$story->is_breaking));
+            Mail::to($email)->queue(new StoryAlert($story, $client->name, (bool) $story->is_breaking));
         }
     }
 }

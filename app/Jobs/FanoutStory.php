@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\Client;
 use App\Models\Story;
 use App\Repositories\ClientRepository;
 use App\Services\Delivery\TriggerMatcher;
@@ -110,15 +111,16 @@ class FanoutStory implements ShouldQueue
         }
 
         // Email delivery (via clients.notes, not client_channels)
-        $emailClients = \App\Models\Client::whereNotNull('notes')
+        $emailClients = Client::whereNotNull('notes')
             ->get()
             ->filter(function ($c) {
                 $notes = is_string($c->notes) ? json_decode($c->notes, true) : ($c->notes ?? []);
-                return !empty($notes['channels']['email']['on']);
+
+                return ! empty($notes['channels']['email']['on']);
             });
 
         foreach ($emailClients as $emailClient) {
-            \App\Jobs\SendStoryEmail::dispatch($story->id, $emailClient->id);
+            SendStoryEmail::dispatch($story->id, $emailClient->id);
         }
     }
 }
