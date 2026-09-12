@@ -54,7 +54,7 @@ class WireFormatTest extends TestCase
             'storage_disk' => 's3',
             'original_path' => 'test.jpg',
             'checksum' => 'test-checksum',
-            'status' => 'ready',
+            'status' => 'library',
             'uploaded_by' => $user->id,
         ]);
         $media->public_id = 'test-media-id';

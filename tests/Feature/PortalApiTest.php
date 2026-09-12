@@ -434,7 +434,7 @@ class PortalApiTest extends TestCase
 
         Download::create([
             'client_id' => $client->id,
-            'item_type' => 'App\Models\MediaAsset',
+            'item_type' => 'media',
             'item_id' => 1,
             'created_at' => now(),
             'ip' => '127.0.0.1',
