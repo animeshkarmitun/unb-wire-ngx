@@ -183,6 +183,14 @@
 | `M11-PORTAL-003` | Real presigned media downloads (replace fake canvas) | FIX-003, M11-PORTAL-002 | ⏳ | — | — |
 | `M11-PORTAL-004` | Real-time live ticker via Reverb WebSocket | M11-PORTAL-002 | ⏳ | — | — |
 
+### Phase D: Email Delivery (via `clients.notes` JSON — no CHECK constraint change needed)
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M11-EMAIL-001` | StoryAlert Mailable + Blade template | HOOK-001 | ⏳ | — | — |
+| `M11-EMAIL-002` | SendStoryEmail job + alert preference matching | EMAIL-001 | ⏳ | — | — |
+| `M11-EMAIL-003` | Integrate email into FanoutStory | EMAIL-002 | ⏳ | — | — |
+
 ---
 
 ## 10. How to Add a Task
