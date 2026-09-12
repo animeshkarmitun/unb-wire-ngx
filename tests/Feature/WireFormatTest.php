@@ -45,7 +45,7 @@ class WireFormatTest extends TestCase
 
         $media = new MediaAsset;
         $media->forceFill([
-            'kind' => 'image',
+            'kind' => 'photo',
             'caption' => 'Test Caption',
             'title' => 'Test Title',
             'credit_line' => 'UNB',

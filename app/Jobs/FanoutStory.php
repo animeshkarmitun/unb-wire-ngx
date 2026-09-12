@@ -72,6 +72,11 @@ class FanoutStory implements ShouldQueue
             foreach ($channels as $ch) {
                 $key = hash('sha256', $story->id.'-'.$ch->id.'-'.$story->version);
                 $payloadHash = hash('sha256', $story->body_text ?? '');
+
+                if (DB::table('deliveries')->where('idempotency_key', $key)->exists()) {
+                    continue;
+                }
+
                 try {
                     $deliveryId = DB::table('deliveries')->insertGetId([
                         'deliverable_type' => 'story', 'deliverable_id' => $story->id, 'client_id' => $row->client_id, 'channel_id' => $ch->id, 'status' => 'queued', 'attempt_count' => 0, 'idempotency_key' => $key, 'payload_hash' => $payloadHash, 'created_at' => now(),
