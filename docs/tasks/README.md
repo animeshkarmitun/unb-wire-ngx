@@ -193,7 +193,44 @@
 
 ---
 
-## 10. How to Add a Task
+## 10. Profile Management (`M12-PROFILE`) — 2026-09-12
+
+> Staff self-profile was never decomposed: `/profile` is still stock Breeze chrome and FR-ACC-005 (timezone display, date format, density) is only partly built — timezone+desk save but are never consumed (views hardcode `Asia/Dhaka`). Client portal auth is API-key only — no email/password login, no self-service profile/password, no admin-side portal user invite/deactivate. Deferred: FR-FLD-010 field stats & profile (DEC-008).
+
+### Staff Profile (admin panel)
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M12-PROFILE-001` | Profile page admin-chrome conversion + remove self-delete | — | ⏳ | — | — |
+| `M12-PROFILE-002` | FR-ACC-005 display prefs (date format + density, consume prefs) | — | ⏳ | — | — |
+
+### Client Profile (portal — Next.js)
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M12-PROFILE-003` | Client portal auth: email/password login (FR-PRT-001, FR-CLT-002) | — | ⏳ | — | — |
+| `M12-PROFILE-004` | Client self-service profile & password (portal `/account`) | M12-PROFILE-003 | ⏳ | — | — |
+| `M12-PROFILE-005` | Admin-side portal user management (invite/deactivate/reactivate) | M12-PROFILE-003 | ⏳ | — | — |
+
+---
+
+## 11. Editorial Notifications (`M12-NTF`) — 2026-09-12
+
+> Complete FR-NTF-001 (editorial notification wiring) and FR-NTF-002 (notification center). External delivery notifications (M11-EMAIL, M11-HOOK, M11-PORTAL) are already complete.
+> Build order: centralize dispatching in services (001–004) → notification center UI (005) → staff email channel (006).
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M12-NTF-001` | Wire editorial notifications into StoryService::transition (approve, changes_requested, killed, in_review) | — | ✅ | — | 2026-09-13 |
+| `M12-NTF-002` | Wire takeover notification into StoryService::takeOver | M12-NTF-001 | ✅ | — | 2026-09-13 |
+| `M12-NTF-003` | Wire note reply notifications into NoteService::add | M12-NTF-001 | ✅ | — | 2026-09-13 |
+| `M12-NTF-004` | Wire media intake decision notifications | M12-NTF-001 | ✅ | — | 2026-09-13 |
+| `M12-NTF-005` | Notification center: mark-as-read, deep links, full page | M12-NTF-001…004 | ✅ | — | 2026-09-13 |
+| `M12-NTF-006` | Staff email channel for editorial notifications | M12-NTF-001, M12-NTF-005 | ✅ | — | 2026-09-13 |
+
+---
+
+## 12. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.

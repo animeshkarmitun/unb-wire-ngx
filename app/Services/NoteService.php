@@ -10,6 +10,10 @@ use Illuminate\Validation\ValidationException;
 
 class NoteService
 {
+    public function __construct(
+        private NotificationService $notifications,
+    ) {}
+
     public function add(Story $story, User $author, string $body, ?string $kind = null): StoryNote
     {
         $body = trim($body);
@@ -45,6 +49,19 @@ class NoteService
             $story->id,
             ['note_id' => $note->id],
         );
+
+        // Notify story owner + all prior note authors (excluding current author)
+        $participantIds = $story->notes()
+            ->where('user_id', '!=', $author->id)
+            ->distinct()
+            ->pluck('user_id');
+        if ($story->owner_id !== $author->id) {
+            $participantIds->push($story->owner_id);
+        }
+        $recipients = User::whereIn('id', $participantIds->unique())->get();
+        if ($recipients->isNotEmpty()) {
+            $this->notifications->notifyNoteAdded($story->id, $story->headline, $author->id, $recipients);
+        }
 
         return $note;
     }

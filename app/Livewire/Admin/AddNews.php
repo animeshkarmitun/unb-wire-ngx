@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Admin;
 
-use App\Jobs\FanoutStory;
 use App\Jobs\ProcessIndexOutbox;
 use App\Models\Category;
 use App\Models\MediaAsset;
@@ -10,7 +9,6 @@ use App\Models\StoryNote;
 use App\Repositories\StoryRepository;
 use App\Services\AiService;
 use App\Services\HtmlSanitizer;
-use App\Services\NotificationService;
 use App\Services\RbacService;
 use App\Services\RevisionService;
 use App\Services\StoryService;
@@ -488,9 +486,8 @@ class AddNews extends Component
         }
     }
 
-    public function sendToReview(?NotificationService $notifs = null, ?RbacService $rbac = null, ?StoryService $svc = null): void
+    public function sendToReview(?RbacService $rbac = null, ?StoryService $svc = null): void
     {
-        $notifs = $notifs ?? app(NotificationService::class);
         $rbac = $rbac ?? app(RbacService::class);
         $svc = $svc ?? app(StoryService::class);
 
@@ -507,14 +504,12 @@ class AddNews extends Component
         $svc->transition($s, 'in_review', auth()->user());
         $this->status = 'in_review';
 
-        $notifs->notifyReviewRequested($s->id, $s->headline, auth()->id());
         $this->successState = 'sent';
         $this->dispatch('toast', message: 'Sent for review to the desk editor');
     }
 
-    public function publish(?NotificationService $notifs = null, ?RbacService $rbac = null, ?StoryService $svc = null): void
+    public function publish(?RbacService $rbac = null, ?StoryService $svc = null): void
     {
-        $notifs = $notifs ?? app(NotificationService::class);
         $rbac = $rbac ?? app(RbacService::class);
         $svc = $svc ?? app(StoryService::class);
 
@@ -547,17 +542,15 @@ class AddNews extends Component
         $this->status = $s->status;
 
         if ($s->status === 'published') {
-            dispatch(new FanoutStory($s->id));
             dispatch(new ProcessIndexOutbox);
-            $notifs->notifyStatusChange($s->id, 'published', auth()->id());
             $this->successState = 'published';
             $this->dispatch('toast', message: 'Story successfully published to wire feed');
         }
     }
 
-    public function quickPublish(?NotificationService $notifs = null, ?RbacService $rbac = null, ?StoryService $svc = null): void
+    public function quickPublish(?RbacService $rbac = null, ?StoryService $svc = null): void
     {
-        $this->publish($notifs, $rbac, $svc);
+        $this->publish($rbac, $svc);
     }
 
     public function addNote(): void

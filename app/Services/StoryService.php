@@ -28,6 +28,7 @@ class StoryService
     public function __construct(
         private RevisionService $revisions,
         private AuditLogRepository $audit,
+        private NotificationService $notifications,
     ) {}
 
     public function createDraft(array $data, User $actor): Story
@@ -114,6 +115,10 @@ class StoryService
             ]);
             $this->audit->log('handover', 'Story', $story->id, ['from' => $prevName, 'to' => $actor->name]);
         });
+
+        if ($prev && $prev->id !== $actor->id) {
+            $this->notifications->notifyHandover($story->id, $story->headline, $actor->id, $prev);
+        }
     }
 
     public function addNote(Story $story, string $body, User $actor, ?string $kind = null): StoryNote
@@ -186,6 +191,13 @@ class StoryService
             if ($to === 'killed') {
                 dispatch(new FanoutStory($story->id))->afterResponse();
             }
+
+            // Editorial notifications — centralized so every caller triggers them
+            match ($to) {
+                'in_review' => $this->notifications->notifyReviewRequested($story->id, $story->headline, $actor->id),
+                'approved', 'changes_requested', 'published', 'killed' => $this->notifications->notifyStatusChange($story->id, $to, $actor->id, $story->headline),
+                default => null,
+            };
 
             return $story->refresh();
         });

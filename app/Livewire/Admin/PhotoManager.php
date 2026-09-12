@@ -9,6 +9,7 @@ use App\Models\Story;
 use App\Models\User;
 use App\Repositories\MediaRepository;
 use App\Repositories\StoryRepository;
+use App\Services\NotificationService;
 use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -338,6 +339,12 @@ class PhotoManager extends Component
             'created_at' => now(),
         ]);
 
+        // Notify uploader
+        $uploader = $asset->batch?->uploader;
+        if ($uploader && $uploader->id !== $reviewerId) {
+            app(NotificationService::class)->notifyMediaDecision($asset->batch_id ?? 0, 'media_approved', $reviewerId, $uploader);
+        }
+
         $photogName = $asset->credit_line ? str_replace(['Photo: ', ' / UNB'], '', $asset->credit_line) : 'photographer';
         $this->dispatch('toast', message: '✓ Approved to library — '.$photogName.' notified');
     }
@@ -373,6 +380,12 @@ class PhotoManager extends Component
             'reviewed_by' => $reviewerId,
             'reviewed_at' => now(),
         ]);
+
+        // Notify uploader
+        $uploader = $batch->uploader;
+        if ($uploader && $uploader->id !== $reviewerId) {
+            app(NotificationService::class)->notifyMediaDecision($batchId, 'media_approved', $reviewerId, $uploader);
+        }
 
         $photogName = $batch->uploader?->name ?? 'photographer';
         $this->dispatch('toast', message: '✓ '.$count.' frames approved to library — '.$photogName.' notified');
@@ -415,6 +428,7 @@ class PhotoManager extends Component
     {
         $reviewerId = auth()->id() ?? User::first()?->id;
         $fullNote = $this->selectedReason.($this->reasonNote ? ' — '.trim($this->reasonNote) : '');
+        $notifs = app(NotificationService::class);
 
         if ($this->modalType === 'reject_photo' && $this->targetAssetId) {
             $asset = MediaAsset::find($this->targetAssetId);
@@ -428,6 +442,10 @@ class PhotoManager extends Component
                     'note' => $fullNote,
                     'created_at' => now(),
                 ]);
+                $uploader = $asset->batch?->uploader;
+                if ($uploader && $uploader->id !== $reviewerId) {
+                    $notifs->notifyMediaDecision($asset->batch_id ?? 0, 'media_rejected', $reviewerId, $uploader);
+                }
                 $photogName = $asset->credit_line ? str_replace(['Photo: ', ' / UNB'], '', $asset->credit_line) : 'photographer';
                 $this->dispatch('toast', message: '✕ Photo rejected — '.$photogName.' notified with reason');
             }
@@ -450,6 +468,10 @@ class PhotoManager extends Component
                     'reviewed_by' => $reviewerId,
                     'reviewed_at' => now(),
                 ]);
+                $uploader = $batch->uploader;
+                if ($uploader && $uploader->id !== $reviewerId) {
+                    $notifs->notifyMediaDecision($this->targetBatchId, 'media_rejected', $reviewerId, $uploader);
+                }
                 $photogName = $batch->uploader?->name ?? 'photographer';
                 $this->dispatch('toast', message: '✕ Batch rejected — '.$photogName.' notified with reason');
             }
@@ -472,6 +494,10 @@ class PhotoManager extends Component
                     'reviewed_by' => $reviewerId,
                     'reviewed_at' => now(),
                 ]);
+                $uploader = $batch->uploader;
+                if ($uploader && $uploader->id !== $reviewerId) {
+                    $notifs->notifyMediaDecision($this->targetBatchId, 'media_reedit', $reviewerId, $uploader);
+                }
                 $photogName = $batch->uploader?->name ?? 'photographer';
                 $this->dispatch('toast', message: '↩ Sent back — '.$photogName.' asked to fix and resend');
             }
