@@ -12,6 +12,7 @@ use App\Services\HtmlSanitizer;
 use App\Services\RbacService;
 use App\Services\RevisionService;
 use App\Services\StoryService;
+use App\Support\DisplayPrefs;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Livewire\Component;
@@ -594,7 +595,7 @@ class AddNews extends Component
             ->map(fn ($v) => [
                 'version' => $v->version,
                 'creator' => $v->creator?->name ?? 'System',
-                'created_at' => $v->created_at?->timezone('Asia/Dhaka')->format('M j, h:i A'),
+                'created_at' => DisplayPrefs::format($v->created_at),
             ])
             ->all();
     }

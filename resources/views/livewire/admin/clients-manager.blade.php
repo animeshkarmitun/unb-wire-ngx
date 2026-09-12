@@ -245,6 +245,7 @@
           <button type="button" wire:click="setDrawerTab('channels')" class="dr-tab {{ $drawerTab === 'channels' ? 'active' : '' }}" data-dtab="channels" aria-label="Client channels tab">Channels</button>
           <button type="button" wire:click="setDrawerTab('package')" class="dr-tab {{ $drawerTab === 'package' ? 'active' : '' }}" data-dtab="package" aria-label="Client package tab">Package</button>
           <button type="button" wire:click="setDrawerTab('activity')" class="dr-tab {{ $drawerTab === 'activity' ? 'active' : '' }}" data-dtab="activity" aria-label="Client activity tab">Activity</button>
+          <button type="button" wire:click="setDrawerTab('portal-users')" class="dr-tab {{ $drawerTab === 'portal-users' ? 'active' : '' }}" data-dtab="portal-users" aria-label="Portal users tab">Portal Users</button>
         </div>
       </div>
 
@@ -533,7 +534,7 @@
           </div>
 
         {{-- Activity Tab --}}
-        @else
+        @elseif($drawerTab === 'activity')
           <div class="dr-sec">
             <div class="dr-sec-title">Timeline</div>
             @if(!empty($selMeta['activity']))
@@ -549,6 +550,69 @@
             @else
               <div class="text-xs text-muted">No activity records logged yet.</div>
             @endif
+          </div>
+
+        {{-- Portal Users Tab --}}
+        @elseif($drawerTab === 'portal-users')
+          <div class="dr-sec">
+            <div class="dr-sec-title">Portal Users</div>
+            @if($selected->clientUsers->isEmpty())
+              <div class="text-xs text-muted" style="padding:12px 0">No portal users yet.</div>
+            @else
+              @foreach($selected->clientUsers as $pu)
+                @php
+                  $puStatus = $pu->status ?? 'active';
+                  $statusColors = [
+                    'active' => 'background:var(--green,#16a34a);color:#fff',
+                    'invited' => 'background:#b7791f;color:#fff',
+                    'deactivated' => 'background:var(--crimson,#e5484d);color:#fff',
+                  ];
+                @endphp
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0;{{ $puStatus === 'deactivated' ? 'opacity:0.6;' : '' }}">
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:14px;font-weight:600;{{ $puStatus === 'deactivated' ? 'text-decoration:line-through;' : '' }}">
+                      {{ $pu->name }}
+                    </div>
+                    <div style="font-size:12px;color:#666">{{ $pu->email }}</div>
+                  </div>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:9999px;{{ $statusColors[$puStatus] ?? '' }}">
+                    {{ ucfirst($puStatus) }}
+                  </span>
+                  @if($pu->clientRole)
+                    <span style="font-size:11px;background:#f0f0f0;padding:2px 8px;border-radius:9999px;color:#555">
+                      {{ $pu->clientRole->name }}
+                    </span>
+                  @endif
+                </div>
+                <div style="display:flex;gap:6px;padding:6px 0 10px;flex-wrap:wrap">
+                  @if($puStatus === 'active')
+                    <select class="select-input" style="font-size:12px;padding:4px 8px;width:auto"
+                      wire:change="updatePortalUserRole({{ $pu->id }}, $event.target.value)">
+                      <option value="">Change role…</option>
+                      @foreach($this->clientRoles as $rId => $rName)
+                        <option value="{{ $rId }}" {{ $pu->client_role_id == $rId ? 'selected' : '' }}>{{ $rName }}</option>
+                      @endforeach
+                    </select>
+                    <button type="button" class="btn btn-outline btn-sm" style="font-size:12px;color:var(--crimson-dark,#d13438);border-color:#f0c9ca"
+                      wire:click="deactivatePortalUser({{ $pu->id }})">Deactivate</button>
+                  @elseif($puStatus === 'invited')
+                    <button type="button" class="btn btn-outline btn-sm" style="font-size:12px"
+                      wire:click="resendPortalInvite({{ $pu->id }})">Resend invite</button>
+                    <button type="button" class="btn btn-outline btn-sm" style="font-size:12px;color:var(--crimson-dark,#d13438);border-color:#f0c9ca"
+                      wire:click="deactivatePortalUser({{ $pu->id }})">Deactivate</button>
+                  @else
+                    <button type="button" class="btn btn-primary btn-sm" style="font-size:12px"
+                      wire:click="reactivatePortalUser({{ $pu->id }})">Reactivate</button>
+                  @endif
+                </div>
+              @endforeach
+            @endif
+            <div style="margin-top:12px">
+              <button type="button" class="btn btn-outline btn-sm" wire:click="openPortalInviteModal">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" style="width:14px;height:14px;vertical-align:-2px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Invite portal user
+              </button>
+            </div>
           </div>
         @endif
       </div>
@@ -765,6 +829,44 @@
         @else
           <button type="button" class="btn btn-primary" wire:click="activateClient" id="wizActivate">Activate client</button>
         @endif
+      </div>
+    </div>
+  </div>
+
+  {{-- Portal Invite Modal --}}
+  <div class="modal-overlay {{ $showPortalInviteModal ? 'open' : '' }}" id="portalInviteOverlay">
+    <div class="modal">
+      <div class="mo-head">
+        <div class="mo-title">Invite portal user</div>
+        <button type="button" class="mo-close" wire:click="closePortalInviteModal" aria-label="Close invite dialog">✕</button>
+      </div>
+      <div class="mo-body">
+        <div class="field-hint" style="margin-bottom:14px">
+          Send an invitation to access the UNB Wire portal for <b>{{ $selected?->name ?? 'this client' }}</b>. They will receive login credentials by email.
+        </div>
+        <div class="field">
+          <label class="field-label">Name <span class="req">*</span></label>
+          <input class="text-input" wire:model="portalInviteName" id="portalInviteName" placeholder="Full name">
+          @error('portalInviteName') <span class="text-xs text-crimson">{{ $message }}</span> @enderror
+        </div>
+        <div class="field">
+          <label class="field-label">Email <span class="req">*</span></label>
+          <input class="text-input" type="email" wire:model="portalInviteEmail" id="portalInviteEmail" placeholder="user@example.com">
+          @error('portalInviteEmail') <span class="text-xs text-crimson">{{ $message }}</span> @enderror
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label class="field-label">Client role</label>
+          <select class="select-input" wire:model="portalInviteRoleId" id="portalInviteRole" style="width:100%">
+            <option value="">— No role —</option>
+            @foreach($this->clientRoles as $rId => $rName)
+              <option value="{{ $rId }}">{{ $rName }}</option>
+            @endforeach
+          </select>
+        </div>
+      </div>
+      <div class="mo-actions">
+        <button type="button" class="btn btn-outline" wire:click="closePortalInviteModal">Cancel</button>
+        <button type="button" class="btn btn-primary" wire:click="invitePortalUser" id="portalInviteConfirm">Send invite</button>
       </div>
     </div>
   </div>

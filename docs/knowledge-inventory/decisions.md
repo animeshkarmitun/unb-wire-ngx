@@ -256,3 +256,30 @@ Audit `docs/schema-code-mismatch-report.md` (2026-08-29, 25 mismatches) found dr
 ### Consequences
 - Server-side `RbacService.assertCan(user, 'history'|'audit', 'view')` gates every history/audit surface (M10-HIST-006…009); UI hides but API 403s.
 - `php scripts/schema-parity-check.php` unaffected — no migration, no model change.
+
+---
+
+## `DEC-013`: Client API Hardening & Entitlement Convergence (M13-API)
+
+### Context
+A client-facing API audit revealed critical gaps in news and media distribution:
+1. Client auth mismatch: `EnsureClientApiKey` vs `EnsurePortalSession` meant browser portal users (Sanctum `ClientUser`) could not download media (401) or load client context/tenant search tokens (fell back to guest with `client: null`).
+2. Feeds (`GET /api/v1/feed`, `GET /api/v1/portal/feed`) and story view (`GET /api/v1/portal/story/{id}`) did not enforce package entitlement filters (`languages`, `category_ids`), and cached responses were not isolated between clients.
+3. No API endpoint existed for subscribers to download structured wire formats (`json-unb-v1`, `nitf`, `newsml-g2`) on-demand (FR-PRT-004).
+4. Retracted/killed published stories silently disappeared from the feed without kill notices/tombstones, leaving client CMSs unaware of retractions (FR-DST-008).
+5. Monthly quotas (`stories_quota`, `media_quota`) were not enforced on download actions.
+6. Bulk media download (FR-MED-009, NFR §7.1) was missing.
+
+### Decision
+- **Unified Client Resolver (`ResolveClient`):** Bridges Sanctum personal access tokens and programmatic `ClientApiKey` credentials. Supports `:optional` mode (for public/guest portal preview while hydrating authenticated client entitlements) and `:required` mode (rejects unauthenticated with 401, suspended clients or deactivated users with 403).
+- **Entitlement Convergence:** Injected `EntitlementResolver` into both programmatic and portal feed controllers. All story queries filter by active package `languages` and `category_ids`. Feed caches partitioned by client ID (`feed:v1:{clientId}:{hash}`).
+- **Story Wire Download & Audit (`DownloadGateService`):** Exposes `GET /api/v1/story/{publicId}/download` and `/api/v1/portal/story/{publicId}/download?format=json|nitf|newsml`. Enforces package language/category entitlement, generates wire outputs via `WireFormatFactory`, and audits each download in `downloads` table (`item_type = 'story'`).
+- **Kill Tombstones:** Programmatic feed includes previously published stories that transitioned to `status = 'killed'`, mapping `is_killed = true`, `brief = 'STORY KILLED / RETRACTED'`, and `killed_at` timestamp.
+- **Quota Enforcement Gate (`QuotaService`):** Computes monthly calendar consumption across deliveries and downloads. Throws 429 when `stories_quota` or `media_quota` limits are exceeded.
+- **Bulk Media ZIP Export (`MediaZipExportService` / `ExportMediaZipJob`):** Exposes `POST /api/v1/media/export` supporting synchronous and background queued ZIP packaging with 5-minute presigned URLs and per-asset ledgering.
+
+### Consequences
+- True multi-tenant access control for both API key clients and Next.js portal users.
+- Downstream subscriber CMS systems receive retractions and structured wire feeds conforming to wire agency standards.
+- Full parity with FR-DST-002, FR-DST-008, FR-PRT-004, FR-CLT-004, and FR-MED-009.
+

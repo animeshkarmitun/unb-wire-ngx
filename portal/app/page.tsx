@@ -10,7 +10,7 @@ import {
   TrendingItem,
   StreamPhotoItem,
 } from "./types";
-import { getApiKey, setApiKey, clearApiKey, authHeaders } from "../lib/auth";
+import { getApiKey, setApiKey, clearApiKey, authHeaders, getPortalToken, setPortalToken, clearPortalToken, portalAuthHeaders } from "../lib/auth";
 import LoginModal from "../components/LoginModal";
 import {
   INITIAL_STORIES,
@@ -123,11 +123,22 @@ export default function ClientPortal() {
 
   // ===== Auth Hydration =====
   useEffect(() => {
-    const key = getApiKey();
-    if (key) {
-      const base = process.env.NEXT_PUBLIC_LARAVEL_URL ?? "http://localhost:8000";
+    const portalToken = getPortalToken();
+    const apiKey = getApiKey();
+    const base = process.env.NEXT_PUBLIC_LARAVEL_URL ?? "http://localhost:8000";
+
+    if (portalToken) {
       fetch(`${base}/api/v1/portal/context`, {
-        headers: { "X-API-Key": key }
+        headers: { "Authorization": `Bearer ${portalToken}` }
+      })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.client) setClientInfo(data.client);
+      })
+      .catch(() => {});
+    } else if (apiKey) {
+      fetch(`${base}/api/v1/portal/context`, {
+        headers: { "X-API-Key": apiKey }
       })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
@@ -586,7 +597,7 @@ export default function ClientPortal() {
                   >
                     <span className="user-avatar">{clientInfo.initials}</span>
                     <span className="user-meta">
-                      <span className="user-name">{clientInfo.name}</span>
+                      <span className="user-name">{clientInfo.userName || clientInfo.name}</span>
                       <span className="user-role">
                         <b>■</b> {clientInfo.tier} subscriber
                       </span>
@@ -643,6 +654,19 @@ export default function ClientPortal() {
                       </div>
                     </div>
                     <div className="drop-sep" />
+                    <a className="drop-item" href="/account">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                      My Account
+                    </a>
                     <a className="drop-item" href="#downloads">
                       <svg
                         viewBox="0 0 24 24"
@@ -674,6 +698,15 @@ export default function ClientPortal() {
                       className="drop-item"
                       style={{ width: "100%", textAlign: "left", background: "none", border: "none", cursor: "pointer", padding: "8px 12px", display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "inherit" }}
                       onClick={() => {
+                        const portalToken = getPortalToken();
+                        if (portalToken) {
+                          const base = process.env.NEXT_PUBLIC_LARAVEL_URL ?? "http://localhost:8000";
+                          fetch(`${base}/api/v1/portal/logout`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${portalToken}`, 'Accept': 'application/json' }
+                          }).catch(() => {});
+                        }
+                        clearPortalToken();
                         clearApiKey();
                         setClientInfo(null);
                         setUserDropOpen(false);
@@ -3227,9 +3260,25 @@ export default function ClientPortal() {
       <LoginModal
         isOpen={showLogin}
         onClose={() => setShowLogin(false)}
-        onSuccess={(key, info) => {
-          setApiKey(key);
-          setClientInfo(info);
+        onSuccess={(key, info, authType) => {
+          if (authType === 'portal') {
+            setPortalToken(key);
+            setClientInfo({
+              name: info.client.name,
+              initials: info.client.initials,
+              tier: 'Client',
+              renews_at: '-',
+              stories_quota: 0,
+              stories_used: 0,
+              media_quota: 0,
+              media_used: 0,
+              userName: info.name,
+              userEmail: info.email,
+            });
+          } else {
+            setApiKey(key);
+            setClientInfo(info);
+          }
           setShowLogin(false);
         }}
       />

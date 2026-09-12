@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\ClientApiKey;
 use App\Models\ClientChannel;
 use App\Models\ClientPackage;
+use App\Models\ClientUser;
 use App\Models\Delivery;
 use App\Models\Download;
 use App\Models\Package;
@@ -481,11 +482,25 @@ class PortalApiTest extends TestCase
 
     public function test_search_token_rate_limit_at_60_per_minute(): void
     {
+        $client = Client::factory()->create();
+        $rawKey = 'unb_live_'.Str::random(16);
+        ClientApiKey::create([
+            'client_id' => $client->id,
+            'name' => 'Rate Test Key',
+            'key_hash' => hash('sha256', $rawKey),
+            'scopes' => json_encode(['feed:read']),
+            'rate_limit_rpm' => 60,
+        ]);
+
         for ($i = 0; $i < 60; $i++) {
-            $this->postJson('/api/v1/portal/search-token')->assertOk();
+            $this->postJson('/api/v1/portal/search-token', [], [
+                'Authorization' => 'Bearer '.$rawKey,
+            ])->assertOk();
         }
 
-        $this->postJson('/api/v1/portal/search-token')->assertStatus(429);
+        $this->postJson('/api/v1/portal/search-token', [], [
+            'Authorization' => 'Bearer '.$rawKey,
+        ])->assertStatus(429);
     }
 
     public function test_story_rate_limit_at_120_per_minute(): void
@@ -500,5 +515,82 @@ class PortalApiTest extends TestCase
         }
 
         $this->getJson("/api/v1/portal/story/{$story->public_id}")->assertStatus(429);
+    }
+
+    // ─── Portal User (Sanctum) Auth — M13-API-001 ───────────────────
+
+    private function createPortalUser(array $clientAttrs = [], string $status = 'active'): array
+    {
+        $client = Client::factory()->create(array_merge(['status' => 'active'], $clientAttrs));
+        $user = ClientUser::factory()->create([
+            'client_id' => $client->id,
+            'status' => $status,
+        ]);
+        $token = $user->createToken('portal')->plainTextToken;
+
+        return [$client, $user, $token];
+    }
+
+    public function test_context_via_portal_user_returns_client_data(): void
+    {
+        [$client, $user, $token] = $this->createPortalUser([
+            'name' => 'Prothom Alo',
+            'notes' => json_encode([
+                'tier_quotas' => ['stories_quota' => 200, 'media_quota' => 50],
+            ]),
+        ]);
+
+        $package = Package::first() ?? Package::factory()->create(['name' => 'Standard']);
+        ClientPackage::create([
+            'client_id' => $client->id,
+            'package_id' => $package->id,
+            'starts_at' => now()->subDay(),
+            'ends_at' => now()->addYear(),
+            'status' => 'active',
+        ]);
+
+        $resp = $this->getJson('/api/v1/portal/context', [
+            'Authorization' => 'Bearer '.$token,
+        ]);
+
+        $resp->assertOk();
+        $this->assertEquals('Prothom Alo', $resp->json('client.name'));
+        $this->assertEquals('PA', $resp->json('client.initials'));
+        $this->assertEquals(200, $resp->json('client.stories_quota'));
+        $this->assertEquals(50, $resp->json('client.media_quota'));
+    }
+
+    public function test_search_token_via_portal_user_returns_entitled_token(): void
+    {
+        [$client, $user, $token] = $this->createPortalUser();
+
+        $resp = $this->postJson('/api/v1/portal/search-token', [], [
+            'Authorization' => 'Bearer '.$token,
+        ]);
+
+        $resp->assertOk();
+        $resp->assertJsonStructure(['token', 'host', 'index', 'filter', 'entitlement', 'expires_at']);
+    }
+
+    public function test_resolve_client_rejects_inactive_client(): void
+    {
+        [$client, $user, $token] = $this->createPortalUser(['status' => 'suspended']);
+
+        $resp = $this->getJson('/api/v1/portal/context', [
+            'Authorization' => 'Bearer '.$token,
+        ]);
+
+        $resp->assertStatus(403);
+    }
+
+    public function test_resolve_client_rejects_deactivated_user(): void
+    {
+        [$client, $user, $token] = $this->createPortalUser([], 'deactivated');
+
+        $resp = $this->getJson('/api/v1/portal/context', [
+            'Authorization' => 'Bearer '.$token,
+        ]);
+
+        $resp->assertStatus(403);
     }
 }

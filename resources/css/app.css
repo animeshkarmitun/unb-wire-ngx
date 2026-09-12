@@ -18,6 +18,23 @@
     display: none !important;
 }
 
+[data-density="compact"] .data-table td,
+[data-density="compact"] .data-table th {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    font-size: 0.75rem;
+}
+
+[data-density="compact"] .nt-item {
+    padding-top: 0.125rem;
+    padding-bottom: 0.125rem;
+}
+
+[data-density="compact"] .story-editorial-panel .text-\[11px\] {
+    padding-top: 0.125rem;
+    padding-bottom: 0.125rem;
+}
+
 @layer components {
     .g1 { background: linear-gradient(135deg, #3b6fe0, #16204a); }
     .g2 { background: linear-gradient(135deg, #e5484d, #7a1f2b); }

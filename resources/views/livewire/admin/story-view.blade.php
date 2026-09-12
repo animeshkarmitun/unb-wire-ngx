@@ -613,7 +613,7 @@
                                             <span class="px-1 py-0.5 rounded text-[9px] bg-gray-100">{{ str_replace('_', ' ', $evt->to_status) }}</span>
                                         </div>
                                     @endif
-                                    <div class="text-muted text-[10px] mt-0.5">{{ $evt->created_at?->timezone('Asia/Dhaka')->format('M j, h:i A') }}</div>
+                                    <div class="text-muted text-[10px] mt-0.5">{{ \App\Support\DisplayPrefs::format($evt->created_at) }}</div>
                                 </div>
                             </div>
                         @empty
@@ -654,7 +654,7 @@
                                     <span class="text-muted">{{ $ver->creator?->name ?? 'System' }}</span>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-muted text-[10px]">{{ $ver->created_at?->timezone('Asia/Dhaka')->format('M j, h:i A') }}</span>
+                                    <span class="text-muted text-[10px]">{{ \App\Support\DisplayPrefs::format($ver->created_at) }}</span>
                                     @if($this->canEditStory && $ver->version !== $story->version && in_array($story->status, ['draft', 'in_review', 'changes_requested']))
                                         <button type="button" wire:click="requestRestore({{ $ver->version }})" class="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 hover:bg-amber-200 font-bold uppercase">Restore</button>
                                     @endif
