@@ -62,7 +62,7 @@
             <tbody>
                 @forelse($this->results as $log)
                     <tr class="border-b border-border hover:bg-gray-50">
-                        <td class="px-4 py-2 text-muted whitespace-nowrap">{{ $log->created_at?->timezone('Asia/Dhaka')->format('M j, h:i A') }}</td>
+                        <td class="px-4 py-2 text-muted whitespace-nowrap">{{ \App\Support\DisplayPrefs::format($log->created_at) }}</td>
                         <td class="px-4 py-2 font-semibold text-ink">
                             @if($log->actor_type === 'user' && $log->actor_id)
                                 User #{{ $log->actor_id }}

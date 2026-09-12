@@ -160,7 +160,7 @@
                             </span>
                             <div class="hero-head">{{ $heroStory->headline }}</div>
                             <div class="hero-meta">
-                                <span>{{ $heroStory->published_at ? $heroStory->published_at->timezone('Asia/Dhaka')->format('F d, h:i A') : 'Just now' }}</span>
+                                <span>{{ $heroStory->published_at ? \App\Support\DisplayPrefs::format($heroStory->published_at) : 'Just now' }}</span>
                                 <span>&middot;</span>
                                 <span>UNB News</span>
                                 @if($heroStory->word_count)
@@ -217,7 +217,7 @@
                                         </div>
                                         <div class="sc-head">{{ $story->headline }}</div>
                                         <div class="sc-time">
-                                            {{ $story->published_at ? $story->published_at->timezone('Asia/Dhaka')->format('F d, h:i A') : '' }}
+                                            {{ $story->published_at ? \App\Support\DisplayPrefs::format($story->published_at) : '' }}
                                         </div>
                                     </div>
                                 </a>
@@ -274,7 +274,7 @@
                                         @if($activeRailTab === 'popular' && $rStory->word_count)
                                             {{ $rStory->word_count }} {{ $service === 'bn' ? 'শব্দ' : 'words' }}
                                         @else
-                                            {{ $rStory->published_at ? $rStory->published_at->timezone('Asia/Dhaka')->format('M d, h:i A') : 'Recent' }}
+                                            {{ $rStory->published_at ? \App\Support\DisplayPrefs::format($rStory->published_at) : 'Recent' }}
                                         @endif
                                     </div>
                                 </div>

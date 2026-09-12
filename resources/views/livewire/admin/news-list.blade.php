@@ -319,13 +319,13 @@
                         <div class="nt-item {{ $itemClass }}">
                             @if($isSys)
                                 <div class="nt-body">
-                                    {{ $note->body }} — <b>{{ $note->created_at?->timezone('Asia/Dhaka')->format('g:i A') ?? 'Today' }}</b>
+                                    {{ $note->body }} — <b>{{ \App\Support\DisplayPrefs::format($note->created_at) ?: 'Today' }}</b>
                                 </div>
                             @else
                                 <div class="nt-head">
                                     <b>{{ $note->user?->name ?? 'Staff' }}</b>
                                     <span class="nt-role {{ !$isEditor ? 'sub' : '' }}">{{ $note->user?->role?->name ?? 'Newsroom' }}</span>
-                                    <span class="nt-time">{{ $note->created_at?->timezone('Asia/Dhaka')->format('D · g:i A') }}</span>
+                                    <span class="nt-time">{{ \App\Support\DisplayPrefs::format($note->created_at) }}</span>
                                 </div>
                                 <div class="nt-body">{{ $note->body }}</div>
                             @endif

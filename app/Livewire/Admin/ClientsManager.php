@@ -3,8 +3,11 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Client;
+use App\Models\ClientUser;
 use App\Models\Package;
+use App\Models\Role;
 use App\Services\ClientService;
+use App\Services\PortalAccountService;
 use App\Services\RbacService;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
@@ -102,6 +105,15 @@ class ClientsManager extends Component
     public array $wAddons = [];
 
     public array $wChannels = ['email'];
+
+    // Portal user invite modal
+    public bool $showPortalInviteModal = false;
+
+    public string $portalInviteName = '';
+
+    public string $portalInviteEmail = '';
+
+    public string $portalInviteRoleId = '';
 
     // ─── Pagination Reset Hooks ─────────────────────────────────────
 
@@ -223,7 +235,7 @@ class ClientsManager extends Component
 
     private function initDrawerFields(int $id): void
     {
-        $client = Client::with(['clientChannels', 'clientPackages.package', 'clientUsers'])->find($id);
+        $client = Client::with(['clientChannels', 'clientPackages.package', 'clientUsers.clientRole'])->find($id);
         if (! $client) {
             return;
         }
@@ -621,6 +633,108 @@ class ClientsManager extends Component
         return app(ClientService::class)->clientHasIssue($client);
     }
 
+    // ─── Portal User Management ─────────────────────────────────────
+
+    public function getClientRolesProperty(): array
+    {
+        return Role::where('type', 'client')->pluck('name', 'id')->toArray();
+    }
+
+    public function openPortalInviteModal(): void
+    {
+        app(RbacService::class)->assertCan(auth()->user(), 'clients', 'edit');
+        $this->portalInviteName = '';
+        $this->portalInviteEmail = '';
+        $this->portalInviteRoleId = '';
+        $this->showPortalInviteModal = true;
+    }
+
+    public function closePortalInviteModal(): void
+    {
+        $this->showPortalInviteModal = false;
+        $this->portalInviteName = '';
+        $this->portalInviteEmail = '';
+        $this->portalInviteRoleId = '';
+    }
+
+    public function invitePortalUser(PortalAccountService $svc): void
+    {
+        app(RbacService::class)->assertCan(auth()->user(), 'clients', 'edit');
+
+        if (! $this->selectedId) {
+            return;
+        }
+
+        $this->validate([
+            'portalInviteName' => 'required|string|max:160',
+            'portalInviteEmail' => 'required|email|unique:client_users,email',
+        ]);
+
+        $client = Client::find($this->selectedId);
+        if (! $client) {
+            return;
+        }
+
+        $svc->invite($client, [
+            'name' => $this->portalInviteName,
+            'email' => $this->portalInviteEmail,
+            'client_role_id' => $this->portalInviteRoleId ?: null,
+        ]);
+
+        $this->closePortalInviteModal();
+        $this->initDrawerFields($this->selectedId);
+        $this->dispatch('toast', message: 'Portal invite sent to <b>'.e($this->portalInviteEmail).'</b>');
+    }
+
+    public function deactivatePortalUser(int $userId): void
+    {
+        app(RbacService::class)->assertCan(auth()->user(), 'clients', 'edit');
+
+        $user = ClientUser::findOrFail($userId);
+        app(PortalAccountService::class)->deactivate($user);
+
+        if ($this->selectedId) {
+            $this->initDrawerFields($this->selectedId);
+        }
+        $this->dispatch('toast', message: '<b>'.e($user->name).'</b> deactivated');
+    }
+
+    public function reactivatePortalUser(int $userId): void
+    {
+        app(RbacService::class)->assertCan(auth()->user(), 'clients', 'edit');
+
+        $user = ClientUser::findOrFail($userId);
+        app(PortalAccountService::class)->reactivate($user);
+
+        if ($this->selectedId) {
+            $this->initDrawerFields($this->selectedId);
+        }
+        $this->dispatch('toast', message: '<b>'.e($user->name).'</b> reactivated');
+    }
+
+    public function resendPortalInvite(int $userId): void
+    {
+        app(RbacService::class)->assertCan(auth()->user(), 'clients', 'edit');
+
+        $user = ClientUser::findOrFail($userId);
+        app(PortalAccountService::class)->resendInvite($user);
+
+        $this->dispatch('toast', message: 'Invite resent to <b>'.e($user->name).'</b>');
+    }
+
+    public function updatePortalUserRole(int $userId, string $roleId): void
+    {
+        app(RbacService::class)->assertCan(auth()->user(), 'clients', 'edit');
+
+        $user = ClientUser::findOrFail($userId);
+        app(PortalAccountService::class)->updateRole($user, (int) $roleId);
+
+        if ($this->selectedId) {
+            $this->initDrawerFields($this->selectedId);
+        }
+        $this->dispatch('toast', message: '<b>'.e($user->name).'</b> role updated');
+    }
+
     // ─── Render ─────────────────────────────────────────────────────
 
     public function render(): View
@@ -645,7 +759,7 @@ class ClientsManager extends Component
         }
 
         $packages = Package::where('status', 'active')->get();
-        $selected = $this->selectedId ? Client::with(['clientChannels', 'clientPackages.package', 'clientUsers'])->find($this->selectedId) : null;
+        $selected = $this->selectedId ? Client::with(['clientChannels', 'clientPackages.package', 'clientUsers.clientRole'])->find($this->selectedId) : null;
         $selectedMeta = $selected ? $service->getClientMeta($selected) : [];
 
         return view('livewire.admin.clients-manager', compact('clients', 'packages', 'selected', 'selectedMeta'));

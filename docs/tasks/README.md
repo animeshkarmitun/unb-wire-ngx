@@ -201,16 +201,16 @@
 
 | Task ID | Title | Dependencies | Status | Review | Completed |
 |---------|-------|--------------|--------|--------|-----------|
-| `M12-PROFILE-001` | Profile page admin-chrome conversion + remove self-delete | — | ⏳ | — | — |
-| `M12-PROFILE-002` | FR-ACC-005 display prefs (date format + density, consume prefs) | — | ⏳ | — | — |
+| `M12-PROFILE-001` | Profile page admin-chrome conversion + remove self-delete | — | ✅ | — | 2026-09-13 |
+| `M12-PROFILE-002` | FR-ACC-005 display prefs (date format + density, consume prefs) | — | ✅ | — | 2026-09-13 |
 
 ### Client Profile (portal — Next.js)
 
 | Task ID | Title | Dependencies | Status | Review | Completed |
 |---------|-------|--------------|--------|--------|-----------|
-| `M12-PROFILE-003` | Client portal auth: email/password login (FR-PRT-001, FR-CLT-002) | — | ⏳ | — | — |
-| `M12-PROFILE-004` | Client self-service profile & password (portal `/account`) | M12-PROFILE-003 | ⏳ | — | — |
-| `M12-PROFILE-005` | Admin-side portal user management (invite/deactivate/reactivate) | M12-PROFILE-003 | ⏳ | — | — |
+| `M12-PROFILE-003` | Client portal auth: email/password login (FR-PRT-001, FR-CLT-002) | — | ✅ | — | 2026-09-13 |
+| `M12-PROFILE-004` | Client self-service profile & password (portal `/account`) | M12-PROFILE-003 | ✅ | — | 2026-09-13 |
+| `M12-PROFILE-005` | Admin-side portal user management (invite/deactivate/reactivate) | M12-PROFILE-003 | ✅ | — | 2026-09-13 |
 
 ---
 
