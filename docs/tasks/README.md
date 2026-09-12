@@ -159,37 +159,37 @@
 
 | Task ID | Title | Dependencies | Status | Review | Completed |
 |---------|-------|--------------|--------|--------|-----------|
-| `M11-HOOK-001` | Enrich webhook payload (full story + event type) | FIX-001/002 | ⏳ | — | — |
-| `M11-HOOK-002` | HMAC-SHA256 webhook signature + headers | M11-HOOK-001 | ⏳ | — | — |
-| `M11-HOOK-003` | Respect trigger filters from channel config | M11-HOOK-001 | ⏳ | — | — |
-| `M11-HOOK-004` | Delivery queue processor (retry worker) | M11-HOOK-001 | ⏳ | — | — |
+| `M11-HOOK-001` | Enrich webhook payload (full story + event type) | FIX-001/002 | ✅ | — | 2026-09-12 |
+| `M11-HOOK-002` | HMAC-SHA256 webhook signature + headers | M11-HOOK-001 | ✅ | — | 2026-09-12 |
+| `M11-HOOK-003` | Respect trigger filters from channel config | M11-HOOK-001 | ✅ | — | 2026-09-12 |
+| `M11-HOOK-004` | Delivery queue processor (retry worker) | M11-HOOK-001 | ✅ | — | 2026-09-12 |
 
 ### Phase C: FTP/SFTP Delivery
 
 | Task ID | Title | Dependencies | Status | Review | Completed |
 |---------|-------|--------------|--------|--------|-----------|
-| `M11-FTP-001` | Flysystem SFTP adapter + dynamic disk factory | — | ⏳ | — | — |
-| `M11-FTP-002` | Wire format generators (NewsML-G2, JSON, NITF) | — | ⏳ | — | — |
-| `M11-FTP-003` | PushFtpDelivery queue job | M11-FTP-001, M11-FTP-002 | ⏳ | — | — |
-| `M11-FTP-004` | Real FTP connection test (replace fake stub) | M11-FTP-001 | ⏳ | — | — |
-| `M11-FTP-005` | Encrypt FTP/SFTP credentials at rest | M11-FTP-001 | ⏳ | — | — |
+| `M11-FTP-001` | Flysystem SFTP adapter + dynamic disk factory | — | ✅ | — | 2026-09-12 |
+| `M11-FTP-002` | Wire format generators (NewsML-G2, JSON, NITF) | — | ✅ | — | 2026-09-12 |
+| `M11-FTP-003` | PushFtpDelivery queue job | M11-FTP-001, M11-FTP-002 | ✅ | — | 2026-09-12 |
+| `M11-FTP-004` | Real FTP connection test (replace fake stub) | M11-FTP-001 | ✅ | — | 2026-09-12 |
+| `M11-FTP-005` | Encrypt FTP/SFTP credentials at rest | M11-FTP-001 | ✅ | — | 2026-09-12 |
 
 ### Phase E: Portal Completion
 
 | Task ID | Title | Dependencies | Status | Review | Completed |
 |---------|-------|--------------|--------|--------|-----------|
-| `M11-PORTAL-001` | Dynamic `/context` endpoint (replace hardcoded mock) | — | ⏳ | — | — |
-| `M11-PORTAL-002` | Client portal auth (API key login) | — | ⏳ | — | — |
-| `M11-PORTAL-003` | Real presigned media downloads (replace fake canvas) | FIX-003, M11-PORTAL-002 | ⏳ | — | — |
-| `M11-PORTAL-004` | Real-time live ticker via Reverb WebSocket | M11-PORTAL-002 | ⏳ | — | — |
+| `M11-PORTAL-001` | Dynamic `/context` endpoint (replace hardcoded mock) | — | ✅ | — | 2026-09-12 |
+| `M11-PORTAL-002` | Client portal auth (API key login) | — | ✅ | — | 2026-09-12 |
+| `M11-PORTAL-003` | Real presigned media downloads (replace fake canvas) | FIX-003, M11-PORTAL-002 | ✅ | — | 2026-09-12 |
+| `M11-PORTAL-004` | Real-time live ticker via Reverb WebSocket | M11-PORTAL-002 | ✅ | — | 2026-09-12 |
 
 ### Phase D: Email Delivery (via `clients.notes` JSON — no CHECK constraint change needed)
 
 | Task ID | Title | Dependencies | Status | Review | Completed |
 |---------|-------|--------------|--------|--------|-----------|
-| `M11-EMAIL-001` | StoryAlert Mailable + Blade template | HOOK-001 | ⏳ | — | — |
-| `M11-EMAIL-002` | SendStoryEmail job + alert preference matching | EMAIL-001 | ⏳ | — | — |
-| `M11-EMAIL-003` | Integrate email into FanoutStory | EMAIL-002 | ⏳ | — | — |
+| `M11-EMAIL-001` | StoryAlert Mailable + Blade template | HOOK-001 | ✅ | — | 2026-09-12 |
+| `M11-EMAIL-002` | SendStoryEmail job + alert preference matching | EMAIL-001 | ✅ | — | 2026-09-12 |
+| `M11-EMAIL-003` | Integrate email into FanoutStory | EMAIL-002 | ✅ | — | 2026-09-12 |
 
 ---
 
