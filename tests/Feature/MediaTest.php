@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Jobs\GenerateDerivatives;
 use App\Models\Client;
+use App\Models\ClientUser;
 use App\Models\MediaAsset;
 use App\Models\Role;
 use App\Models\User;
@@ -236,5 +237,52 @@ class MediaTest extends TestCase
             'item_id' => $asset->id,
         ]);
         $this->assertEquals(0, $asset->fresh()->download_count);
+    }
+
+    public function test_portal_user_can_download_media_via_sanctum_token(): void
+    {
+        Storage::fake('s3');
+        Storage::disk('s3')->put('originals/portal-dl.jpg', 'fake-content');
+
+        $client = Client::factory()->create(['status' => 'active']);
+        $clientUser = ClientUser::factory()->create([
+            'client_id' => $client->id,
+            'status' => 'active',
+        ]);
+        $token = $clientUser->createToken('portal')->plainTextToken;
+
+        $uploader = User::factory()->create();
+        $asset = MediaAsset::create([
+            'public_id' => (string) Str::ulid(),
+            'kind' => 'photo',
+            'status' => 'library',
+            'title' => 'Portal User Download Test',
+            'caption' => 'Caption',
+            'credit_line' => 'UNB',
+            'mime' => 'image/jpeg',
+            'size_bytes' => 5000,
+            'checksum' => hash('sha256', 'portal-dl'),
+            'storage_disk' => 's3',
+            'original_path' => 'originals/portal-dl.jpg',
+            'derivatives' => [],
+            'uploaded_by' => $uploader->id,
+            'download_count' => 0,
+        ]);
+
+        $resp = $this->getJson("/api/v1/media/{$asset->public_id}/download", [
+            'Authorization' => "Bearer {$token}",
+        ]);
+
+        $resp->assertOk()
+            ->assertJsonStructure(['url', 'expires_in'])
+            ->assertJson(['expires_in' => 300]);
+
+        $this->assertDatabaseHas('downloads', [
+            'client_id' => $client->id,
+            'client_user_id' => $clientUser->id,
+            'item_type' => 'media',
+            'item_id' => $asset->id,
+        ]);
+        $this->assertEquals(1, $asset->fresh()->download_count);
     }
 }

@@ -12,7 +12,14 @@ class WireFormatFactory
 {
     public function generate(Story $story, string $format): WireOutput
     {
-        return match ($format) {
+        $normalized = match (strtolower(trim($format))) {
+            'json', 'json-unb-v1', 'unb-v1' => 'json-unb-v1',
+            'newsml', 'newsml-g2', 'newsmlg2', 'xml' => 'newsml-g2',
+            'nitf', 'nitf-xml' => 'nitf',
+            default => $format,
+        };
+
+        return match ($normalized) {
             'json-unb-v1' => (new JsonUnbV1Formatter)->format($story),
             'newsml-g2' => (new NewsmlG2Formatter)->format($story),
             'nitf' => (new NitfFormatter)->format($story),

@@ -230,7 +230,33 @@
 
 ---
 
-## 12. How to Add a Task
+## 13. Rate Limiting Environment-Awareness (`M13-RATE`) — 2026-09-13
+
+> Centralize hardcoded rate limits into config with dev-multiplier support. Production stays strict, development gets 10x relaxed, testing disables entirely.
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M13-RATE-001` | Environment-aware rate limiting (config + helper + named limiters + dev multiplier) | — | ⏳ | — | — |
+
+---
+
+## 14. Client API Hardening & Completion (`M13-API`) — 2026-09-13
+
+> Close 7 client API gaps identified in client API audit. Build order: unified client resolver (001) → feed entitlement (002–003) → story download (004) → kill tombstones (005) → quota gate (006) → bulk ZIP (007).
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M13-API-001` | Unified Client Resolver Middleware (auth mismatch fix) | — | ✅ | — | 2026-09-13 |
+| `M13-API-002` | Entitlement Enforcement on Programmatic Feed | M13-API-001 | ✅ | — | 2026-09-13 |
+| `M13-API-003` | Entitlement Enforcement on Portal Feed | M13-API-001 | ✅ | — | 2026-09-13 |
+| `M13-API-004` | Story Download API + DownloadGateService | M13-API-001 | ✅ | — | 2026-09-13 |
+| `M13-API-005` | Kill/Correction Tombstones in Feed | M13-API-002 | ✅ | — | 2026-09-13 |
+| `M13-API-006` | Quota Enforcement Gate | M13-API-001 | ✅ | — | 2026-09-13 |
+| `M13-API-007` | Bulk ZIP Media Export | M13-API-001 | ✅ | — | 2026-09-13 |
+
+---
+
+## 15. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.

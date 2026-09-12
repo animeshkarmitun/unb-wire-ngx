@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureClientApiKey;
 use App\Http\Middleware\EnsurePortalSession;
 use App\Http\Middleware\EnsureRbac;
+use App\Http\Middleware\ResolveClient;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'rbac' => EnsureRbac::class,
             'client.api' => EnsureClientApiKey::class,
             'portal.session' => EnsurePortalSession::class,
+            'resolve.client' => ResolveClient::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
