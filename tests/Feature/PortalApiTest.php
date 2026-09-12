@@ -585,7 +585,7 @@ class PortalApiTest extends TestCase
 
     public function test_resolve_client_rejects_deactivated_user(): void
     {
-        [$client, $user, $token] = $this->createPortalUser([], 'inactive');
+        [$client, $user, $token] = $this->createPortalUser([], 'deactivated');
 
         $resp = $this->getJson('/api/v1/portal/context', [
             'Authorization' => 'Bearer '.$token,

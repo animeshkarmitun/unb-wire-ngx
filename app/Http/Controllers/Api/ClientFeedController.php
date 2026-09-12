@@ -47,7 +47,7 @@ class ClientFeedController extends Controller
                 if ($decoded && str_contains($decoded, '|')) {
                     [$ts, $id] = explode('|', $decoded, 2);
                     $dt = Carbon::parse($ts);
-                    $q->where(fn ($qq) => $qq->where('published_at', '<', $dt)->orWhere(fn ($q2) => $q2->where('published_at', $dt)->where('id', '<', $id)));
+                    $q->where(fn ($qq) => $qq->where('published_at', '<', $dt)->orWhere(fn ($q2) => $q2->where('published_at', $dt)->where('public_id', '<', $id)));
                 } else {
                     $dt = Carbon::parse(base64_decode($since));
                     $q->where('published_at', '>', $dt);
@@ -59,7 +59,7 @@ class ClientFeedController extends Controller
         $clientId = $client?->id ?? 'guest';
         $cacheKey = 'feed:v1:'.$clientId.':'.md5($request->fullUrl());
         $payload = Cache::remember($cacheKey, 60, function () use ($q, $limit) {
-            $stories = (clone $q)->orderByDesc('published_at')->orderByDesc('id')->limit($limit)->get()->map(fn ($s) => [
+            $stories = (clone $q)->orderByDesc('published_at')->orderByDesc('public_id')->limit($limit)->get()->map(fn ($s) => [
                 'public_id' => $s->public_id,
                 'headline' => $s->headline,
                 'brief' => $s->status === 'killed' ? 'STORY KILLED / RETRACTED' : $s->brief,
