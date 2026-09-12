@@ -10,9 +10,10 @@ import {
   TrendingItem,
   StreamPhotoItem,
 } from "./types";
+import { getApiKey, setApiKey, clearApiKey, authHeaders } from "../lib/auth";
+import LoginModal from "../components/LoginModal";
 import {
   INITIAL_STORIES,
-  NEW_STORIES,
   buildAllMedia,
   GALLERIES,
   COLLECTIONS,
@@ -22,6 +23,7 @@ import {
   CLIENT_INFO,
   STORY_TITLES,
 } from "../lib/mockData";
+import { createEcho } from "../lib/echo";
 import {
   timeAgo,
   esc,
@@ -35,12 +37,16 @@ import {
   TW_CAT_DOT,
   GRADS,
 } from "../lib/format";
+import { downloadMedia } from "../lib/download";
 
 export default function ClientPortal() {
   // ===== Master State =====
+  const [clientInfo, setClientInfo] = useState<any>(null);
+  const [showLogin, setShowLogin] = useState<boolean>(false);
   const [stories, setStories] = useState<WireStory[]>(INITIAL_STORIES);
   const [pendingNew, setPendingNew] = useState<WireStory[]>([]);
   const [freshIds, setFreshIds] = useState<Set<number | string>>(new Set());
+  const [wsStatus, setWsStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
 
   // Navigation & View State
   const [tab, setTab] = useState<"wire" | "packs" | "photos">("wire");
@@ -82,8 +88,13 @@ export default function ClientPortal() {
   const [selectedMedia, setSelectedMedia] = useState<Set<string>>(new Set());
 
   // Quotas & Balances
-  const [mediaQuota, setMediaQuota] = useState<number>(CLIENT_INFO.media_quota - CLIENT_INFO.media_used);
+  const [mediaQuota, setMediaQuota] = useState<number>(0);
   const [apCredits, setApCredits] = useState<number>(20);
+
+  useEffect(() => {
+    const info = clientInfo || CLIENT_INFO;
+    setMediaQuota(info.media_quota - info.media_used);
+  }, [clientInfo]);
 
   // UNB Photos State
   const [heroRes, setHeroRes] = useState<"web" | "print">("web");
@@ -110,6 +121,22 @@ export default function ClientPortal() {
   const userWrapRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
+  // ===== Auth Hydration =====
+  useEffect(() => {
+    const key = getApiKey();
+    if (key) {
+      const base = process.env.NEXT_PUBLIC_LARAVEL_URL ?? "http://localhost:8000";
+      fetch(`${base}/api/v1/portal/context`, {
+        headers: { "X-API-Key": key }
+      })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.client) setClientInfo(data.client);
+      })
+      .catch(() => {});
+    }
+  }, []);
+
   // ===== Clock Interval =====
   useEffect(() => {
     function updateClock() {
@@ -133,18 +160,46 @@ export default function ClientPortal() {
     return () => clearInterval(timer);
   }, []);
 
-  // ===== Simulated New Live Stories =====
+  // ===== WebSocket New Live Stories =====
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setPendingNew(NEW_STORIES);
-    }, 18000);
-    return () => clearTimeout(timer);
+    const echo = createEcho();
+    if (echo) {
+      echo.connector.pusher.connection.bind('state_change', (states: any) => {
+        if (states.current === 'connected') setWsStatus('connected');
+        else if (states.current === 'connecting') setWsStatus('connecting');
+        else setWsStatus('disconnected');
+      });
+
+      echo.channel('wire.en').listen('StoryPublished', (e: any) => {
+        const story: WireStory = {
+            id: e.public_id,
+            public_id: e.public_id,
+            mins: 0,
+            category: e.category || "Bangladesh",
+            language: "en",
+            published_at: e.published_at || new Date().toISOString(),
+            status: "published",
+            is_breaking: Boolean(e.is_breaking),
+            ex: null,
+            has_video: false,
+            headline: e.headline || "",
+            brief: e.summary || "",
+            body_html: `<p>${e.summary || ""}</p>`,
+            tags: ["news", "unb"],
+            caps: [],
+        };
+        setPendingNew(prev => [story, ...prev]);
+      });
+    }
+    return () => echo?.disconnect();
   }, []);
 
   // ===== Fetch live stories from Laravel backend (Hydration & Freshness) =====
   useEffect(() => {
     const base = process.env.NEXT_PUBLIC_LARAVEL_URL ?? "http://localhost:8000";
-    fetch(`${base}/api/v1/portal/feed`)
+    fetch(`${base}/api/v1/portal/feed`, {
+      headers: { ...authHeaders() }
+    })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data && Array.isArray(data.data) && data.data.length > 0) {
@@ -386,16 +441,15 @@ export default function ClientPortal() {
   };
 
   const downloadPhotoZip = async (s: WireStory, key: string) => {
-    flash(key, "Zipping…");
-    const zip = new JSZip();
-    for (let i = 0; i < s.caps.length; i++) {
-      const blob = await gradientPng(typeof s.id === "number" ? s.id + i : i);
-      zip.file(`photo-${i + 1}.png`, blob);
+    flash(key, "Downloading…");
+    try {
+      for (let i = 0; i < s.caps.length; i++) {
+        await downloadMedia(typeof s.id === "number" ? s.id + i : i, "original");
+      }
+      flash(key, "Saved");
+    } catch (e) {
+      flash(key, "Failed");
     }
-    zip.file("captions.txt", s.caps.join("\n\n"));
-    const content = await zip.generateAsync({ type: "blob" });
-    saveBlob(content, `unb-${s.id}-photos.zip`, "application/zip");
-    flash(key, "Saved");
   };
 
   // Bulk Actions
@@ -436,28 +490,18 @@ export default function ClientPortal() {
       flash("basketZip", "Select downloadable photos first");
       return;
     }
-    flash("basketZip", "Zipping…");
-    const zip = new JSZip();
-    for (let i = 0; i < items.length; i++) {
-      const m = items[i];
-      zip.file(`${m.id}.png`, await gradientPng(i));
+    flash("basketZip", "Downloading…");
+    try {
+      for (let i = 0; i < items.length; i++) {
+        const m = items[i];
+        await downloadMedia(m.id, "original");
+      }
+      flash("basketZip", "Saved");
+      const regularPhotos = items.filter((m) => m.ent !== "addon").length;
+      setMediaQuota((q) => Math.max(0, q - regularPhotos));
+    } catch (e) {
+      flash("basketZip", "Failed");
     }
-    zip.file(
-      "captions.txt",
-      items.map((m) => `${m.cap}\n${m.credit} — ${m.by} · ${m.loc} · ${m.date}`).join("\n\n")
-    );
-    zip.file(
-      "LICENSE.txt",
-      `UNB MEDIA LICENSE\n\nEditorial use only. Credit line mandatory.\nAP images: single publication, no archival beyond 30 days.\n\nDownloaded by: Daily Star (Premium) · ${new Date()
-        .toISOString()
-        .slice(0, 10)}\nAssets: ${items.map((m) => m.id).join(", ")}`
-    );
-    const blob = await zip.generateAsync({ type: "blob" });
-    saveBlob(blob, `unb-media-${items.length}.zip`, "application/zip");
-    flash("basketZip", "Saved");
-
-    const regularPhotos = items.filter((m) => m.ent !== "addon").length;
-    setMediaQuota((q) => Math.max(0, q - regularPhotos));
   };
 
   // Lightbox Trigger
@@ -532,113 +576,130 @@ export default function ClientPortal() {
             </a>
 
             <div className="user-wrap" ref={userWrapRef}>
-              <button
-                className="user-chip"
-                id="userBtn"
-                type="button"
-                onClick={() => setUserDropOpen((o) => !o)}
-              >
-                <span className="user-avatar">{CLIENT_INFO.initials}</span>
-                <span className="user-meta">
-                  <span className="user-name">{CLIENT_INFO.name}</span>
-                  <span className="user-role">
-                    <b>■</b> {CLIENT_INFO.tier} subscriber
-                  </span>
-                </span>
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
+              {clientInfo ? (
+                <>
+                  <button
+                    className="user-chip"
+                    id="userBtn"
+                    type="button"
+                    onClick={() => setUserDropOpen((o) => !o)}
+                  >
+                    <span className="user-avatar">{clientInfo.initials}</span>
+                    <span className="user-meta">
+                      <span className="user-name">{clientInfo.name}</span>
+                      <span className="user-role">
+                        <b>■</b> {clientInfo.tier} subscriber
+                      </span>
+                    </span>
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
 
-              <div className={`drop ${userDropOpen ? "open" : ""}`} id="userDrop">
-                <div className="drop-account">
-                  <div className="drop-tier">
-                    ★ {CLIENT_INFO.tier} · renews {CLIENT_INFO.renews_at}
-                  </div>
-                  <div className="drop-quota">
-                    <span>Wire</span>
-                    <div className="dq-bar">
-                      <span
-                        style={{
-                          width: `${(
-                            (CLIENT_INFO.stories_used / CLIENT_INFO.stories_quota) *
-                            100
-                          ).toFixed(0)}%`,
-                        }}
-                      />
+                  <div className={`drop ${userDropOpen ? "open" : ""}`} id="userDrop">
+                    <div className="drop-account">
+                      <div className="drop-tier">
+                        ★ {clientInfo.tier} · renews {clientInfo.renews_at}
+                      </div>
+                      <div className="drop-quota">
+                        <span>Wire</span>
+                        <div className="dq-bar">
+                          <span
+                            style={{
+                              width: `${(
+                                (clientInfo.stories_used / clientInfo.stories_quota) *
+                                100
+                              ).toFixed(0)}%`,
+                            }}
+                          />
+                        </div>
+                        <b>
+                          {clientInfo.stories_used}/{clientInfo.stories_quota}
+                        </b>
+                      </div>
+                      <div className="drop-quota">
+                        <span>Media</span>
+                        <div className="dq-bar">
+                          <span
+                            className="warm"
+                            id="dqMediaFill"
+                            style={{
+                              width: `${(
+                                ((clientInfo.media_quota - mediaQuota) / clientInfo.media_quota) *
+                                100
+                              ).toFixed(0)}%`,
+                            }}
+                          />
+                        </div>
+                        <b id="dqMedia">
+                          {clientInfo.media_quota - mediaQuota}/{clientInfo.media_quota}
+                        </b>
+                      </div>
                     </div>
-                    <b>
-                      {CLIENT_INFO.stories_used}/{CLIENT_INFO.stories_quota}
-                    </b>
+                    <div className="drop-sep" />
+                    <a className="drop-item" href="#downloads">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                      My downloads
+                    </a>
+                    <a className="drop-item" href="http://localhost:8000/admin">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+                      </svg>
+                      Subscription &amp; API keys
+                    </a>
+                    <div className="drop-sep" />
+                    <button
+                      className="drop-item"
+                      style={{ width: "100%", textAlign: "left", background: "none", border: "none", cursor: "pointer", padding: "8px 12px", display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "inherit" }}
+                      onClick={() => {
+                        clearApiKey();
+                        setClientInfo(null);
+                        setUserDropOpen(false);
+                      }}
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{ width: "16px", height: "16px" }}
+                      >
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                      </svg>
+                      Log out
+                    </button>
                   </div>
-                  <div className="drop-quota">
-                    <span>Media</span>
-                    <div className="dq-bar">
-                      <span
-                        className="warm"
-                        id="dqMediaFill"
-                        style={{
-                          width: `${(
-                            ((CLIENT_INFO.media_quota - mediaQuota) / CLIENT_INFO.media_quota) *
-                            100
-                          ).toFixed(0)}%`,
-                        }}
-                      />
-                    </div>
-                    <b id="dqMedia">
-                      {CLIENT_INFO.media_quota - mediaQuota}/{CLIENT_INFO.media_quota}
-                    </b>
-                  </div>
-                </div>
-                <div className="drop-sep" />
-                <a className="drop-item" href="#downloads">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  My downloads
-                </a>
-                <a className="drop-item" href="http://localhost:8000/admin">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
-                  </svg>
-                  Subscription &amp; API keys
-                </a>
-                <div className="drop-sep" />
-                <a className="drop-item" href="#logout">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                    <polyline points="16 17 21 12 16 7" />
-                    <line x1="21" y1="12" x2="9" y2="12" />
-                  </svg>
-                  Log out
-                </a>
-              </div>
+                </>
+              ) : (
+                <button className="action-btn" onClick={() => setShowLogin(true)} style={{ marginLeft: "16px" }}>
+                  Login
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -648,69 +709,78 @@ export default function ClientPortal() {
       <div className={`page ${railHidden ? "rail-hidden" : ""}`}>
         {/* ============ LEFT RAIL ============ */}
         <aside>
-          <div className="rail-card">
-            <span className="sub-tier">★ {CLIENT_INFO.tier}</span>
-            <div className="sub-name">{CLIENT_INFO.name}</div>
-            <div className="sub-renew">
-              Renews {CLIENT_INFO.renews_at} · English wire + media pack
-            </div>
-            <div className="quota">
-              <div className="quota-label">
-                <span>Wire downloads</span>
-                <b>
-                  {CLIENT_INFO.stories_used} / {CLIENT_INFO.stories_quota}
-                </b>
+          {(() => {
+            const info = clientInfo || CLIENT_INFO;
+            return (
+              <div className="rail-card">
+                <span className="sub-tier">★ {info.tier}</span>
+                <div className="sub-name">{info.name}</div>
+                <div className="sub-renew">
+                  Renews {info.renews_at} · English wire + media pack
+                </div>
+                {clientInfo && (
+                  <>
+                    <div className="quota">
+                      <div className="quota-label">
+                        <span>Wire downloads</span>
+                        <b>
+                          {info.stories_used} / {info.stories_quota}
+                        </b>
+                      </div>
+                      <div className="quota-bar">
+                        <span
+                          className="quota-fill"
+                          style={{
+                            width: `${(
+                              (info.stories_used / info.stories_quota) *
+                              100
+                            ).toFixed(1)}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="quota">
+                      <div className="quota-label">
+                        <span>Media downloads</span>
+                        <b id="mediaQuotaLabel">
+                          {info.media_quota - mediaQuota} / {info.media_quota}
+                        </b>
+                      </div>
+                      <div className="quota-bar">
+                        <span
+                          className="quota-fill warm"
+                          id="mediaQuotaFill"
+                          style={{
+                            width: `${(
+                              ((info.media_quota - mediaQuota) / info.media_quota) *
+                              100
+                            ).toFixed(1)}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+                <a
+                  className="drop-item"
+                  href="http://localhost:8000/admin"
+                  style={{ marginTop: "10px", paddingLeft: "0" }}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                  </svg>
+                  Delivery settings (FTP · API · alerts) →
+                </a>
               </div>
-              <div className="quota-bar">
-                <span
-                  className="quota-fill"
-                  style={{
-                    width: `${(
-                      (CLIENT_INFO.stories_used / CLIENT_INFO.stories_quota) *
-                      100
-                    ).toFixed(1)}%`,
-                  }}
-                />
-              </div>
-            </div>
-            <div className="quota">
-              <div className="quota-label">
-                <span>Media downloads</span>
-                <b id="mediaQuotaLabel">
-                  {CLIENT_INFO.media_quota - mediaQuota} / {CLIENT_INFO.media_quota}
-                </b>
-              </div>
-              <div className="quota-bar">
-                <span
-                  className="quota-fill warm"
-                  id="mediaQuotaFill"
-                  style={{
-                    width: `${(
-                      ((CLIENT_INFO.media_quota - mediaQuota) / CLIENT_INFO.media_quota) *
-                      100
-                    ).toFixed(1)}%`,
-                  }}
-                />
-              </div>
-            </div>
-            <a
-              className="drop-item"
-              href="http://localhost:8000/admin"
-              style={{ marginTop: "10px", paddingLeft: "0" }}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-              </svg>
-              Delivery settings (FTP · API · alerts) →
-            </a>
-          </div>
+            );
+          })()}
 
           <div className="rail-card" id="wireFiltersCard" hidden={tab !== "wire"}>
             <div className="rail-title">Filters</div>
@@ -913,8 +983,8 @@ export default function ClientPortal() {
               id="liveNote"
               style={{ visibility: tab === "wire" ? "visible" : "hidden" }}
             >
-              <span className="live-dot" />
-              Live — checking every 30s
+              <span className="live-dot" style={{ backgroundColor: wsStatus === 'connected' ? '#10b981' : wsStatus === 'connecting' ? '#f59e0b' : '#ef4444' }} />
+              {wsStatus === 'connected' ? 'Live — connected' : wsStatus === 'connecting' ? 'Live — connecting...' : 'Live — disconnected'}
             </span>
 
             <span className="spacer" />
@@ -2495,10 +2565,13 @@ export default function ClientPortal() {
                   id="phHeroDl"
                   type="button"
                   onClick={async () => {
-                    const blob = await gradientPng(5);
-                    saveBlob(blob, `unb-photo-of-the-day-${heroRes}.png`, "image/png");
-                    flash("heroDl", `✓ Downloaded (${heroRes === "web" ? "1200 px" : "original"})`);
-                    setMediaQuota((q) => Math.max(0, q - 1));
+                    try {
+                      await downloadMedia(5, heroRes);
+                      flash("heroDl", `✓ Downloaded (${heroRes === "web" ? "1200 px" : "original"})`);
+                      setMediaQuota((q) => Math.max(0, q - 1));
+                    } catch (e) {
+                      flash("heroDl", "Failed");
+                    }
                   }}
                 >
                   {flashStates["heroDl"] || "Download photo"}
@@ -2587,15 +2660,15 @@ export default function ClientPortal() {
                           type="button"
                           data-gal-zip={gi}
                           onClick={async () => {
-                            flash(`gal_${gi}`, "Zipping…");
-                            const zip = new JSZip();
-                            for (let idx = 0; idx < g.caps.length; idx++) {
-                              zip.file(`photo-${idx + 1}.png`, await gradientPng(gi * 10 + idx));
+                            flash(`gal_${gi}`, "Downloading…");
+                            try {
+                              for (let idx = 0; idx < g.caps.length; idx++) {
+                                await downloadMedia(gi * 10 + idx, "original");
+                              }
+                              flash(`gal_${gi}`, "Saved");
+                            } catch (e) {
+                              flash(`gal_${gi}`, "Failed");
                             }
-                            zip.file("captions.txt", `${g.caps.join("\n\n")}\n\nPhotos: UNB`);
-                            const blob = await zip.generateAsync({ type: "blob" });
-                            saveBlob(blob, `unb-${g.id}.zip`, "application/zip");
-                            flash(`gal_${gi}`, "Saved");
                           }}
                         >
                           <svg
@@ -3018,22 +3091,19 @@ export default function ClientPortal() {
                         id="amDownload"
                         type="button"
                         onClick={async () => {
-                          if (activeAsset.type === "video") {
-                            flash("amDl", "✓ Queued — FTP auto-push will deliver it");
-                            return;
-                          }
-                          const blob = await gradientPng(
-                            allMedia.findIndex((x) => x.id === activeAsset.id)
-                          );
-                          saveBlob(blob, `unb-${activeAsset.id}-${assetRes}.png`, "image/png");
-                          flash(
-                            "amDl",
-                            `✓ Downloaded (${assetRes === "web" ? "1200 px" : "original"})`
-                          );
-                          if (activeAsset.ent === "addon") {
-                            setApCredits((c) => Math.max(0, c - 1));
-                          } else {
-                            setMediaQuota((q) => Math.max(0, q - 1));
+                          try {
+                            await downloadMedia(activeAsset.id, assetRes);
+                            flash(
+                              "amDl",
+                              `✓ Downloaded (${assetRes === "web" ? "1200 px" : "original"})`
+                            );
+                            if (activeAsset.ent === "addon") {
+                              setApCredits((c) => Math.max(0, c - 1));
+                            } else {
+                              setMediaQuota((q) => Math.max(0, q - 1));
+                            }
+                          } catch (e) {
+                            flash("amDl", "Failed");
                           }
                         }}
                       >
@@ -3122,17 +3192,12 @@ export default function ClientPortal() {
                 type="button"
                 onClick={async () => {
                   const it = lightbox.items[lightbox.index];
-                  if (it.type === "video") {
-                    flash("lbDl", "Queued");
-                    return;
+                  try {
+                    await downloadMedia(it.i || lightbox.index, "original");
+                    flash("lbDl", "Saved");
+                  } catch (e) {
+                    flash("lbDl", "Failed");
                   }
-                  const blob = await gradientPng(it.i || lightbox.index);
-                  saveBlob(
-                    blob,
-                    `unb-${lightbox.storyId || "photo"}-${lightbox.index + 1}.png`,
-                    "image/png"
-                  );
-                  flash("lbDl", "Saved");
                 }}
               >
                 {flashStates["lbDl"] ||
@@ -3158,6 +3223,16 @@ export default function ClientPortal() {
           </button>
         </div>
       )}
+
+      <LoginModal
+        isOpen={showLogin}
+        onClose={() => setShowLogin(false)}
+        onSuccess={(key, info) => {
+          setApiKey(key);
+          setClientInfo(info);
+          setShowLogin(false);
+        }}
+      />
     </>
   );
 }

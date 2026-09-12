@@ -148,6 +148,8 @@ class ClientsManagerTest extends TestCase
 
     public function test_drawer_channels_email_and_ftp_interaction(): void
     {
+        $this->mockFtpDiskFactory();
+
         $dailyStar = Client::where('name', 'The Daily Star')->firstOrFail();
 
         Livewire::test(ClientsManager::class)
@@ -306,5 +308,17 @@ class ClientsManagerTest extends TestCase
         $this->assertInstanceOf(StreamedResponse::class, $response);
         $this->assertEquals('text/csv', $response->headers->get('Content-Type'));
         $this->assertStringContainsString('unb-clients.csv', $response->headers->get('Content-Disposition'));
+    }
+
+    private function mockFtpDiskFactory(): void
+    {
+        $disk = \Mockery::mock(\Illuminate\Filesystem\FilesystemAdapter::class);
+        $disk->shouldReceive('write')->andReturn(true);
+        $disk->shouldReceive('delete')->andReturn(true);
+
+        $factory = \Mockery::mock(\App\Services\Delivery\FtpDiskFactory::class);
+        $factory->shouldReceive('make')->andReturn($disk);
+
+        $this->app->instance(\App\Services\Delivery\FtpDiskFactory::class, $factory);
     }
 }

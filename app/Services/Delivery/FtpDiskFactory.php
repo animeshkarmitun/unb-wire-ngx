@@ -35,6 +35,14 @@ class FtpDiskFactory
         $authType = $config['auth_type'] ?? ($port === 22 ? 'sftp' : 'ftp');
 
         $password = $config['password'] ?? null;
+        if ($password) {
+            try {
+                $password = \Illuminate\Support\Facades\Crypt::decryptString($password);
+                $config['password'] = $password;
+            } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                // Backward compatibility: use plaintext
+            }
+        }
         $privateKey = $config['privateKey'] ?? null;
         $passphrase = $config['passphrase'] ?? null;
 
@@ -43,6 +51,7 @@ class FtpDiskFactory
                 'host' => $host,
                 'username' => $username,
                 'port' => $port,
+                'timeout' => $config['timeout'] ?? 30,
             ];
 
             if ($privateKey) {
@@ -70,7 +79,7 @@ class FtpDiskFactory
                 'port' => $port,
                 'passive' => $config['passive'] ?? true,
                 'ssl' => $config['ssl'] ?? false,
-                'timeout' => 30,
+                'timeout' => $config['timeout'] ?? 30,
             ]);
             $adapter = new FtpAdapter($options);
         }

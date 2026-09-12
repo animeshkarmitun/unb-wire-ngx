@@ -170,6 +170,8 @@ class StoryService
             Cache::forget('portal:feed:*');
             Cache::forget('feed:v1:*');
             if ($to === 'published') {
+                event(new \App\Events\StoryPublished($story));
+                
                 DB::table('index_outbox')->insert([
                     'index_name' => 'main',
                     'op' => 'upsert',

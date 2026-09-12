@@ -72,7 +72,7 @@ class FanoutStory implements ShouldQueue
                 $key = hash('sha256', $story->id.'-'.$ch->id.'-'.$story->version);
                 $payloadHash = hash('sha256', $story->body_text ?? '');
                 try {
-                    DB::table('deliveries')->insert([
+                    $deliveryId = DB::table('deliveries')->insertGetId([
                         'deliverable_type' => 'story', 'deliverable_id' => $story->id, 'client_id' => $row->client_id, 'channel_id' => $ch->id, 'status' => 'queued', 'attempt_count' => 0, 'idempotency_key' => $key, 'payload_hash' => $payloadHash, 'created_at' => now(),
                     ]);
                     $config = is_string($ch->config) ? json_decode($ch->config, true) : $ch->config;
@@ -96,6 +96,8 @@ class FanoutStory implements ShouldQueue
                         } else {
                             $clients->recordChannelFailure($ch->id);
                         }
+                    } elseif ($ch->type === 'ftp') {
+                        PushFtpDelivery::dispatch($deliveryId);
                     }
                 } catch (\Throwable $e) {
                     if (str_contains($e->getMessage(), 'duplicate') || str_contains($e->getMessage(), 'Unique')) {
