@@ -10,6 +10,7 @@ use App\Models\ClientPackage;
 use App\Models\Delivery;
 use App\Models\Package;
 use App\Models\Story;
+use App\Repositories\ClientRepository;
 use App\Services\Delivery\FtpDiskFactory;
 use App\Services\Delivery\WireFormatFactory;
 use App\Services\Delivery\WireOutput;
@@ -52,6 +53,7 @@ class PushFtpDeliveryTest extends TestCase
 
         Queue::assertPushed(PushFtpDelivery::class, function ($job) use ($channel) {
             $delivery = Delivery::find($job->deliveryId);
+
             return $delivery && $delivery->channel_id === $channel->id;
         });
     }
@@ -106,12 +108,12 @@ class PushFtpDeliveryTest extends TestCase
         $this->app->instance(WireFormatFactory::class, $wireMock);
 
         $job = new PushFtpDelivery($delivery->id);
-        $job->handle(app(\App\Repositories\ClientRepository::class), $wireMock, $factoryMock);
+        $job->handle(app(ClientRepository::class), $wireMock, $factoryMock);
 
         $delivery->refresh();
         $this->assertEquals('sent', $delivery->status);
         $this->assertNotNull($delivery->sent_at);
-        
+
         $channel->refresh();
         $this->assertEquals(0, $channel->failure_count);
         $this->assertNotNull($channel->last_success_at);
@@ -154,9 +156,9 @@ class PushFtpDeliveryTest extends TestCase
         $this->app->instance(FtpDiskFactory::class, $factoryMock);
 
         $job = new PushFtpDelivery($delivery->id);
-        
+
         try {
-            $job->handle(app(\App\Repositories\ClientRepository::class), app(WireFormatFactory::class), $factoryMock);
+            $job->handle(app(ClientRepository::class), app(WireFormatFactory::class), $factoryMock);
         } catch (\Exception $e) {
             $this->assertEquals('Connection failed', $e->getMessage());
         }
@@ -165,7 +167,7 @@ class PushFtpDeliveryTest extends TestCase
         $this->assertEquals('queued', $delivery->status);
         $this->assertEquals(1, $delivery->attempt_count);
         $this->assertEquals('Connection failed', $delivery->error);
-        
+
         $channel->refresh();
         $this->assertEquals(1, $channel->failure_count);
     }

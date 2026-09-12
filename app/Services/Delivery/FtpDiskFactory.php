@@ -3,7 +3,9 @@
 namespace App\Services\Delivery;
 
 use App\Models\ClientChannel;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Support\Facades\Crypt;
 use InvalidArgumentException;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Ftp\FtpAdapter;
@@ -37,9 +39,9 @@ class FtpDiskFactory
         $password = $config['password'] ?? null;
         if ($password) {
             try {
-                $password = \Illuminate\Support\Facades\Crypt::decryptString($password);
+                $password = Crypt::decryptString($password);
                 $config['password'] = $password;
-            } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+            } catch (DecryptException $e) {
                 // Backward compatibility: use plaintext
             }
         }

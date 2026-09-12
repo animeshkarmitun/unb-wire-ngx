@@ -8,8 +8,10 @@ use App\Models\ClientChannel;
 use App\Models\ClientPackage;
 use App\Models\Package;
 use App\Models\Role;
+use App\Services\Delivery\FtpDiskFactory;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -209,7 +211,7 @@ class ClientService
                 DB::table('client_channels')->insert([
                     'client_id' => $clientId,
                     'type' => 'ftp',
-                    'config' => json_encode(['host' => '', 'username' => '', 'port' => '21', 'password' => \Illuminate\Support\Facades\Crypt::encryptString(''), 'health' => 'ok']),
+                    'config' => json_encode(['host' => '', 'username' => '', 'port' => '21', 'password' => Crypt::encryptString(''), 'health' => 'ok']),
                     'status' => 'active',
                     'failure_count' => 0,
                     'created_at' => now(),
@@ -279,7 +281,7 @@ class ClientService
         } else {
             $config = [];
             if ($type === 'ftp') {
-                $config = ['host' => 'ftp.'.strtolower($client->code).'.com', 'username' => strtolower($client->code).'_unb', 'port' => '21', 'password' => \Illuminate\Support\Facades\Crypt::encryptString('Unb@'.rand(1000, 9999)), 'health' => 'ok'];
+                $config = ['host' => 'ftp.'.strtolower($client->code).'.com', 'username' => strtolower($client->code).'_unb', 'port' => '21', 'password' => Crypt::encryptString('Unb@'.rand(1000, 9999)), 'health' => 'ok'];
             } elseif ($type === 'api') {
                 $key = 'unb_live_'.Str::random(16);
                 $config = ['endpoint' => 'https://api.'.strtolower($client->code).'.com/unb', 'key' => $key, 'url' => '', 'health' => 'ok', 'signing_secret' => Str::random(40)];
@@ -336,10 +338,10 @@ class ClientService
             $config['timeout'] = 5;
             $ftpChan->config = $config;
 
-            $factory = app(\App\Services\Delivery\FtpDiskFactory::class);
+            $factory = app(FtpDiskFactory::class);
             $disk = $factory->make($ftpChan);
 
-            $filename = '.unb-test-' . time();
+            $filename = '.unb-test-'.time();
             $disk->write($filename, 'ok');
             $disk->delete($filename);
 
@@ -371,10 +373,10 @@ class ClientService
 
             $meta = $this->getClientMeta($client);
             $meta['activity'] = array_merge([
-                ['c' => '#dc2626', 't' => 'FTP connection failed: ' . Str::limit($e->getMessage(), 60), 'w' => 'Just now'],
+                ['c' => '#dc2626', 't' => 'FTP connection failed: '.Str::limit($e->getMessage(), 60), 'w' => 'Just now'],
             ], $meta['activity'] ?? []);
             $client->update(['notes' => json_encode($meta)]);
-            
+
             throw $e;
         }
     }
@@ -386,7 +388,7 @@ class ClientService
             'host' => trim($host),
             'username' => trim($user),
             'port' => trim($port) ?: '21',
-            'password' => \Illuminate\Support\Facades\Crypt::encryptString($pass),
+            'password' => Crypt::encryptString($pass),
             'health' => 'ok',
         ];
 

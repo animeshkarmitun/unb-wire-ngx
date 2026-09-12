@@ -8,8 +8,11 @@ use App\Models\ClientChannel;
 use App\Models\Download;
 use App\Models\Setting;
 use App\Services\ApiKeyService;
+use App\Services\Delivery\FtpDiskFactory;
 use App\Services\RbacService;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -166,19 +169,19 @@ class DeliverySettings extends Component
             $this->sftpPort = (string) ($cfg['port'] ?? '22');
             $this->sftpUser = $cfg['username'] ?? 'unb-delivery';
             $this->sftpAuth = $cfg['auth_type'] ?? 'SSH key (recommended)';
-            
+
             $password = $cfg['password'] ?? null;
             if ($password) {
                 try {
-                    $password = \Illuminate\Support\Facades\Crypt::decryptString($password);
-                } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                    $password = Crypt::decryptString($password);
+                } catch (DecryptException $e) {
                     // Fallback to raw plaintext
                 }
-                $this->sftpPassword = str_repeat('•', max(0, strlen($password) - 4)) . substr($password, -4);
+                $this->sftpPassword = str_repeat('•', max(0, strlen($password) - 4)).substr($password, -4);
             } else {
                 $this->sftpPassword = '••••••••••••';
             }
-            
+
             $this->wireFormat = $cfg['wire_format'] ?? 'NewsML-G2 (XML)';
             $this->pushSchedule = $cfg['push_schedule'] ?? 'Instantly on publish';
             $this->connectionEndpoint = 'sftp://'.($this->sftpHost ?: 'ftp.dailystar.com');
@@ -277,6 +280,7 @@ class DeliverySettings extends Component
 
         if (! $channel) {
             $this->dispatch('toast', message: 'No FTP channel found for this client');
+
             return;
         }
 
@@ -289,10 +293,10 @@ class DeliverySettings extends Component
             $config['timeout'] = 5;
             $channel->config = $config;
 
-            $factory = app(\App\Services\Delivery\FtpDiskFactory::class);
+            $factory = app(FtpDiskFactory::class);
             $disk = $factory->make($channel);
 
-            $filename = '.unb-test-' . time();
+            $filename = '.unb-test-'.time();
             $disk->write($filename, 'ok');
             $disk->delete($filename);
 
@@ -301,7 +305,7 @@ class DeliverySettings extends Component
             $channel->config = $originalConfig;
             $cfg = $channel->config ?? [];
             $cfg['health'] = 'ok';
-            
+
             $channel->update([
                 'config' => $cfg,
                 'failure_count' => 0,
@@ -315,14 +319,14 @@ class DeliverySettings extends Component
             $channel->config = $originalConfig ?? [];
             $cfg = $channel->config ?? [];
             $cfg['health'] = 'fail';
-            
+
             $channel->update([
                 'config' => $cfg,
                 'failure_count' => $channel->failure_count + 1,
             ]);
 
             $this->testBtnText = '✗ Failed';
-            $this->dispatch('toast', message: 'Connection failed: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Connection failed: '.$e->getMessage());
         }
     }
 
@@ -344,10 +348,10 @@ class DeliverySettings extends Component
             $cfg['port'] = $this->sftpPort;
             $cfg['username'] = $this->sftpUser;
             $cfg['auth_type'] = $this->sftpAuth;
-            
+
             // Only encrypt if password was actually changed (not masked)
-            if (!str_contains($this->sftpPassword, '••••')) {
-                $cfg['password'] = \Illuminate\Support\Facades\Crypt::encryptString($this->sftpPassword);
+            if (! str_contains($this->sftpPassword, '••••')) {
+                $cfg['password'] = Crypt::encryptString($this->sftpPassword);
             } else {
                 // Retain existing password if it's just masked
                 $cfg['password'] = $channel->config['password'] ?? null;

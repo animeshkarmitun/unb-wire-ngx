@@ -40,9 +40,9 @@ class FtpCredentialEncryptionTest extends TestCase
             ],
         ]);
 
-        $factory = new FtpDiskFactory();
+        $factory = new FtpDiskFactory;
         $disk = $factory->make($channel);
-        
+
         $this->assertNotNull($disk);
         $this->assertEquals('secret123', $disk->getConfig()['password']);
     }

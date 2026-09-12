@@ -17,7 +17,7 @@ class StoryPublished implements ShouldBroadcast
 
     public function broadcastOn(): array
     {
-        return [new Channel('wire.' . $this->story->language)];
+        return [new Channel('wire.'.$this->story->language)];
     }
 
     public function broadcastWith(): array

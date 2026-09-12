@@ -8,35 +8,35 @@ use App\Models\ClientChannel;
 use App\Models\User;
 use App\Services\ClientService;
 use App\Services\Delivery\FtpDiskFactory;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Storage;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Filesystem\FilesystemAdapter;
-use League\Flysystem\UnableToWriteFile;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
-use Tests\TestCase;
 use Mockery;
+use Tests\TestCase;
 
 class FtpConnectionTest extends TestCase
 {
     use RefreshDatabase;
 
     protected User $admin;
+
     protected Client $client;
+
     protected ClientChannel $ftpChannel;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
-        $this->seed(\Database\Seeders\DatabaseSeeder::class);
+
+        $this->seed(DatabaseSeeder::class);
         $this->admin = User::where('email', 'nahar@unbnews.org')->firstOrFail();
 
         $this->client = Client::first();
-        if (!$this->client) {
+        if (! $this->client) {
             $this->client = Client::factory()->create();
         }
-        
+
         $this->ftpChannel = ClientChannel::firstOrCreate([
             'client_id' => $this->client->id,
             'type' => 'ftp',
@@ -60,7 +60,7 @@ class FtpConnectionTest extends TestCase
 
         $mockFactory = Mockery::mock(FtpDiskFactory::class);
         $mockFactory->shouldReceive('make')->once()->andReturn($mockDisk);
-        
+
         $this->app->instance(FtpDiskFactory::class, $mockFactory);
 
         Livewire::actingAs($this->admin)
@@ -80,7 +80,7 @@ class FtpConnectionTest extends TestCase
     {
         $mockFactory = Mockery::mock(FtpDiskFactory::class);
         $mockFactory->shouldReceive('make')->once()->andThrow(new \Exception('Connection refused'));
-        
+
         $this->app->instance(FtpDiskFactory::class, $mockFactory);
 
         Livewire::actingAs($this->admin)
@@ -103,10 +103,10 @@ class FtpConnectionTest extends TestCase
 
         $mockFactory = Mockery::mock(FtpDiskFactory::class);
         $mockFactory->shouldReceive('make')->once()->andReturn($mockDisk);
-        
+
         $this->app->instance(FtpDiskFactory::class, $mockFactory);
 
-        $service = new ClientService();
+        $service = new ClientService;
         $service->testFtpConnection($this->client);
 
         $this->ftpChannel->refresh();
@@ -122,11 +122,11 @@ class FtpConnectionTest extends TestCase
     {
         $mockFactory = Mockery::mock(FtpDiskFactory::class);
         $mockFactory->shouldReceive('make')->once()->andThrow(new \Exception('Timeout'));
-        
+
         $this->app->instance(FtpDiskFactory::class, $mockFactory);
 
-        $service = new ClientService();
-        
+        $service = new ClientService;
+
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Timeout');
 

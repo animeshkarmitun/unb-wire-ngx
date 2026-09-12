@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Crypt;
 class EncryptFtpCredentials extends Command
 {
     protected $signature = 'delivery:encrypt-credentials';
+
     protected $description = 'Encrypt plaintext FTP/SFTP passwords in client_channels config';
 
     public function handle()
@@ -20,8 +21,9 @@ class EncryptFtpCredentials extends Command
 
         foreach ($channels as $channel) {
             $config = $channel->config ?? [];
-            if (!isset($config['password']) || $config['password'] === '') {
+            if (! isset($config['password']) || $config['password'] === '') {
                 $skippedCount++;
+
                 continue;
             }
 

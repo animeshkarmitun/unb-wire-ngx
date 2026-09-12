@@ -6,9 +6,11 @@ use App\Livewire\Admin\ClientsManager;
 use App\Models\Client;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Delivery\FtpDiskFactory;
 use Database\Seeders\ClientSeeder;
 use Database\Seeders\PackageSeeder;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -312,13 +314,13 @@ class ClientsManagerTest extends TestCase
 
     private function mockFtpDiskFactory(): void
     {
-        $disk = \Mockery::mock(\Illuminate\Filesystem\FilesystemAdapter::class);
+        $disk = \Mockery::mock(FilesystemAdapter::class);
         $disk->shouldReceive('write')->andReturn(true);
         $disk->shouldReceive('delete')->andReturn(true);
 
-        $factory = \Mockery::mock(\App\Services\Delivery\FtpDiskFactory::class);
+        $factory = \Mockery::mock(FtpDiskFactory::class);
         $factory->shouldReceive('make')->andReturn($disk);
 
-        $this->app->instance(\App\Services\Delivery\FtpDiskFactory::class, $factory);
+        $this->app->instance(FtpDiskFactory::class, $factory);
     }
 }
