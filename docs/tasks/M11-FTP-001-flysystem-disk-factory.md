@@ -53,7 +53,10 @@
 ---
 
 ## 6. Completion Notes
-*(filled on completion)*
+- Required `league/flysystem-sftp-v3` and `league/flysystem-ftp` using composer.
+- Implemented `FtpDiskFactory` with dynamic SFTP and FTP connection mapping.
+- Added `FtpDiskFactoryTest` to ensure configurations map to the correct connection adapters.
 
 ## 7. Prompt Ready?
 - [x] Yes
+

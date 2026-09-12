@@ -64,6 +64,12 @@ class DeliverySettings extends Component
     public string $maskedApiKey = 'unb_live_••••••••••••3f9a';
 
     public bool $isKeyRevealed = false;
+    
+    public string $rawSigningSecret = '';
+
+    public string $maskedSigningSecret = '';
+
+    public bool $isSecretRevealed = false;
 
     public int $regenStep = 0;
 
@@ -200,6 +206,11 @@ class DeliverySettings extends Component
         if ($apiChan) {
             $apiCfg = $apiChan->config ?? [];
             $this->webhookUrl = $apiCfg['url'] ?? ($apiCfg['webhook'] ?? 'https://cms.dailystar.com/hooks/unb');
+            
+            $secret = $apiCfg['signing_secret'] ?? 'whsec_dummy';
+            $this->rawSigningSecret = $secret;
+            $this->maskedSigningSecret = str_repeat('•', max(0, strlen($secret) - 4)) . substr($secret, -4);
+            $this->isSecretRevealed = false;
             $triggers = $apiCfg['triggers'] ?? [];
             $this->notifyBreaking = $triggers['breaking'] ?? true;
             $this->notifyMediaPack = $triggers['media_pack'] ?? true;
@@ -308,6 +319,11 @@ class DeliverySettings extends Component
     public function toggleRevealKey(): void
     {
         $this->isKeyRevealed = ! $this->isKeyRevealed;
+    }
+
+    public function toggleRevealSecret(): void
+    {
+        $this->isSecretRevealed = ! $this->isSecretRevealed;
     }
 
     public function requestRegenerateKey(): void

@@ -26,7 +26,7 @@ class FanoutStory implements ShouldQueue
     public function handle(?ClientRepository $clients = null): void
     {
         $clients = $clients ?? app(ClientRepository::class);
-        $story = Story::with('media')->find($this->storyId);
+        $story = Story::with(['media', 'category', 'tags', 'owner'])->find($this->storyId);
         if (! $story || $story->status !== 'published') {
             return;
         }
@@ -74,7 +74,18 @@ class FanoutStory implements ShouldQueue
                     ]);
                     $config = is_string($ch->config) ? json_decode($ch->config, true) : $ch->config;
                     if ($ch->type === 'webhook' && ! empty($config['url'])) {
-                        $response = Http::timeout(5)->post($config['url'], ['public_id' => $story->public_id, 'headline' => $story->headline]);
+                        $triggers = $config['triggers'] ?? [];
+                        if (! app(\App\Services\Delivery\TriggerMatcher::class)->shouldFire($story, $triggers)) {
+                            DB::table('deliveries')->where('idempotency_key', $key)->update(['status' => 'skipped_entitlement']);
+                            continue;
+                        }
+
+                        $payload = app(\App\Services\Delivery\WebhookPayloadBuilder::class)->build($story, 'story.published');
+                        $jsonPayload = json_encode($payload);
+                        $secret = $config['signing_secret'] ?? '';
+                        $headers = app(\App\Services\Delivery\WebhookSigner::class)->headers($jsonPayload, $secret, 'story.published');
+                        
+                        $response = Http::withHeaders($headers)->timeout(5)->post($config['url'], $payload);
                         if ($response->successful()) {
                             DB::table('deliveries')->where('idempotency_key', $key)->update(['status' => 'sent', 'sent_at' => now()]);
                             $clients->recordChannelSuccess($ch->id);
