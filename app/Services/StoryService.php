@@ -2,12 +2,16 @@
 
 namespace App\Services;
 
+use App\Events\StoryPublished;
+use App\Jobs\FanoutStory;
 use App\Models\Story;
+use App\Models\StoryNote;
 use App\Models\User;
+use App\Repositories\AuditLogRepository;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
-use App\Services\HtmlSanitizer;
 
 class StoryService
 {
@@ -21,9 +25,17 @@ class StoryService
         'archived' => [],
     ];
 
+    public function __construct(
+        private RevisionService $revisions,
+        private AuditLogRepository $audit,
+        private NotificationService $notifications,
+    ) {}
+
     public function createDraft(array $data, User $actor): Story
     {
-        if (isset($data['body_html'])) $data['body_html'] = HtmlSanitizer::clean($data['body_html']);
+        if (isset($data['body_html'])) {
+            $data['body_html'] = HtmlSanitizer::clean($data['body_html']);
+        }
         $data = array_merge($data, [
             'status' => 'draft',
             'owner_id' => $actor->id,
@@ -31,20 +43,17 @@ class StoryService
             'version' => 1,
             'body_text' => HtmlSanitizer::text($data['body_html'] ?? ''),
         ]);
+
         return DB::transaction(function () use ($data, $actor) {
             $story = Story::create($data);
-            $story->versions()->create([
-                'version' => 1,
-                'snapshot' => ['headline' => $story->headline, 'body_html' => $story->body_html],
-                'created_by' => $actor->id,
-                'created_at' => now(),
-            ]);
+            $this->revisions->snapshot($story, $actor);
             $story->events()->create([
                 'actor_id' => $actor->id,
                 'action' => 'created',
                 'from_status' => null,
                 'to_status' => 'draft',
             ]);
+
             return $story;
         });
     }
@@ -63,15 +72,12 @@ class StoryService
                 $data['ai_touched'] = empty($ai) ? null : $ai;
             }
         }
+
         return DB::transaction(function () use ($story, $data, $actor) {
             $story->update(array_merge($data, ['version' => $story->version + 1]));
-            $story->versions()->create([
-                'version' => $story->version,
-                'snapshot' => ['headline' => $story->headline, 'brief' => $story->brief, 'body_html' => $story->body_html],
-                'created_by' => $actor->id,
-                'created_at' => now(),
-            ]);
-            return $story->refresh();
+            $this->revisions->snapshot($story->refresh(), $actor);
+
+            return $story;
         });
     }
 
@@ -102,19 +108,25 @@ class StoryService
             ]);
             $story->events()->create([
                 'actor_id' => $actor->id,
-                'action' => 'take_over',
+                'action' => 'handover',
                 'from_status' => $story->status,
                 'to_status' => $story->status,
+                'payload' => ['from_user' => $prevName, 'to_user' => $actor->name],
             ]);
+            $this->audit->log('handover', 'Story', $story->id, ['from' => $prevName, 'to' => $actor->name]);
         });
+
+        if ($prev && $prev->id !== $actor->id) {
+            $this->notifications->notifyHandover($story->id, $story->headline, $actor->id, $prev);
+        }
     }
 
-    public function addNote(Story $story, string $body, User $actor, ?string $kind = null): \App\Models\StoryNote
+    public function addNote(Story $story, string $body, User $actor, ?string $kind = null): StoryNote
     {
         return app(NoteService::class)->add($story, $actor, $body, $kind);
     }
 
-    public function transition(Story $story, string $to, User $actor): Story
+    public function transition(Story $story, string $to, User $actor, string $gate = 'manual'): Story
     {
         $from = $story->status;
         $allowed = self::TRANSITIONS[$from] ?? [];
@@ -123,30 +135,49 @@ class StoryService
         }
         if ($to === 'published') {
             if (! empty($story->ai_touched) && ! $story->is_breaking) {
-                $cfg = DB::table('settings')->where('key','ai.desk')->value('value');
-                $cfg = is_string($cfg) ? json_decode($cfg,true) : $cfg;
-                $allowAuto = !empty($cfg['autoPublish']) && in_array($story->category_id, (array)($cfg['autoCats'] ?? []), true);
-                if(! $allowAuto) throw new UnprocessableEntityHttpException('AI-touched fields require review before publish');
+                $cfg = DB::table('settings')->where('key', 'ai.desk')->value('value');
+                $cfg = is_string($cfg) ? json_decode($cfg, true) : $cfg;
+                $allowAuto = ! empty($cfg['autoPublish']) && in_array($story->category_id, (array) ($cfg['autoCats'] ?? []), true);
+                if (! $allowAuto) {
+                    throw new UnprocessableEntityHttpException('AI-touched fields require review before publish');
+                }
             }
             if ($story->embargo_until && $story->embargo_until->isFuture()) {
                 throw new UnprocessableEntityHttpException('Embargo still active');
             }
         }
-        return DB::transaction(function () use ($story, $from, $to, $actor) {
+
+        return DB::transaction(function () use ($story, $from, $to, $actor, $gate) {
             $extra = [];
             if ($to === 'published' && ! $story->published_at) {
                 $extra['published_at'] = now();
             }
-            $story->update(array_merge(['status' => $to], $extra));
+            $story->update(array_merge(['status' => $to, 'version' => $story->version + 1], $extra));
+            $this->revisions->snapshot($story, $actor);
+            $action = match ($to) {
+                'published' => $gate === 'auto' ? 'auto_published' : 'published',
+                'killed' => 'killed',
+                'archived' => 'archived',
+                default => $to === 'in_review' ? 'sent_to_review' : $to,
+            };
             $story->events()->create([
                 'actor_id' => $actor->id,
-                'action' => $to,
+                'action' => $action,
                 'from_status' => $from,
                 'to_status' => $to,
+                'payload' => $to === 'published' ? ['gate' => $gate] : null,
             ]);
-            \Illuminate\Support\Facades\Cache::forget('portal:feed:*');
-            \Illuminate\Support\Facades\Cache::forget('feed:v1:*');
+            $this->audit->log(
+                $action,
+                'Story',
+                $story->id,
+                ['from' => $from, 'to' => $to],
+            );
+            Cache::forget('portal:feed:*');
+            Cache::forget('feed:v1:*');
             if ($to === 'published') {
+                event(new StoryPublished($story));
+
                 DB::table('index_outbox')->insert([
                     'index_name' => 'main',
                     'op' => 'upsert',
@@ -155,10 +186,19 @@ class StoryService
                     'attempts' => 0,
                     'created_at' => now(),
                 ]);
+                dispatch(new FanoutStory($story->id))->afterResponse();
             }
             if ($to === 'killed') {
-                dispatch(new \App\Jobs\FanoutStory($story->id))->afterResponse();
+                dispatch(new FanoutStory($story->id))->afterResponse();
             }
+
+            // Editorial notifications — centralized so every caller triggers them
+            match ($to) {
+                'in_review' => $this->notifications->notifyReviewRequested($story->id, $story->headline, $actor->id),
+                'approved', 'changes_requested', 'published', 'killed' => $this->notifications->notifyStatusChange($story->id, $to, $actor->id, $story->headline),
+                default => null,
+            };
+
             return $story->refresh();
         });
     }

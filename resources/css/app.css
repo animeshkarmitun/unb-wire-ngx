@@ -5,6 +5,10 @@
 @import './clients-manager.css';
 @import './packages-manager.css';
 @import './roles-manager.css';
+@import './ai-settings.css';
+@import './delivery-settings.css';
+@import './story-reader.css';
+@import './wire-service.css';
 
 @tailwind base;
 @tailwind components;

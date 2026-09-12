@@ -36,6 +36,7 @@ return new class extends Migration
             $table->timestamptz('created_at')->useCurrent();
         });
     }
+
     public function down(): void
     {
         Schema::dropIfExists('invoice_lines');

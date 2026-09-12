@@ -71,6 +71,8 @@ class RolesManager extends Component
         ['id' => 'distribution', 'label' => 'Distribution log', 'short' => 'Distribution', 'actions' => ['view', 'create', 'edit', 'publish', 'delete']],
         ['id' => 'settings', 'label' => 'Settings & admin', 'short' => 'Settings', 'actions' => ['view', 'create', 'edit', 'publish', 'delete']],
         ['id' => 'ai', 'label' => 'AI settings', 'short' => 'AI', 'actions' => ['view', 'create', 'edit', 'publish', 'delete']],
+        ['id' => 'history', 'label' => 'History & versions', 'short' => 'History', 'actions' => ['view']],
+        ['id' => 'audit', 'label' => 'Audit log', 'short' => 'Audit', 'actions' => ['view']],
     ];
 
     public array $dangerActions = ['delete'];
@@ -207,6 +209,8 @@ class RolesManager extends Component
                 } elseif ($preset === 'uploader') {
                     if (in_array($mid, ['stories', 'stories_bn'], true)) {
                         $this->editPerms[$mid][$a] = in_array($a, ['view', 'create', 'edit'], true);
+                    } elseif ($mid === 'history') {
+                        $this->editPerms[$mid][$a] = ($a === 'view');
                     } elseif ($mid === 'media') {
                         $this->editPerms[$mid][$a] = in_array($a, ['view', 'create', 'edit'], true);
                     } elseif (in_array($mid, ['clients', 'packages', 'distribution'], true)) {
@@ -217,6 +221,8 @@ class RolesManager extends Component
                 } elseif ($preset === 'editor') {
                     if (in_array($mid, ['stories', 'stories_bn'], true)) {
                         $this->editPerms[$mid][$a] = in_array($a, ['view', 'create', 'edit', 'publish'], true);
+                    } elseif ($mid === 'history') {
+                        $this->editPerms[$mid][$a] = ($a === 'view');
                     } elseif ($mid === 'media') {
                         $this->editPerms[$mid][$a] = in_array($a, ['view', 'create', 'edit'], true);
                     } elseif (in_array($mid, ['clients', 'packages', 'distribution'], true)) {

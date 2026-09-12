@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\Story;
 use App\Models\StoryNote;
 use App\Models\User;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -18,8 +19,11 @@ class NewsListTest extends TestCase
     use RefreshDatabase;
 
     private User $editor;
+
     private User $otherUser;
+
     private Category $category;
+
     private Category $subCategory;
 
     protected function setUp(): void
@@ -27,7 +31,7 @@ class NewsListTest extends TestCase
         parent::setUp();
         Model::preventLazyLoading(true);
 
-        $this->seed(\Database\Seeders\RoleSeeder::class);
+        $this->seed(RoleSeeder::class);
 
         $editorRole = Role::where('name', 'Editor')->firstOrFail();
         $uploaderRole = Role::where('name', 'Uploader-English')->firstOrFail();
@@ -136,7 +140,7 @@ class NewsListTest extends TestCase
         StoryNote::create([
             'story_id' => $story->id,
             'user_id' => $this->otherUser->id,
-            'kind' => 'sub',
+            'kind' => 'note',
             'is_internal' => true,
             'body' => 'Please check the quotes from OC.',
             'created_at' => now(),
@@ -193,7 +197,7 @@ class NewsListTest extends TestCase
 
         $this->assertDatabaseHas('story_events', [
             'story_id' => $story->id,
-            'action' => 'take_over',
+            'action' => 'handover',
             'actor_id' => $this->editor->id,
         ]);
     }

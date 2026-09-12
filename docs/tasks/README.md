@@ -90,15 +90,20 @@
 | `M8-CLIENT-001` | Clients Manager faithful (5-stat, bulk bar, 4-channel, drawer, modals, wizard) | M8-UI-002, M2-DB-002 | ✅ | — | 2026-09-05 |
 | `M8-PACK-001` | Packages & Add-ons Manager faithful (4-stat, cards, add-on table, editor preview, archive) | M8-UI-002, M2-DB-007 | ✅ | — | 2026-09-05 |
 | `M8-ROLE-001` | Roles & Access Manager faithful (4-stat, role cards, drawer with presets & matrix, people list, invite, delete, audit) | M8-UI-002, M2-DB-001 | ✅ | — | 2026-09-05 |
+| `M8-AI-001` | AI Settings Manager faithful (banner, 3-desk toggles, auto-publish modal & allowlist, budget, style prompt, kill switch) | M8-UI-002, M2-DB-001, M8-ROLE-001 | ✅ | — | 2026-09-06 |
+| `M8-DELIV-001` | Delivery Settings Manager faithful (5 cards: auto-push FTP/SFTP, API keys/webhooks, email alerts, download history, dispatch engine) | M8-UI-002, M2-DB-007 | ✅ | — | 2026-09-06 |
+| `M8-PORTAL-001` | Client Portal faithful 1:1 conversion (Next.js, 3 wire views, search token, media library, lightbox) | DEC-006, M8-DELIV-001 | ✅ | — | 2026-09-06 |
+| `M8-STORY-001` | Story Reader View faithful 1:1 conversion (story.html + FR-NWS-019 editorial chrome) | M8-PORTAL-001 | ✅ | — | 2026-09-06 |
+| `M8-SERV-001` | Wire Service Frontpage faithful 1:1 conversion (english-service.html + bn parity) | M8-STORY-001 | ✅ | — | 2026-09-06 |
 | `M8-SIMPLE-001` | Simple pages chrome-faithful (clients/packages/roles/ai-settings/service) | M8-UI-002 | ✅ | — | 2026-08-29 |
 | `M8-WIZ-001` | Wizard shell (stepper + sticky nav + autosave) | M8-UI-002 | ✅ | — | 2026-08-29 |
 | `M8-WIZ-002` | Body: Quill wire toolbar + find bar + fullscreen | M8-WIZ-001 | ✅ | — | 2026-08-29 |
-| `M8-WIZ-003` | Media: featured 1200x630 + attach grid + drop + doc-import | M8-WIZ-001 | ⏳ | — | 2026-08-29 |
-| `M8-WIZ-004` | Tags/type/seg-control/distribution + live preview | M8-WIZ-001 | ⏳ | — | 2026-08-29 |
-| `M8-WIZ-005` | Desk workflow strip + internal notes | M8-WIZ-001 | ⏳ | — | 2026-08-29 |
-| `M8-WIZ-006` | AI desk faithful (drawer + diff + gate + kill-switch) | M8-WIZ-001 | ⏳ | — | 2026-08-29 |
-| `M8-E2E-001` | Wizard E2E (draft→publish + fan-out) | M8-WIZ-006 | ⏳ | — | 2026-08-29 |
-| `M8-QA-001` | A11y + Bangla/NFC + perf (N+1/cache) | M8-E2E-001 | ⏳ | — | 2026-08-29 |
+| `M8-WIZ-003` | Media: featured 1200x630 + attach grid + drop + doc-import | M8-WIZ-001 | ✅ | — | 2026-08-29 |
+| `M8-WIZ-004` | Tags/type/seg-control/distribution + live preview | M8-WIZ-001 | ✅ | — | 2026-08-29 |
+| `M8-WIZ-005` | Desk workflow strip + internal notes | M8-WIZ-001 | ✅ | — | 2026-08-29 |
+| `M8-WIZ-006` | AI desk faithful (drawer + diff + gate + kill-switch) | M8-WIZ-001 | ✅ | — | 2026-08-29 |
+| `M8-E2E-001` | Wizard E2E (draft→publish + fan-out) | M8-WIZ-006 | ✅ | — | 2026-08-29 |
+| `M8-QA-001` | A11y + Bangla/NFC + perf (N+1/cache) | M8-E2E-001 | ✅ | — | 2026-08-29 |
 
 ---
 
@@ -117,8 +122,117 @@
 
 ---
 
-## 8. How to Add a Task
+## 8. History & Audit Trail (`M10-HIST`) — 2026-09-08 Design: `docs/plans/history-audit-design.md` (+DEC-012)
+
+> Backend-first build order: data enrichment (001–005) → UI (006–009) → hardening (010).
+> Closes FR-NWS-019 version history/audit history, FR-NWS-003 revision history, FR-NTF-003 audit trail, NFR §15 `RevisionService`/`AuditQueryService`. No new tables/columns — seed data + code paths only.
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M10-HIST-001` | RBAC `history` + `audit` permission modules (seeder, matrix UI, DEC-012) | — | ✅ | — | 2026-09-08 |
+| `M10-HIST-002` | Full-field version snapshots + snapshot-on-transition (`RevisionService::snapshot`) | — | ✅ | — | 2026-09-08 |
+| `M10-HIST-003` | `RevisionService::diff` + `restore` (non-destructive, lock-safe) | M10-HIST-002 | ✅ | — | 2026-09-08 |
+| `M10-HIST-004` | `story_events` payload enrichment + spec action vocabulary | M10-HIST-002 | ✅ | — | 2026-09-08 |
+| `M10-HIST-005` | Sensitive actions → `audit_logs` (ip/ua/correlation/diff) + `AuditQueryService` | M10-HIST-001, M10-HIST-004 | ✅ | — | 2026-09-08 |
+| `M10-HIST-006` | Story view: Timeline + Versions sections | M10-HIST-001, M10-HIST-004 | ✅ | — | 2026-09-08 |
+| `M10-HIST-007` | Version diff viewer + restore action (story view) | M10-HIST-003, M10-HIST-006 | ✅ | — | 2026-09-08 |
+| `M10-HIST-008` | Wizard History modal → server-side versions | M10-HIST-003 | ✅ | — | 2026-09-08 |
+| `M10-HIST-009` | Global audit log browser (`/admin/audit`) | M10-HIST-005 | ✅ | — | 2026-09-08 |
+| `M10-HIST-010` | E2E hardening + knowledge-inventory sync + full CI gates | M10-HIST-001…009 | ✅ | — | 2026-09-08 |
+
+---
+
+## 9. Delivery Channels & Portal (`M11-DELIV`) — 2026-09-12 Audit: `docs/plans/delivery-channels-audit.md`
+
+> Build order: bug fixes (FIX, done) → webhook hardening (HOOK) → FTP/SFTP delivery (FTP) → portal completion (PORTAL).
+> **Email delivery (Phase D) deferred to v2.** `client_channels` CHECK constraint excludes `email` type; `app/Mail/` does not exist. Will be implemented when field apps / digest features are prioritized.
+
+### Phase A: Bug Fixes (✅ Complete — branch `fix/delivery-channel-bugs`)
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `FIX-001` | Webhook config key mismatch (`config['webhook']` → `config['url']`) | — | ✅ | — | 2026-09-10 |
+| `FIX-002` | FTP false success recording in FanoutStory | — | ✅ | — | 2026-09-10 |
+| `FIX-003` | Presigned download ledgering + client download route | — | ✅ | — | 2026-09-10 |
+
+### Phase B: Webhook Hardening
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M11-HOOK-001` | Enrich webhook payload (full story + event type) | FIX-001/002 | ✅ | — | 2026-09-12 |
+| `M11-HOOK-002` | HMAC-SHA256 webhook signature + headers | M11-HOOK-001 | ✅ | — | 2026-09-12 |
+| `M11-HOOK-003` | Respect trigger filters from channel config | M11-HOOK-001 | ✅ | — | 2026-09-12 |
+| `M11-HOOK-004` | Delivery queue processor (retry worker) | M11-HOOK-001 | ✅ | — | 2026-09-12 |
+
+### Phase C: FTP/SFTP Delivery
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M11-FTP-001` | Flysystem SFTP adapter + dynamic disk factory | — | ✅ | — | 2026-09-12 |
+| `M11-FTP-002` | Wire format generators (NewsML-G2, JSON, NITF) | — | ✅ | — | 2026-09-12 |
+| `M11-FTP-003` | PushFtpDelivery queue job | M11-FTP-001, M11-FTP-002 | ✅ | — | 2026-09-12 |
+| `M11-FTP-004` | Real FTP connection test (replace fake stub) | M11-FTP-001 | ✅ | — | 2026-09-12 |
+| `M11-FTP-005` | Encrypt FTP/SFTP credentials at rest | M11-FTP-001 | ✅ | — | 2026-09-12 |
+
+### Phase E: Portal Completion
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M11-PORTAL-001` | Dynamic `/context` endpoint (replace hardcoded mock) | — | ✅ | — | 2026-09-12 |
+| `M11-PORTAL-002` | Client portal auth (API key login) | — | ✅ | — | 2026-09-12 |
+| `M11-PORTAL-003` | Real presigned media downloads (replace fake canvas) | FIX-003, M11-PORTAL-002 | ✅ | — | 2026-09-12 |
+| `M11-PORTAL-004` | Real-time live ticker via Reverb WebSocket | M11-PORTAL-002 | ✅ | — | 2026-09-12 |
+
+### Phase D: Email Delivery (via `clients.notes` JSON — no CHECK constraint change needed)
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M11-EMAIL-001` | StoryAlert Mailable + Blade template | HOOK-001 | ✅ | — | 2026-09-12 |
+| `M11-EMAIL-002` | SendStoryEmail job + alert preference matching | EMAIL-001 | ✅ | — | 2026-09-12 |
+| `M11-EMAIL-003` | Integrate email into FanoutStory | EMAIL-002 | ✅ | — | 2026-09-12 |
+
+---
+
+## 10. Profile Management (`M12-PROFILE`) — 2026-09-12
+
+> Staff self-profile was never decomposed: `/profile` is still stock Breeze chrome and FR-ACC-005 (timezone display, date format, density) is only partly built — timezone+desk save but are never consumed (views hardcode `Asia/Dhaka`). Client portal auth is API-key only — no email/password login, no self-service profile/password, no admin-side portal user invite/deactivate. Deferred: FR-FLD-010 field stats & profile (DEC-008).
+
+### Staff Profile (admin panel)
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M12-PROFILE-001` | Profile page admin-chrome conversion + remove self-delete | — | ⏳ | — | — |
+| `M12-PROFILE-002` | FR-ACC-005 display prefs (date format + density, consume prefs) | — | ⏳ | — | — |
+
+### Client Profile (portal — Next.js)
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M12-PROFILE-003` | Client portal auth: email/password login (FR-PRT-001, FR-CLT-002) | — | ⏳ | — | — |
+| `M12-PROFILE-004` | Client self-service profile & password (portal `/account`) | M12-PROFILE-003 | ⏳ | — | — |
+| `M12-PROFILE-005` | Admin-side portal user management (invite/deactivate/reactivate) | M12-PROFILE-003 | ⏳ | — | — |
+
+---
+
+## 11. Editorial Notifications (`M12-NTF`) — 2026-09-12
+
+> Complete FR-NTF-001 (editorial notification wiring) and FR-NTF-002 (notification center). External delivery notifications (M11-EMAIL, M11-HOOK, M11-PORTAL) are already complete.
+> Build order: centralize dispatching in services (001–004) → notification center UI (005) → staff email channel (006).
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M12-NTF-001` | Wire editorial notifications into StoryService::transition (approve, changes_requested, killed, in_review) | — | ✅ | — | 2026-09-13 |
+| `M12-NTF-002` | Wire takeover notification into StoryService::takeOver | M12-NTF-001 | ✅ | — | 2026-09-13 |
+| `M12-NTF-003` | Wire note reply notifications into NoteService::add | M12-NTF-001 | ✅ | — | 2026-09-13 |
+| `M12-NTF-004` | Wire media intake decision notifications | M12-NTF-001 | ✅ | — | 2026-09-13 |
+| `M12-NTF-005` | Notification center: mark-as-read, deep links, full page | M12-NTF-001…004 | ✅ | — | 2026-09-13 |
+| `M12-NTF-006` | Staff email channel for editorial notifications | M12-NTF-001, M12-NTF-005 | ✅ | — | 2026-09-13 |
+
+---
+
+## 12. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.
 3. Add a new row to the table above.
+

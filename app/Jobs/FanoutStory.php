@@ -2,7 +2,12 @@
 
 namespace App\Jobs;
 
+use App\Models\Client;
 use App\Models\Story;
+use App\Repositories\ClientRepository;
+use App\Services\Delivery\TriggerMatcher;
+use App\Services\Delivery\WebhookPayloadBuilder;
+use App\Services\Delivery\WebhookSigner;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
@@ -14,61 +19,113 @@ class FanoutStory implements ShouldQueue
     use Queueable;
 
     public int $tries = 5;
+
     public int $backoff = 60;
 
-    public function __construct(public int $storyId) { $this->onQueue('fanout'); }
-
-    public function handle(): void
+    public function __construct(public int $storyId)
     {
-        $story = Story::find($this->storyId);
-        if(!$story || $story->status!=='published') return;
+        $this->onQueue('fanout');
+    }
 
-        $isSqlite = DB::connection()->getDriverName() === 'sqlite';
-        if ($isSqlite) {
-            $raw = DB::table('client_packages')
-                ->join('packages','packages.id','=','client_packages.package_id')
-                ->where('client_packages.status','active')
-                ->select('client_packages.client_id','packages.entitlement_filter')->get();
-            $clients = $raw->filter(function ($r) use ($story) {
-                $f = is_string($r->entitlement_filter) ? json_decode($r->entitlement_filter, true) : $r->entitlement_filter;
-                $langs = $f['languages'] ?? [];
-                return in_array($story->language, (array) $langs, true);
-            })->values();
-        } else {
-            $clients = DB::table('client_packages')
-                ->join('packages','packages.id','=','client_packages.package_id')
-                ->where('client_packages.status','active')
-                ->where(function($q) use($story){
-                    $q->whereRaw("(packages.entitlement_filter->>'languages')::jsonb ? ?", [$story->language]);
-                })
-                ->select('client_packages.client_id','packages.entitlement_filter')->get();
+    public function handle(?ClientRepository $clients = null): void
+    {
+        $clients = $clients ?? app(ClientRepository::class);
+        $story = Story::with(['media', 'category', 'tags', 'owner'])->find($this->storyId);
+        if (! $story || $story->status !== 'published') {
+            return;
         }
 
-        foreach($clients as $row){
-            $channels = DB::table('client_channels')->where('client_id',$row->client_id)->where('status','active')->get();
-            foreach($channels as $ch){
-                $key = hash('sha256', $story->id.'-'.$ch->id.'-'.$story->version);
-                $payloadHash = hash('sha256', $story->body_text ?? '');
-                try {
-                    DB::table('deliveries')->insert([
-                        'deliverable_type'=>'story','deliverable_id'=>$story->id,'client_id'=>$row->client_id,'channel_id'=>$ch->id,'status'=>'queued','attempt_count'=>0,'idempotency_key'=>$key,'payload_hash'=>$payloadHash,'created_at'=>now(),
-                    ]);
-                    $config = is_string($ch->config) ? json_decode($ch->config,true) : $ch->config;
-                    if($ch->type==='webhook' && !empty($config['url'])){
-                        Http::timeout(5)->post($config['url'], ['public_id'=>$story->public_id,'headline'=>$story->headline]);
-                        DB::table('deliveries')->where('idempotency_key',$key)->update(['status'=>'sent','sent_at'=>now()]);
-                    }
-                    DB::table('client_channels')->where('id',$ch->id)->update(['last_success_at'=>now(),'failure_count'=>0]);
-                } catch (\Throwable $e){
-                    if(str_contains($e->getMessage(),'duplicate') || str_contains($e->getMessage(),'Unique')) continue;
-                    Log::warning('fanout failed', ['client'=>$row->client_id,'channel'=>$ch->id,'error'=>$e->getMessage()]);
-                    DB::table('client_channels')->where('id',$ch->id)->increment('failure_count');
-                    $failures = DB::table('client_channels')->where('id',$ch->id)->value('failure_count');
-                    if($failures >= 5){
-                        DB::table('client_channels')->where('id',$ch->id)->update(['status'=>'paused']);
-                    }
+        $raw = DB::table('client_packages')
+            ->join('packages', 'packages.id', '=', 'client_packages.package_id')
+            ->where('client_packages.status', 'active')
+            ->select('client_packages.client_id', 'packages.entitlement_filter')->get();
+
+        $matchedClients = $raw->filter(function ($r) use ($story) {
+            $f = is_string($r->entitlement_filter) ? json_decode($r->entitlement_filter, true) : $r->entitlement_filter;
+            if (! is_array($f)) {
+                return false;
+            }
+
+            $langs = (array) ($f['languages'] ?? []);
+            if (! empty($langs) && ! in_array($story->language, $langs, true)) {
+                return false;
+            }
+
+            $cats = (array) ($f['category_ids'] ?? []);
+            if (! empty($cats) && ! in_array($story->category_id, $cats, true)) {
+                return false;
+            }
+
+            $kinds = (array) ($f['media_kinds'] ?? []);
+            if (! empty($kinds)) {
+                $storyKinds = $story->media->pluck('kind')->unique()->all();
+                if (empty(array_intersect($kinds, $storyKinds))) {
+                    return false;
                 }
             }
+
+            return true;
+        })->values();
+
+        foreach ($matchedClients as $row) {
+            $channels = $clients->activeChannelsFor($row->client_id);
+            foreach ($channels as $ch) {
+                $key = hash('sha256', $story->id.'-'.$ch->id.'-'.$story->version);
+                $payloadHash = hash('sha256', $story->body_text ?? '');
+
+                if (DB::table('deliveries')->where('idempotency_key', $key)->exists()) {
+                    continue;
+                }
+
+                try {
+                    $deliveryId = DB::table('deliveries')->insertGetId([
+                        'deliverable_type' => 'story', 'deliverable_id' => $story->id, 'client_id' => $row->client_id, 'channel_id' => $ch->id, 'status' => 'queued', 'attempt_count' => 0, 'idempotency_key' => $key, 'payload_hash' => $payloadHash, 'created_at' => now(),
+                    ]);
+                    $config = is_string($ch->config) ? json_decode($ch->config, true) : $ch->config;
+                    if ($ch->type === 'webhook' && ! empty($config['url'])) {
+                        $triggers = $config['triggers'] ?? [];
+                        if (! app(TriggerMatcher::class)->shouldFire($story, $triggers)) {
+                            DB::table('deliveries')->where('idempotency_key', $key)->update(['status' => 'skipped_entitlement']);
+
+                            continue;
+                        }
+
+                        $payload = app(WebhookPayloadBuilder::class)->build($story, 'story.published');
+                        $jsonPayload = json_encode($payload);
+                        $secret = $config['signing_secret'] ?? '';
+                        $headers = app(WebhookSigner::class)->headers($jsonPayload, $secret, 'story.published');
+
+                        $response = Http::withHeaders($headers)->timeout(5)->post($config['url'], $payload);
+                        if ($response->successful()) {
+                            DB::table('deliveries')->where('idempotency_key', $key)->update(['status' => 'sent', 'sent_at' => now()]);
+                            $clients->recordChannelSuccess($ch->id);
+                        } else {
+                            $clients->recordChannelFailure($ch->id);
+                        }
+                    } elseif ($ch->type === 'ftp') {
+                        PushFtpDelivery::dispatch($deliveryId);
+                    }
+                } catch (\Throwable $e) {
+                    if (str_contains($e->getMessage(), 'duplicate') || str_contains($e->getMessage(), 'Unique')) {
+                        continue;
+                    }
+                    Log::warning('fanout failed', ['client' => $row->client_id, 'channel' => $ch->id, 'error' => $e->getMessage()]);
+                    $clients->recordChannelFailure($ch->id);
+                }
+            }
+        }
+
+        // Email delivery (via clients.notes, not client_channels)
+        $emailClients = Client::whereNotNull('notes')
+            ->get()
+            ->filter(function ($c) {
+                $notes = is_string($c->notes) ? json_decode($c->notes, true) : ($c->notes ?? []);
+
+                return ! empty($notes['channels']['email']['on']);
+            });
+
+        foreach ($emailClients as $emailClient) {
+            SendStoryEmail::dispatch($story->id, $emailClient->id);
         }
     }
 }

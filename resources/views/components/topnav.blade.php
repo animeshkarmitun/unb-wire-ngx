@@ -17,37 +17,39 @@
         </div>
 
         {{-- Client portal (subscriber view) --}}
-        <a href="{{ config('app.portal_url', 'http://localhost:3000') }}" target="_blank" rel="noopener" title="Client portal (subscriber view)" class="relative w-[38px] h-[38px] rounded-[10px] border border-border bg-white text-[#4b4e5c] flex items-center justify-center transition-colors hover:border-navy-800 hover:text-navy-800">
+        <a href="{{ config('app.portal_url', 'http://localhost:3000') }}" target="_blank" rel="noopener" title="Client portal (subscriber view)" aria-label="Open client portal in new tab" class="relative w-[38px] h-[38px] rounded-[10px] border border-border bg-white text-[#4b4e5c] flex items-center justify-center transition-colors hover:border-navy-800 hover:text-navy-800">
             <x-lucide-globe class="w-[17px] h-[17px]" stroke-width="1.8" />
         </a>
 
         {{-- Notifications --}}
         @php $notifs = Auth::user()->notifications()->latest()->limit(5)->get(); $unread = Auth::user()->unreadNotifications()->count(); @endphp
         <div class="relative" x-data="{ open: false }" @click.outside="open = false">
-            <button type="button" @click="open = !open" title="Notifications" class="relative w-[38px] h-[38px] rounded-[10px] border border-border bg-white text-[#4b4e5c] flex items-center justify-center transition-colors hover:border-navy-800 hover:text-navy-800">
+            <button type="button" @click="open = !open" title="Notifications" aria-label="Notifications" class="relative w-[38px] h-[38px] rounded-[10px] border border-border bg-white text-[#4b4e5c] flex items-center justify-center transition-colors hover:border-navy-800 hover:text-navy-800">
                 <x-lucide-bell class="w-[17px] h-[17px]" stroke-width="1.8" />
                 @if($unread>0)<span class="absolute -top-[5px] -right-[5px] min-w-[17px] h-[17px] px-1 rounded-full bg-crimson text-white text-[10px] font-bold flex items-center justify-center border-2 border-white">{{ $unread }}</span>@endif
             </button>
             <div x-show="open" x-transition.opacity.duration.150ms x-cloak class="absolute right-0 top-[calc(100%+8px)] w-[320px] bg-white border border-border rounded-xl shadow-[0_14px_34px_rgba(15,23,48,0.14)] p-1.5 z-[60]">
                 <div class="text-[11px] uppercase tracking-[0.07em] text-muted-2 font-semibold px-[11px] pt-2 pb-[5px]">Notifications @if($unread>0)<span class="bg-crimson text-white px-1.5 rounded-full text-[10px]">{{ $unread }} new</span>@endif</div>
                 @forelse($notifs as $n)
-                <div class="flex gap-2.5 items-center px-[11px] py-[9px] rounded-lg text-[13px] text-ink {{ is_null($n->read_at)?'bg-paper':'' }}">
-                    <span class="w-2 h-2 rounded-full mt-[5px] shrink-0 self-start {{ $n->data['event']==='review_requested'?'bg-amber':($n->data['event']==='published'?'bg-green':'bg-blue') }}"></span>
+                @php $nData = $n->data['data'] ?? []; $nEvent = $n->data['event'] ?? ''; @endphp
+                <a href="{{ \App\Livewire\Admin\NotificationCenter::deepLink($nData, $nEvent) }}" class="flex gap-2.5 items-center px-[11px] py-[9px] rounded-lg text-[13px] text-ink {{ is_null($n->read_at)?'bg-paper':'' }} hover:bg-paper/60 transition-colors">
+                    @php $dotColor = match($nEvent) { 'review_requested', 'handover', 'changes_requested', 'media_reedit' => 'bg-amber', 'published', 'approved', 'media_approved' => 'bg-green', 'killed', 'media_rejected' => 'bg-crimson', default => 'bg-blue' }; @endphp
+                    <span class="w-2 h-2 rounded-full mt-[5px] shrink-0 self-start {{ $dotColor }}"></span>
                     <div>
-                        <div class="text-[12.5px] leading-[1.45]">{{ $n->data['data']['headline'] ?? $n->data['event'] }}</div>
+                        <div class="text-[12.5px] leading-[1.45]">{{ $nData['headline'] ?? $nEvent }}</div>
                         <div class="text-[11px] text-muted-2 mt-0.5">{{ $n->created_at->diffForHumans() }}</div>
                     </div>
-                </div>
+                </a>
                 @empty
-                <div class="text-xs text-muted p-3 text-center">No notifications — burst-collapsed per thread per 5 min.</div>
+                <div class="text-xs text-muted p-3 text-center">No notifications yet.</div>
                 @endforelse
-                <a href="{{ route('admin.distribution') }}" class="block text-center text-[12px] text-crimson font-semibold px-2 pt-[9px] pb-[7px] mt-1 border-t border-border hover:underline">View distribution log</a>
+                <a href="{{ route('admin.notifications') }}" class="block text-center text-[12px] text-crimson font-semibold px-2 pt-[9px] pb-[7px] mt-1 border-t border-border hover:underline">View all notifications</a>
             </div>
         </div>
 
         {{-- User --}}
         <div class="relative" x-data="{ open: false }" @click.outside="open = false">
-            <button type="button" @click="open = !open" class="flex items-center gap-2.5 border border-border bg-white rounded-[11px] pl-1.5 pr-3 py-[5px] transition-colors hover:border-navy-800">
+            <button type="button" @click="open = !open" aria-label="User menu" class="flex items-center gap-2.5 border border-border bg-white rounded-[11px] pl-1.5 pr-3 py-[5px] transition-colors hover:border-navy-800">
                 <span class="w-[30px] h-[30px] rounded-lg bg-navy-800 text-white text-[11px] font-bold flex items-center justify-center">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}{{ strtoupper(substr(strrpos(Auth::user()->name, ' ') !== false ? substr(Auth::user()->name, strrpos(Auth::user()->name, ' ') + 1) : '', 0, 1)) }}</span>
                 <span class="hidden lg:block text-left leading-[1.25]">
                     <span class="block text-[13px] font-semibold text-ink">{{ Auth::user()->name }}</span>

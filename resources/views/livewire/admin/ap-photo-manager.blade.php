@@ -8,13 +8,13 @@
   <div class="topbar flex items-center justify-between mb-1.5">
     <h1 class="font-serif text-[30px] font-semibold tracking-[-0.01em] text-ink">AP Photo Manager</h1>
     <div class="topbar-actions flex gap-3">
-      <button type="button" wire:click="toggleSyncLog" class="btn btn-outline">
+      <button type="button" wire:click="toggleSyncLog" class="btn btn-outline" aria-label="View AP sync log">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
         </svg>
         Sync log
       </button>
-      <button type="button" wire:click="syncNow" class="btn btn-primary" id="syncBtn">
+      <button type="button" wire:click="syncNow" class="btn btn-primary" id="syncBtn" aria-label="Sync AP photos now">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="23 4 23 10 17 10"/>
           <polyline points="1 20 1 14 7 14"/>
@@ -99,7 +99,7 @@
       <div class="ap-card" wire:click="openLightbox({{ $a->id }})" data-id="{{ $a->id }}">
         <div class="ap-thumb {{ $grad }}">
           <span class="ap-badge">AP</span>
-          <button type="button" class="ap-expand" wire:click.stop="openLightbox({{ $a->id }})" title="Expand">
+          <button type="button" class="ap-expand" wire:click.stop="openLightbox({{ $a->id }})" title="Expand" aria-label="Expand photo: {{ $a->caption ?: $a->title }}">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>
             </svg>
@@ -120,6 +120,7 @@
             type="button"
             wire:click.stop="attachToStory({{ $a->id }})"
             class="attach-btn {{ !empty($attachedIds[$a->id]) ? 'done' : '' }}"
+            aria-label="{{ !empty($attachedIds[$a->id]) ? 'Photo attached to story' : 'Attach photo to story' }}"
           >
             @if(!empty($attachedIds[$a->id]))
               ✓ Attached
@@ -131,7 +132,7 @@
               Attach to story
             @endif
           </button>
-          <button type="button" wire:click.stop="downloadOriginal({{ $a->id }})" class="dl-btn" title="Download">
+          <button type="button" wire:click.stop="downloadOriginal({{ $a->id }})" class="dl-btn" title="Download" aria-label="Download original photo">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 3v13"/><path d="M6 11l6 6 6-6"/><path d="M5 21h14"/>
             </svg>
@@ -165,7 +166,7 @@
     <div class="lb-overlay open" id="lbOverlay" wire:click.self="closeLightbox">
       <div class="lb-modal">
         <div class="lb-img {{ $selGrad }}" id="lbImg">
-          <button type="button" class="lb-close" id="lbClose" wire:click="closeLightbox" title="Close">✕</button>
+          <button type="button" class="lb-close" id="lbClose" wire:click="closeLightbox" title="Close" aria-label="Close photo preview">✕</button>
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/>
           </svg>
@@ -212,7 +213,7 @@
             </svg>
             <h3 class="font-serif text-lg font-bold text-ink">AP Wire Sync Log</h3>
           </div>
-          <button type="button" wire:click="toggleSyncLog" class="text-muted-2 hover:text-ink text-sm font-semibold p-1">✕</button>
+          <button type="button" wire:click="toggleSyncLog" class="text-muted-2 hover:text-ink text-sm font-semibold p-1" aria-label="Close sync log">✕</button>
         </div>
         <div class="p-6">
           <div class="flex items-center justify-between mb-4 text-xs text-muted">

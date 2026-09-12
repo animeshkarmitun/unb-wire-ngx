@@ -50,6 +50,19 @@ exactly as specced; all indexes present; `timestamptz` everywhere (grep generate
 SQL for bare `timestamp` → must be 0); append-only tables carry the grant-revoke
 statement in the same migration.
 
+### `story_events` action vocabulary (M10-HIST)
+
+Spec-aligned verb actions: `created`, `sent_to_review`, `changes_requested`, `approved`,
+`published`, `auto_published`, `killed`, `archived`, `handover`, `ai_applied`, `note_added`,
+`restored`. Payload jsonb carries context per action (gate, from_user/to_user, reason,
+fields, note_id, from_version/to_version). Defined in `StoryEvent::ACTIONS` const.
+
+### `role_permissions` module additions (DEC-012, M10-HIST)
+
+Two view-only modules added to the seed matrix:
+- `history` — story timeline + version history visibility. Admin/Editor/Strategist/Admin Report/Uploaders: view=1. Business/Client: view=0.
+- `audit` — audit log browser. Admin + Admin Report: view=1. All others: view=0.
+
 ## 4. Lifecycle (hot → warm → cold)
 
 Per canonical doc §9: `stories` stay one table in v1 (archive sweep flips status +

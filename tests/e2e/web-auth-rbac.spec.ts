@@ -1,47 +1,73 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Web + Auth + RBAC', () => {
+/**
+ * Web Auth & RBAC E2E — tests real authentication behavior and route protection.
+ * Replaces the original weak assertions that accepted multiple status codes.
+ */
+
+test.describe('Web Auth & Route Protection', () => {
   test('GET / returns 200', async ({ request }) => {
     const r = await request.get('/');
     expect(r.status()).toBe(200);
   });
 
-  test('GET /up health 200', async ({ request }) => {
+  test('GET /up health check returns 200', async ({ request }) => {
     const r = await request.get('/up');
     expect(r.status()).toBe(200);
   });
 
-  test('GET /login renders', async ({ page }) => {
+  test('login page renders with form', async ({ page }) => {
     await page.goto('/login');
     await expect(page.locator('form')).toBeVisible();
+    await expect(page.locator('input[name="email"]')).toBeVisible();
+    await expect(page.locator('input[name="password"]')).toBeVisible();
+    await expect(page.locator('button[type="submit"]')).toBeVisible();
   });
 
-  test('GET /admin redirects to login when guest 302/200', async ({ request }) => {
-    const r = await request.get('/admin', { maxRedirects: 0 }).catch(()=>null);
-    expect([200,302,401].includes(r?.status() ?? 302)).toBeTruthy();
+  test('guest is redirected to login when accessing /admin', async ({ page }) => {
+    await page.goto('/admin');
+    // Should end up on login page
+    expect(page.url()).toMatch(/login/);
   });
 
-  test('POST /login rate-ish: missing creds 422 or redirect', async ({ request }) => {
-    const r = await request.post('/login', { form: { email:'x@x.com', password:'bad' } });
-    expect([200,302,419,422].includes(r.status())).toBeTruthy();
+  test('guest is redirected to login when accessing /admin/news/en', async ({ page }) => {
+    await page.goto('/admin/news/en');
+    expect(page.url()).toMatch(/login/);
   });
 
-  test('GET /admin/news/en requires auth → redirect', async ({ request }) => {
-    const r = await request.get('/admin/news/en', { maxRedirects: 0 }).catch(()=>null);
-    expect([302,401].includes(r?.status() ?? 302)).toBeTruthy();
+  test('guest is redirected to login when accessing /admin/roles', async ({ page }) => {
+    await page.goto('/admin/roles');
+    expect(page.url()).toMatch(/login/);
   });
 
-  test('GET /admin/roles requires auth → redirect/302', async ({ request }) => {
-    const r = await request.get('/admin/roles', { maxRedirects: 0 }).catch(()=>null);
-    expect([302,401].includes(r?.status() ?? 302)).toBeTruthy();
+  test('guest is redirected to login when accessing /profile', async ({ page }) => {
+    await page.goto('/profile');
+    expect(page.url()).toMatch(/login/);
   });
 
-  test('GET /profile requires auth', async ({ request }) => {
-    const r = await request.get('/profile', { maxRedirects: 0 }).catch(()=>null);
-    expect([302,401].includes(r?.status() ?? 302)).toBeTruthy();
+  test('login with invalid credentials shows error', async ({ page }) => {
+    await page.goto('/login');
+    await page.fill('input[name="email"]', 'nonexistent@example.com');
+    await page.fill('input[name="password"]', 'wrongpassword');
+    await page.click('button[type="submit"]');
+
+    // Should stay on login page with error
+    await page.waitForTimeout(1000);
+    expect(page.url()).toMatch(/login/);
   });
 
-  test('livewire.js asset 200', async ({ request }) => {
+  test('login with valid credentials redirects to admin', async ({ page }) => {
+    await page.goto('/login');
+    await page.fill('input[name="email"]', 'test@example.com');
+    await page.fill('input[name="password"]', 'password');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('**/admin**', { timeout: 10000 });
+
+    expect(page.url()).toMatch(/admin/);
+    await expect(page.locator('body')).not.toContainText('Server Error');
+  });
+
+  test('livewire.js asset returns 200', async ({ request }) => {
     const r = await request.get('/livewire/livewire.js');
     expect(r.status()).toBe(200);
   });

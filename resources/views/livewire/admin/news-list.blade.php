@@ -180,10 +180,13 @@
                             </td>
                             <td>
                                 <div class="actions">
-                                    <a href="{{ route('admin.add-news', ['id' => $s->id]) }}" class="icon-btn" title="Edit story">
+                                    <a href="{{ route('admin.story', $s->public_id) }}" class="icon-btn story-view-link" title="View wire dispatch reader" aria-label="Preview story: {{ $s->headline }}">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    </a>
+                                    <a href="{{ route('admin.add-news', ['id' => $s->id]) }}" class="icon-btn" title="Edit story" aria-label="Edit story: {{ $s->headline }}">
                                         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                                     </a>
-                                    <button type="button" wire:click="deleteStory({{ $s->id }})" wire:confirm="Are you sure you want to delete this story?" class="icon-btn danger" title="Delete story">
+                                    <button type="button" wire:click="deleteStory({{ $s->id }})" wire:confirm="Are you sure you want to delete this story?" class="icon-btn danger" title="Delete story" aria-label="Delete story: {{ $s->headline }}">
                                         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                                     </button>
                                 </div>
@@ -246,7 +249,7 @@
         @if($selected)
             <div class="wfd-head">
                 <div class="wfd-title">{{ $selected->headline }}</div>
-                <button type="button" wire:click="closeDrawer" class="wfd-close" title="Close">
+                <button type="button" wire:click="closeDrawer" class="wfd-close" title="Close" aria-label="Close workflow drawer">
                     <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>

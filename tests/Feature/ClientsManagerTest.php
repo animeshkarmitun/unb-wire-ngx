@@ -6,9 +6,11 @@ use App\Livewire\Admin\ClientsManager;
 use App\Models\Client;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Delivery\FtpDiskFactory;
 use Database\Seeders\ClientSeeder;
 use Database\Seeders\PackageSeeder;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -148,6 +150,8 @@ class ClientsManagerTest extends TestCase
 
     public function test_drawer_channels_email_and_ftp_interaction(): void
     {
+        $this->mockFtpDiskFactory();
+
         $dailyStar = Client::where('name', 'The Daily Star')->firstOrFail();
 
         Livewire::test(ClientsManager::class)
@@ -190,6 +194,21 @@ class ClientsManagerTest extends TestCase
 
         $newKey = $comp->get('apiKey');
         $this->assertStringStartsWith('unb_live_', $newKey);
+    }
+
+    public function test_drawer_channels_webhook_url_saving(): void
+    {
+        $dailyStar = Client::where('name', 'The Daily Star')->firstOrFail();
+
+        Livewire::test(ClientsManager::class)
+            ->call('selectClient', $dailyStar->id)
+            ->call('setDrawerTab', 'channels')
+            ->set('webhookUrl', 'https://cms.dailystar.com/webhooks/custom-hook')
+            ->call('saveWebhookUrl')
+            ->assertDispatched('toast', message: 'Webhook URL updated');
+
+        $chan = $dailyStar->fresh()->clientChannels()->whereIn('type', ['api', 'webhook'])->first();
+        $this->assertEquals('https://cms.dailystar.com/webhooks/custom-hook', $chan->config['url']);
     }
 
     public function test_drawer_package_change_with_addons(): void
@@ -291,5 +310,17 @@ class ClientsManagerTest extends TestCase
         $this->assertInstanceOf(StreamedResponse::class, $response);
         $this->assertEquals('text/csv', $response->headers->get('Content-Type'));
         $this->assertStringContainsString('unb-clients.csv', $response->headers->get('Content-Disposition'));
+    }
+
+    private function mockFtpDiskFactory(): void
+    {
+        $disk = \Mockery::mock(FilesystemAdapter::class);
+        $disk->shouldReceive('write')->andReturn(true);
+        $disk->shouldReceive('delete')->andReturn(true);
+
+        $factory = \Mockery::mock(FtpDiskFactory::class);
+        $factory->shouldReceive('make')->andReturn($disk);
+
+        $this->app->instance(FtpDiskFactory::class, $factory);
     }
 }

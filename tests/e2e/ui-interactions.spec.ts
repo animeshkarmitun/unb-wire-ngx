@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('RBAC negative UI', () => {
   test('Uploader-English cannot access /admin/clients → 403', async ({ page }) => {
     await page.goto('/login');
-    await page.fill('input[name="email"]', 'uploader@test.com');
+    await page.fill('input[name="email"]', 'maria@unbnews.org');
     await page.fill('input[name="password"]', 'password');
     await page.click('button[type="submit"]');
     await page.waitForURL('**/admin**', { timeout: 5000 }).catch(()=>{});
@@ -13,7 +13,7 @@ test.describe('RBAC negative UI', () => {
 
   test('Business Team cannot access /admin/add-news → 403', async ({ page }) => {
     await page.goto('/login');
-    await page.fill('input[name="email"]', 'biz@test.com');
+    await page.fill('input[name="email"]', 'arif@unbnews.org');
     await page.fill('input[name="password"]', 'password');
     await page.click('button[type="submit"]');
     await page.waitForURL('**/admin**', { timeout: 5000 }).catch(()=>{});

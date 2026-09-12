@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 class ClientFactory extends Factory
 {
     protected $model = Client::class;
+
     public function definition(): array
     {
         return [

@@ -306,7 +306,11 @@ const addMediaAfter = document.getElementById('addMediaAfter');
     }
     initQuill();
 
-    // Wire button fallback click handlers
+    // Wire button fallback click handlers & mousedown blur prevention
+    document.querySelectorAll('#editorToolbar button.qlc').forEach(btn => {
+      btn.addEventListener('mousedown', e => e.preventDefault());
+    });
+
     const qlDateline = document.querySelector('#editorToolbar .ql-dateline');
     if (qlDateline) qlDateline.onclick = e => { e.preventDefault(); insertDateline(); };
     const qlSignoff = document.querySelector('#editorToolbar .ql-signoff');
@@ -324,7 +328,7 @@ const addMediaAfter = document.getElementById('addMediaAfter');
     const qlHistory = document.querySelector('#editorToolbar .ql-history');
     if (qlHistory) qlHistory.onclick = e => { e.preventDefault(); openHistoryModal(); };
 
-    // Fullscreen toggle
+    // Fullscreen toggle & full canvas focus delegation
     const editorWrap = document.getElementById('editorWrap');
     const fsBtn = document.getElementById('fsBtn');
     function toggleFullscreen(force) {
@@ -336,14 +340,33 @@ const addMediaAfter = document.getElementById('addMediaAfter');
         fsBtn.title = on ? 'Exit fullscreen (Esc)' : 'Fullscreen (Esc to exit)';
       }
       document.body.style.overflow = on ? 'hidden' : '';
+      if (quill) {
+        setTimeout(() => {
+          quill.focus();
+        }, 50);
+      }
     }
 
-    if (fsBtn) fsBtn.onclick = () => toggleFullscreen();
+    if (fsBtn) {
+      fsBtn.addEventListener('mousedown', e => e.preventDefault());
+      fsBtn.onclick = () => toggleFullscreen();
+    }
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && editorWrap && editorWrap.classList.contains('fullscreen')) {
         toggleFullscreen(false);
       }
     });
+
+    if (editorWrap) {
+      const qlCont = editorWrap.querySelector('.ql-container');
+      if (qlCont) {
+        qlCont.addEventListener('click', e => {
+          if (e.target === qlCont && quill) {
+            quill.focus();
+          }
+        });
+      }
+    }
 
     function updateEditorStats() {
       const txt = quill ? quill.getText().trim() : '';
@@ -744,17 +767,27 @@ const addMediaAfter = document.getElementById('addMediaAfter');
       mediaOverlay?.classList.add('open');
     }
 
-    const openArchive = document.getElementById('openArchive');
-    if (openArchive) openArchive.onclick = () => openArchiveModal('featured');
-    const openAttachArchive = document.getElementById('openAttachArchive');
-    if (openAttachArchive) openAttachArchive.onclick = () => openArchiveModal('attach');
-    const closeModal = document.getElementById('closeModal');
-    if (closeModal) closeModal.onclick = () => mediaOverlay?.classList.remove('open');
-    const cancelModal = document.getElementById('cancelModal');
-    if (cancelModal) cancelModal.onclick = () => mediaOverlay?.classList.remove('open');
+    document.addEventListener('click', (e) => {
+      const openArchiveBtn = e.target.closest('#openArchive');
+      if (openArchiveBtn) {
+        openArchiveModal('featured');
+        return;
+      }
 
-    document.querySelectorAll('.photo-card').forEach(card => {
-      card.onclick = () => {
+      const openAttachBtn = e.target.closest('#openAttachArchive');
+      if (openAttachBtn) {
+        openArchiveModal('attach');
+        return;
+      }
+
+      const closeBtn = e.target.closest('#closeModal') || e.target.closest('#cancelModal');
+      if (closeBtn) {
+        mediaOverlay?.classList.remove('open');
+        return;
+      }
+
+      const card = e.target.closest('.photo-card');
+      if (card) {
         if (archiveMode === 'featured') {
           document.querySelectorAll('.photo-card').forEach(c => c.classList.remove('selected'));
           card.classList.add('selected');
@@ -763,12 +796,13 @@ const addMediaAfter = document.getElementById('addMediaAfter');
         }
         const sel = document.querySelectorAll('.photo-card.selected');
         if (selectedCount) selectedCount.textContent = sel.length ? sel.length + ' item(s) selected' : 'No photo selected';
-        if (insertPhoto) insertPhoto.disabled = !sel.length;
-      };
-    });
+        const insBtn = document.getElementById('insertPhoto');
+        if (insBtn) insBtn.disabled = !sel.length;
+        return;
+      }
 
-    if (insertPhoto) {
-      insertPhoto.onclick = () => {
+      const insertBtn = e.target.closest('#insertPhoto');
+      if (insertBtn) {
         const sel = [...document.querySelectorAll('.photo-card.selected')];
         if (!sel.length) return;
         const app = document.getElementById('addNewsApp');
@@ -776,9 +810,9 @@ const addMediaAfter = document.getElementById('addMediaAfter');
         const wireComponent = wireEl && window.Livewire ? window.Livewire.find(wireEl.getAttribute('wire:id')) : null;
 
         if (archiveMode === 'featured') {
-          const card = sel[0];
-          const id = +card.dataset.id;
-          const cap = card.dataset.cap;
+          const c = sel[0];
+          const id = +c.dataset.id;
+          const cap = c.dataset.cap;
           const fp = document.getElementById('featuredPreview');
           if (fp) {
             fp.className = 'featured-preview has-photo';
@@ -786,16 +820,16 @@ const addMediaAfter = document.getElementById('addMediaAfter');
           }
           if (wireComponent) wireComponent.setFeatured(id, cap);
         } else {
-          sel.forEach(card => {
-            const id = +card.dataset.id;
-            const cap = card.dataset.cap;
-            const kind = card.dataset.type || 'photo';
+          sel.forEach(c => {
+            const id = +c.dataset.id;
+            const cap = c.dataset.cap;
+            const kind = c.dataset.type || 'photo';
             if (wireComponent) wireComponent.toggleMedia(id, cap, kind);
           });
         }
         mediaOverlay?.classList.remove('open');
-      };
-    }
+      }
+    });
 
     // Tags Autocomplete
     const tagBox = document.getElementById('tagBox');

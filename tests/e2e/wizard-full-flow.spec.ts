@@ -56,6 +56,44 @@ test.describe('Add News Wizard — Full Rebuilt Flow & Interaction Contracts', (
     await expect(page.locator('#pvBody .pv-brief')).toContainText('Energy ministry outlines target');
   });
 
+  test('Step 1 (Write): Start with AI Hide/Show toggle button and Language selector', async ({ page }) => {
+    await page.goto('/admin/add-news');
+    await page.waitForLoadState('networkidle');
+
+    // 1. Initial state: AI start box is expanded, toggle text is 'Hide'
+    const toggleBtn = page.locator('#aiStartToggle');
+    const aiBody = page.locator('#aiStartBody');
+    await expect(toggleBtn).toHaveText('Hide');
+    await expect(aiBody).toBeVisible();
+
+    // 2. Click 'Hide' -> body becomes hidden, toggle text changes to 'Show'
+    await toggleBtn.click();
+    await page.waitForTimeout(200);
+    await expect(toggleBtn).toHaveText('Show');
+    await expect(aiBody).toBeHidden();
+
+    // 3. Click 'Show' -> body becomes visible again, toggle text changes to 'Hide'
+    await toggleBtn.click();
+    await page.waitForTimeout(200);
+    await expect(toggleBtn).toHaveText('Hide');
+    await expect(aiBody).toBeVisible();
+
+    // 4. Fill raw notes in textarea
+    const aiRaw = page.locator('#aiRaw');
+    await aiRaw.fill('Press release from Finance Ministry: Annual tax revenue growth reaches 14% year over year.');
+    await expect(aiRaw).toHaveValue(/Finance Ministry/);
+
+    // 5. Language toggle switches between English and Bangla
+    const bnLangBtn = page.getByRole('button', { name: 'বাংলা (bn)' });
+    const enLangBtn = page.getByRole('button', { name: 'English (en)' });
+    await expect(enLangBtn).toHaveClass(/bg-navy-800/);
+
+    await bnLangBtn.click();
+    await page.waitForTimeout(400);
+    await expect(bnLangBtn).toHaveClass(/bg-navy-800/);
+    await expect(enLangBtn).not.toHaveClass(/bg-navy-800/);
+  });
+
   test('Step 1 (Write): Document Import Modal and Table Generator Modal', async ({ page }) => {
     await page.goto('/admin/add-news');
     await page.waitForLoadState('networkidle');
@@ -84,6 +122,190 @@ test.describe('Add News Wizard — Full Rebuilt Flow & Interaction Contracts', (
     await expect(page.locator('#tblOverlay')).not.toHaveClass(/open/);
     const editorText = await page.locator('.ql-editor').textContent();
     expect(editorText).toContain('Column 1');
+  });
+
+  test('Step 1 (Write): Pullquote, Find & Replace bar, Related story modal, History modal, and Fullscreen toggle', async ({ page }) => {
+    await page.goto('/admin/add-news');
+    await page.waitForLoadState('networkidle');
+
+    // 1. Pullquote button inserts blockquote
+    const pullquoteBtn = page.locator('#editorToolbar button.ql-pullquote');
+    await pullquoteBtn.click();
+    await page.waitForTimeout(200);
+    const textAfterPull = await page.locator('.ql-editor').textContent();
+    expect(textAfterPull).toContain('Pull quote from the story');
+
+    // 2. Find & Replace bar opens, searches, and closes
+    const findBtn = page.locator('#editorToolbar button.ql-findreplace');
+    await findBtn.click();
+    await expect(page.locator('#frBar')).toBeVisible();
+    await page.fill('#frFind', 'quote');
+    await page.waitForTimeout(200);
+    await expect(page.locator('#frCount')).toContainText(/found|1 of/);
+    await page.click('#frClose');
+    await expect(page.locator('#frBar')).toBeHidden();
+
+    // 3. Related Story modal opens and cancels
+    const relatedBtn = page.locator('#editorToolbar button.ql-related');
+    await relatedBtn.click();
+    await expect(page.locator('#relOverlay')).toHaveClass(/open/);
+    await page.click('#cancelRel');
+    await expect(page.locator('#relOverlay')).not.toHaveClass(/open/);
+
+    // 4. Revision History modal opens and closes
+    const historyBtn = page.locator('#editorToolbar button.ql-history');
+    await historyBtn.click();
+    await expect(page.locator('#hisOverlay')).toHaveClass(/open/);
+    await page.click('#cancelHis');
+    await expect(page.locator('#hisOverlay')).not.toHaveClass(/open/);
+
+    // 5. Fullscreen button toggles fullscreen class on editorWrap
+    const fsBtn = page.locator('#fsBtn');
+    await fsBtn.click();
+    await expect(page.locator('#editorWrap')).toHaveClass(/fullscreen/);
+    await fsBtn.click();
+    await expect(page.locator('#editorWrap')).not.toHaveClass(/fullscreen/);
+  });
+
+  test('Step 1 (Write): Full-view story body field exhaustive interactions, canvas focus, typing, formatting, and modal stacking', async ({ page }) => {
+    test.setTimeout(60000);
+    await page.goto('/admin/add-news');
+    await page.waitForLoadState('networkidle');
+
+    // Fill headline and brief
+    await page.fill('#headlineInput', 'Dhaka Stock Exchange benchmark index gains 45 points in Sunday trading');
+    await page.fill('#briefInput', 'Institutional buyers renewed interest in banking and pharma equities lifting the benchmark index.');
+
+    // 1. Enter Full-View
+    const fsBtn = page.locator('#fsBtn');
+    await fsBtn.click();
+    const editorWrap = page.locator('#editorWrap');
+    await expect(editorWrap).toHaveClass(/fullscreen/);
+    await expect(fsBtn).toHaveText('✕');
+    await expect(fsBtn).toHaveAttribute('title', /Exit fullscreen/);
+
+    // 2. Auto-focus and canvas margin click-to-focus
+    await page.waitForTimeout(100);
+    const qlEditor = page.locator('.ql-editor');
+
+    // Click left canvas margin (x: 80, y: 300)
+    await page.mouse.click(80, 300);
+    const isEditorActiveAfterLeft = await page.evaluate(() => {
+      const active = document.activeElement;
+      return active?.classList.contains('ql-editor') || !!active?.closest('.ql-editor');
+    });
+    expect(isEditorActiveAfterLeft).toBe(true);
+
+    // Click right canvas margin (x: 1150, y: 300)
+    await page.mouse.click(1150, 300);
+    const isEditorActiveAfterRight = await page.evaluate(() => {
+      const active = document.activeElement;
+      return active?.classList.contains('ql-editor') || !!active?.closest('.ql-editor');
+    });
+    expect(isEditorActiveAfterRight).toBe(true);
+
+    // Click bottom canvas area (x: 600, y: 600)
+    await page.mouse.click(600, 600);
+    const isEditorActiveAfterBottom = await page.evaluate(() => {
+      const active = document.activeElement;
+      return active?.classList.contains('ql-editor') || !!active?.closest('.ql-editor');
+    });
+    expect(isEditorActiveAfterBottom).toBe(true);
+
+    // 3. Multi-paragraph typing in full-view
+    await qlEditor.click();
+    await page.keyboard.type('The benchmark DSEX index crossed the 5,400-point threshold amidst high turnover.');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('Market analysts credited institutional support and regulatory liquidity assurances.');
+
+    // Verify text content and live footer stats in full-view
+    const editorText = await qlEditor.innerText();
+    expect(editorText).toContain('benchmark DSEX index');
+    expect(editorText).toContain('Market analysts credited');
+    await expect(page.locator('#efWords')).toHaveText(/\d+\s+words/);
+
+    // 4. Formatting tools inside full-view
+    // Insert Dateline
+    await page.click('#editorToolbar button.ql-dateline');
+    await page.waitForTimeout(200);
+    const textWithDateline = await qlEditor.innerText();
+    expect(textWithDateline).toContain('DHAKA');
+
+    // Insert Pull quote
+    await page.click('#editorToolbar button.ql-pullquote');
+    await page.waitForTimeout(200);
+    const textWithPull = await qlEditor.innerText();
+    expect(textWithPull).toContain('Pull quote from the story');
+
+    // 5. Modal stacking in full-view (modals must appear on top of z-index 180 editor)
+    // Table modal
+    await page.click('#editorToolbar button.ql-table');
+    await expect(page.locator('#tblOverlay')).toHaveClass(/open/);
+    await expect(page.locator('#tblOverlay .media-modal')).toBeVisible();
+    await page.fill('#tblRows', '2');
+    await page.fill('#tblCols', '3');
+    await page.click('#tblInsert');
+    await expect(page.locator('#tblOverlay')).not.toHaveClass(/open/);
+    const textWithTable = await qlEditor.innerText();
+    expect(textWithTable).toContain('Column 1');
+
+    // History modal
+    await page.click('#editorToolbar button.ql-history');
+    await expect(page.locator('#hisOverlay')).toHaveClass(/open/);
+    await expect(page.locator('#hisOverlay .media-modal')).toBeVisible();
+    await page.click('#cancelHis');
+    await expect(page.locator('#hisOverlay')).not.toHaveClass(/open/);
+
+    // 6. Find & Replace inside full-view
+    await page.click('#editorToolbar button.ql-findreplace');
+    await expect(page.locator('#frBar')).toBeVisible();
+    await page.fill('#frFind', 'turnover');
+    await page.waitForTimeout(200);
+    await expect(page.locator('#frCount')).toContainText(/1\s+of\s+1|found/);
+    await page.click('#frClose');
+    await expect(page.locator('#frBar')).toBeHidden();
+
+    // 7. Exit full-view via Escape key
+    await page.keyboard.press('Escape');
+    await expect(editorWrap).not.toHaveClass(/fullscreen/);
+    await expect(fsBtn).toHaveText('⛶');
+
+    // Re-enter and exit via ✕ button
+    await fsBtn.click();
+    await expect(editorWrap).toHaveClass(/fullscreen/);
+    await fsBtn.click();
+    await expect(editorWrap).not.toHaveClass(/fullscreen/);
+
+    // 8. Normal view content and stats verification
+    const normalViewText = await qlEditor.innerText();
+    expect(normalViewText).toContain('benchmark DSEX index');
+    expect(normalViewText).toContain('DHAKA');
+
+    // 9. Downstream Stepper Persistence: verify full-view body reaches Step 4 Review
+    // Step 1 -> Step 2
+    await page.click('#nextBtn');
+    await page.waitForTimeout(400);
+    await expect(page.locator('.stp.active .stp-label')).toHaveText('Media');
+
+    // Step 2 -> Step 3
+    await page.click('#nextBtn');
+    await page.waitForTimeout(400);
+    await expect(page.locator('.stp.active .stp-label')).toHaveText('Organize & access');
+
+    // Step 3 -> Step 4
+    await page.click('#nextBtn');
+    await page.waitForTimeout(400);
+    await expect(page.locator('.stp.active .stp-label')).toHaveText('Review & publish');
+
+    // Verify Review summary includes story body written in full-view
+    const reviewBodyRow = page.locator('.rev-row', { hasText: 'Body copy' });
+    await expect(reviewBodyRow).toContainText(/benchmark DSEX index|DHAKA/);
+
+    // Jump back to Step 1 via Edit button
+    await page.click('#jumpStep1');
+    await page.waitForTimeout(400);
+    await expect(page.locator('.stp.active .stp-label')).toHaveText('Write');
+    expect(await qlEditor.innerText()).toContain('benchmark DSEX index');
   });
 
   test('Step 2 (Media): Photo Archive selection, featured image preview, and attached media grid', async ({ page }) => {
@@ -212,6 +434,33 @@ test.describe('Add News Wizard — Full Rebuilt Flow & Interaction Contracts', (
     const feedJson = await feedResponse.json();
     const found = (feedJson.data || []).some((s: { headline: string }) => s.headline === testHead);
     expect(found).toBe(true);
+  });
+
+  test('Step 4 (Review & publish): Review section Edit buttons jump back to corresponding steps', async ({ page }) => {
+    await page.goto('/admin/add-news');
+    await page.waitForLoadState('networkidle');
+
+    await page.fill('#headlineInput', 'Bangladesh Inland Water Transport Authority announces green fleet modernization');
+    await page.fill('#briefInput', 'Electric and hybrid passenger vessels will be deployed on major riverine routes.');
+
+    // Navigate to step 4
+    await page.click('.stp[data-go="4"]');
+    await page.waitForTimeout(400);
+    await expect(page.locator('.stp.active .stp-label')).toHaveText('Review & publish');
+
+    // Click Edit on Story -> jumps to step 1
+    const editStory = page.locator('.rv-group-title', { hasText: 'Story' }).locator('.rv-edit');
+    await editStory.click();
+    await page.waitForTimeout(300);
+    await expect(page.locator('.stp.active .stp-label')).toHaveText('Write');
+
+    // Return to Step 4 and click Edit on Organize -> jumps to step 3
+    await page.click('.stp[data-go="4"]');
+    await page.waitForTimeout(300);
+    const editOrganize = page.locator('.rv-group-title', { hasText: 'Organize' }).locator('.rv-edit');
+    await editOrganize.click();
+    await page.waitForTimeout(300);
+    await expect(page.locator('.stp.active .stp-label')).toHaveText('Organize & access');
   });
 
   test('Live Preview Rail: Collapsing toggle, expansion button, and Device Focus Emulator', async ({ page }) => {

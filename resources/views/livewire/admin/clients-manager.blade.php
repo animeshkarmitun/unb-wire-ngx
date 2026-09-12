@@ -225,7 +225,7 @@
               @endif
             </div>
           </div>
-          <button type="button" class="dr-close" wire:click="closeDrawer" id="drClose" title="Close">✕</button>
+          <button type="button" class="dr-close" wire:click="closeDrawer" id="drClose" title="Close" aria-label="Close client details">✕</button>
         </div>
 
         <div class="dr-actions" id="drActions">
@@ -241,10 +241,10 @@
         </div>
 
         <div class="dr-tabs" id="drTabs">
-          <button type="button" wire:click="setDrawerTab('overview')" class="dr-tab {{ $drawerTab === 'overview' ? 'active' : '' }}" data-dtab="overview">Overview</button>
-          <button type="button" wire:click="setDrawerTab('channels')" class="dr-tab {{ $drawerTab === 'channels' ? 'active' : '' }}" data-dtab="channels">Channels</button>
-          <button type="button" wire:click="setDrawerTab('package')" class="dr-tab {{ $drawerTab === 'package' ? 'active' : '' }}" data-dtab="package">Package</button>
-          <button type="button" wire:click="setDrawerTab('activity')" class="dr-tab {{ $drawerTab === 'activity' ? 'active' : '' }}" data-dtab="activity">Activity</button>
+          <button type="button" wire:click="setDrawerTab('overview')" class="dr-tab {{ $drawerTab === 'overview' ? 'active' : '' }}" data-dtab="overview" aria-label="Client overview tab">Overview</button>
+          <button type="button" wire:click="setDrawerTab('channels')" class="dr-tab {{ $drawerTab === 'channels' ? 'active' : '' }}" data-dtab="channels" aria-label="Client channels tab">Channels</button>
+          <button type="button" wire:click="setDrawerTab('package')" class="dr-tab {{ $drawerTab === 'package' ? 'active' : '' }}" data-dtab="package" aria-label="Client package tab">Package</button>
+          <button type="button" wire:click="setDrawerTab('activity')" class="dr-tab {{ $drawerTab === 'activity' ? 'active' : '' }}" data-dtab="activity" aria-label="Client activity tab">Activity</button>
         </div>
       </div>
 
@@ -560,7 +560,7 @@
     <div class="modal">
       <div class="mo-head">
         <div class="mo-title">Pause client</div>
-        <button type="button" class="mo-close" wire:click="$set('showPauseModal', false)">✕</button>
+        <button type="button" class="mo-close" wire:click="$set('showPauseModal', false)" aria-label="Close pause dialog">✕</button>
       </div>
       <div class="mo-body">
         @php $pClient = $pauseClientId ? \App\Models\Client::find($pauseClientId) : null; @endphp
@@ -598,7 +598,7 @@
     <div class="modal">
       <div class="mo-head">
         <div class="mo-title">Deactivate client</div>
-        <button type="button" class="mo-close" wire:click="$set('showDeactModal', false)">✕</button>
+        <button type="button" class="mo-close" wire:click="$set('showDeactModal', false)" aria-label="Close deactivate dialog">✕</button>
       </div>
       <div class="mo-body">
         @php $dClient = $deactClientId ? \App\Models\Client::find($deactClientId) : null; @endphp
@@ -622,7 +622,7 @@
     <div class="modal modal-lg">
       <div class="mo-head">
         <div class="mo-title">Onboard new client</div>
-        <button type="button" class="mo-close" wire:click="closeOnboard">✕</button>
+        <button type="button" class="mo-close" wire:click="closeOnboard" aria-label="Close onboard wizard">✕</button>
       </div>
       <div class="wiz-steps" id="wizSteps">
         <div class="wiz-step {{ $wizStep === 1 ? 'active' : ($wizStep > 1 ? 'done' : '') }}" data-ws="1">1 · Details</div>

@@ -7,6 +7,8 @@ use App\Models\Story;
 use App\Models\User;
 use App\Services\StoryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Tests\TestCase;
 
 class StoryWorkflowTest extends TestCase
@@ -14,6 +16,7 @@ class StoryWorkflowTest extends TestCase
     use RefreshDatabase;
 
     private User $actor;
+
     private Category $cat;
 
     protected function setUp(): void
@@ -58,7 +61,7 @@ class StoryWorkflowTest extends TestCase
         $s = $this->draft();
         $svc = app(StoryService::class);
         $svc->updateDraft($s, ['headline' => 'v2'], 1, $this->actor);
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\ConflictHttpException::class);
+        $this->expectException(ConflictHttpException::class);
         $svc->updateDraft($s->refresh(), ['headline' => 'v3'], 1, $this->actor);
     }
 
@@ -78,7 +81,7 @@ class StoryWorkflowTest extends TestCase
     public function test_invalid_transition_rejected(): void
     {
         $s = $this->draft();
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException::class);
+        $this->expectException(UnprocessableEntityHttpException::class);
         app(StoryService::class)->transition($s, 'published', $this->actor);
     }
 
@@ -88,7 +91,7 @@ class StoryWorkflowTest extends TestCase
         $svc = app(StoryService::class);
         $s = $svc->transition($s, 'in_review', $this->actor);
         $s = $svc->transition($s, 'approved', $this->actor);
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException::class);
+        $this->expectException(UnprocessableEntityHttpException::class);
         $svc->transition($s, 'published', $this->actor);
     }
 
@@ -108,7 +111,7 @@ class StoryWorkflowTest extends TestCase
         $svc = app(StoryService::class);
         $s = $svc->transition($s, 'in_review', $this->actor);
         $s = $svc->transition($s, 'approved', $this->actor);
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException::class);
+        $this->expectException(UnprocessableEntityHttpException::class);
         $svc->transition($s, 'published', $this->actor);
     }
 
@@ -131,7 +134,7 @@ class StoryWorkflowTest extends TestCase
         $svc->takeOver($s->refresh(), $other);
         $this->assertEquals($other->id, $s->refresh()->locked_by);
         $this->assertDatabaseHas('story_notes', ['kind' => 'system']);
-        $this->assertDatabaseHas('story_events', ['action' => 'take_over']);
+        $this->assertDatabaseHas('story_events', ['action' => 'handover']);
     }
 
     public function test_ai_touched_clears_on_human_edit(): void
@@ -151,5 +154,60 @@ class StoryWorkflowTest extends TestCase
         $this->assertEquals('changes_requested', $s->status);
         $s = $svc->transition($s, 'in_review', $this->actor);
         $this->assertEquals('in_review', $s->status);
+    }
+
+    public function test_transition_creates_version_snapshot(): void
+    {
+        $s = $this->draft(['sub_head' => 'Sub', 'dateline_city' => 'Dhaka', 'is_breaking' => true]);
+        $svc = app(StoryService::class);
+        $s = $svc->transition($s, 'in_review', $this->actor);
+        $this->assertEquals(2, $s->version);
+        $v = $s->versions()->where('version', 2)->first();
+        $this->assertNotNull($v);
+        $snap = $v->snapshot;
+        $this->assertEquals('Test headline', $snap['headline']);
+        $this->assertEquals('Sub', $snap['sub_head']);
+        $this->assertEquals('Dhaka', $snap['dateline_city']);
+        $this->assertTrue($snap['is_breaking']);
+        $this->assertArrayHasKey('tags', $snap);
+    }
+
+    public function test_publish_snapshot_contains_full_fields(): void
+    {
+        $s = $this->draft(['priority' => 'urgent', 'language' => 'en']);
+        $svc = app(StoryService::class);
+        $s = $svc->transition($s, 'in_review', $this->actor);
+        $s = $svc->transition($s, 'approved', $this->actor);
+        $s = $svc->transition($s, 'published', $this->actor);
+        $this->assertEquals(4, $s->version); // draft(v1) + in_review(v2) + approved(v3) + published(v4)
+        $v = $s->versions()->where('version', 4)->first();
+        $this->assertNotNull($v);
+        $this->assertEquals('en', $v->snapshot['language']);
+        $this->assertEquals('urgent', $v->snapshot['priority']);
+        $this->assertNotNull($s->published_at);
+    }
+
+    public function test_transition_version_bump_makes_stale_edit_409(): void
+    {
+        $s = $this->draft();
+        $svc = app(StoryService::class);
+        $s = $svc->transition($s, 'in_review', $this->actor);
+        $this->assertEquals(2, $s->version);
+        $this->expectException(ConflictHttpException::class);
+        $svc->updateDraft($s->refresh(), ['headline' => 'Stale'], 1, $this->actor);
+    }
+
+    public function test_save_then_publish_no_unique_violation(): void
+    {
+        $s = $this->draft();
+        $svc = app(StoryService::class);
+        $s = $svc->updateDraft($s, ['headline' => 'v2'], 1, $this->actor);
+        $s = $svc->updateDraft($s->refresh(), ['headline' => 'v3'], 2, $this->actor);
+        $s = $svc->transition($s, 'in_review', $this->actor);
+        $s = $svc->transition($s, 'approved', $this->actor);
+        $s = $svc->transition($s, 'published', $this->actor);
+        $this->assertEquals(6, $s->version);
+        $this->assertEquals(6, $s->versions()->count());
+        $this->assertEquals(4, $s->events()->count()); // created + in_review + approved + published
     }
 }

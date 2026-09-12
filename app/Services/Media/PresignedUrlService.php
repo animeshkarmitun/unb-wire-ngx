@@ -3,6 +3,8 @@
 namespace App\Services\Media;
 
 use App\Models\MediaAsset;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class PresignedUrlService
@@ -17,17 +19,21 @@ class PresignedUrlService
         try {
             return Storage::disk($disk)->temporaryUrl($path, now()->addMinutes($ttlMinutes));
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('PresignedUrl fallback', ['path'=>$path,'error'=>$e->getMessage()]);
+            Log::warning('PresignedUrl fallback', ['path' => $path, 'error' => $e->getMessage()]);
             $cdn = rtrim(config('filesystems.disks.s3.url') ?? env('AWS_URL', ''), '/');
-            if ($cdn) return "{$cdn}/{$path}?expires=".now()->addMinutes($ttlMinutes)->timestamp;
+            if ($cdn) {
+                return "{$cdn}/{$path}?expires=".now()->addMinutes($ttlMinutes)->timestamp;
+            }
             abort(500, 'Storage misconfigured — presigned URL unavailable');
         }
     }
 
     public function recordDownload(MediaAsset $asset, ?int $clientId, ?int $clientUserId, string $variant = 'original'): void
     {
-        if (! $clientId) return;
-        \Illuminate\Support\Facades\DB::table('downloads')->insert([
+        if (! $clientId) {
+            return;
+        }
+        DB::table('downloads')->insert([
             'client_id' => $clientId,
             'client_user_id' => $clientUserId,
             'item_type' => 'media',

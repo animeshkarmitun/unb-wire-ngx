@@ -16,6 +16,7 @@ class ClientSeeder extends Seeder
     public function run(): void
     {
         // Safe clear of existing client tables
+        DB::table('downloads')->delete();
         DB::table('client_api_keys')->delete();
         DB::table('client_channels')->delete();
         DB::table('client_packages')->delete();
@@ -357,6 +358,7 @@ class ClientSeeder extends Seeder
                     'config' => json_encode([
                         'endpoint' => $c['channels']['api']['webhook'] ?: 'https://api.unb.com.bd',
                         'key' => $c['channels']['api']['key'],
+                        'url' => $c['channels']['api']['webhook'],
                         'webhook' => $c['channels']['api']['webhook'],
                         'health' => $c['channels']['api']['health'],
                     ]),

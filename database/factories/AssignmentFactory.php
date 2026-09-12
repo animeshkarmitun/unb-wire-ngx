@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 class AssignmentFactory extends Factory
 {
     protected $model = Assignment::class;
+
     public function definition(): array
     {
         return [
@@ -17,7 +18,7 @@ class AssignmentFactory extends Factory
             'shot_list' => [['item' => fake()->sentence(2)]],
             'location' => fake()->city(),
             'due_at' => now()->addDay(),
-            'priority' => fake()->randomElement(['routine','urgent','flash']),
+            'priority' => fake()->randomElement(['routine', 'urgent', 'flash']),
             'status' => 'open',
             'assignee_id' => User::factory(),
             'created_by' => User::factory(),

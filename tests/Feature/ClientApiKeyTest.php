@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Category;
 use App\Models\Client;
+use App\Models\Story;
+use App\Models\User;
 use App\Services\ApiKeyService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -49,12 +52,12 @@ class ClientApiKeyTest extends TestCase
         $c = Client::factory()->create();
         $svc = app(ApiKeyService::class);
         [$k, $raw] = $svc->issue($c, 'limited', ['feed:read'], 2);
-        \App\Models\Category::factory()->create();
-        $user = \App\Models\User::factory()->create();
-        foreach([1,2] as $i){
-            $this->getJson('/api/v1/feed', ['Authorization'=>'Bearer '.$raw])->assertOk();
+        Category::factory()->create();
+        $user = User::factory()->create();
+        foreach ([1, 2] as $i) {
+            $this->getJson('/api/v1/feed', ['Authorization' => 'Bearer '.$raw])->assertOk();
         }
-        $this->getJson('/api/v1/feed', ['Authorization'=>'Bearer '.$raw])->assertStatus(429);
+        $this->getJson('/api/v1/feed', ['Authorization' => 'Bearer '.$raw])->assertStatus(429);
     }
 
     public function test_scope_enforced(): void
@@ -62,7 +65,7 @@ class ClientApiKeyTest extends TestCase
         $c = Client::factory()->create();
         $svc = app(ApiKeyService::class);
         [$k, $raw] = $svc->issue($c, 'no-feed', ['media:download']);
-        $this->getJson('/api/v1/feed', ['Authorization'=>'Bearer '.$raw])->assertStatus(403);
+        $this->getJson('/api/v1/feed', ['Authorization' => 'Bearer '.$raw])->assertStatus(403);
     }
 
     public function test_feed_returns_iso8601_and_cursor(): void
@@ -70,10 +73,10 @@ class ClientApiKeyTest extends TestCase
         $c = Client::factory()->create();
         $svc = app(ApiKeyService::class);
         [$k, $raw] = $svc->issue($c, 'feed', ['feed:read']);
-        $cat = \App\Models\Category::factory()->create();
-        $user = \App\Models\User::factory()->create();
-        \App\Models\Story::factory()->create(['status'=>'published','published_at'=>now(),'category_id'=>$cat->id,'owner_id'=>$user->id,'created_by'=>$user->id]);
-        $resp = $this->getJson('/api/v1/feed', ['Authorization'=>'Bearer '.$raw]);
+        $cat = Category::factory()->create();
+        $user = User::factory()->create();
+        Story::factory()->create(['status' => 'published', 'published_at' => now(), 'category_id' => $cat->id, 'owner_id' => $user->id, 'created_by' => $user->id]);
+        $resp = $this->getJson('/api/v1/feed', ['Authorization' => 'Bearer '.$raw]);
         $resp->assertOk();
         $this->assertNotEmpty($resp->json('data.0.published_at'));
         $this->assertTrue(str_contains($resp->json('data.0.published_at'), 'T'));

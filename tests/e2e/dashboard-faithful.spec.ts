@@ -46,11 +46,41 @@ test.describe('Dashboard Faithful (M8-DASH-001)', () => {
     await expect(allClientsLink).toHaveAttribute('href', /admin\/clients/);
   });
 
+  test('Top bar actions: Export report triggers toast and + New story navigates to wizard', async ({ page }) => {
+    await page.goto('/admin');
+
+    // Export report toast
+    const exportBtn = page.getByRole('button', { name: 'Export report' });
+    await expect(exportBtn).toBeVisible();
+    await exportBtn.click();
+    await expect(page.locator('#toastWrap .toast, .toast').filter({ hasText: 'Export report initiated' })).toBeVisible({ timeout: 5000 });
+
+    // + New story link
+    const newStoryBtn = page.getByRole('link', { name: '+ New story' });
+    await expect(newStoryBtn).toBeVisible();
+    await newStoryBtn.click();
+    await page.waitForURL('**/admin/add-news', { timeout: 8000 });
+    expect(page.url()).toContain('/admin/add-news');
+  });
+
+  test('Recent stories table allows navigating to individual story reader', async ({ page }) => {
+    await page.goto('/admin');
+    
+    const storyLinks = page.locator('section a[href*="/admin/story/"]');
+    if (await storyLinks.count() > 0) {
+      const firstLink = storyLinks.first();
+      await firstLink.click();
+      await page.waitForURL('**/admin/story/**', { timeout: 8000 });
+      expect(page.url()).toContain('/admin/story/');
+    }
+  });
+
   test('Download FAB is visible and interactive', async ({ page }) => {
     await page.goto('/admin');
     const fab = page.locator('button[title="Download"]');
     await expect(fab).toBeVisible();
     await fab.click();
-    await expect(page.locator('.toast, [role="alert"], text=Download initiated').first()).toBeVisible({ timeout: 5000 }).catch(() => {});
+    await expect(page.locator('#toastWrap .toast, .toast').filter({ hasText: 'Download initiated' })).toBeVisible({ timeout: 5000 });
   });
 });
+

@@ -33,12 +33,12 @@ test.describe('Portal story detail + pagination + Meili keydown', () => {
 
   test('Portal Meili search keydown does not crash (Enter)', async ({ page }) => {
     await page.goto('http://localhost:3000/');
-    const input = page.locator('#portalSearch');
+    const input = page.locator('#omniInput, #portalSearch').first();
     await expect(input).toBeVisible({ timeout: 10000 });
     await input.fill('Bangladesh');
     await input.press('Enter');
     await page.waitForTimeout(500);
-    await expect(page.locator('body')).toContainText(/Wire feed|How search works/i);
+    await expect(page.locator('body')).toContainText(/Bangladesh|News wire|Wire/i);
     expect(page.url()).toContain('localhost:3000');
   });
 

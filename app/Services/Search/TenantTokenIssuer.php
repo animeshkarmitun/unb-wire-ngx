@@ -3,7 +3,9 @@
 namespace App\Services\Search;
 
 use App\Models\Client;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class TenantTokenIssuer
 {
@@ -16,7 +18,7 @@ class TenantTokenIssuer
 
         if ($client) {
             $cacheKey = "entitlement:client:{$client->id}";
-            $entitlement = Cache::remember($cacheKey, 300, fn() => $this->resolver->forClient($client));
+            $entitlement = Cache::remember($cacheKey, 300, fn () => $this->resolver->forClient($client));
             $filter = $this->resolver->compileMeiliFilterFromEntitlement($entitlement);
         } else {
             $entitlement = ['languages' => ['en', 'bn'], 'category_ids' => null, 'media_kinds' => ['photo']];
@@ -36,11 +38,11 @@ class TenantTokenIssuer
                 $uid = substr(hash('sha256', $key), 0, 8);
                 $token = $clientMs->generateTenantToken($uid, $searchRules, ['expiresAt' => $expiresAt]);
             } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning('TenantTokenIssuer fallback', ['error'=>$e->getMessage()]);
+                Log::warning('TenantTokenIssuer fallback', ['error' => $e->getMessage()]);
                 $token = $this->fallbackToken($filter, $expiresAt, $key);
             }
         } else {
-            \Illuminate\Support\Facades\Log::warning('TenantTokenIssuer missing key — using insecure fallback');
+            Log::warning('TenantTokenIssuer missing key — using insecure fallback');
             $token = $this->fallbackToken($filter, $expiresAt, config('app.key').'-fallback');
         }
 
@@ -54,11 +56,12 @@ class TenantTokenIssuer
         ];
     }
 
-    private function fallbackToken(string $filter, \Carbon\Carbon $exp, string $secret): string
+    private function fallbackToken(string $filter, Carbon $exp, string $secret): string
     {
         $header = rtrim(strtr(base64_encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT'])), '+/', '-_'), '=');
         $payload = rtrim(strtr(base64_encode(json_encode(['filter' => $filter, 'exp' => $exp->timestamp, 'searchRules' => ['main' => ['filter' => $filter]]])), '+/', '-_'), '=');
         $sig = rtrim(strtr(base64_encode(hash_hmac('sha256', "{$header}.{$payload}", $secret, true)), '+/', '-_'), '=');
+
         return "{$header}.{$payload}.{$sig}";
     }
 }

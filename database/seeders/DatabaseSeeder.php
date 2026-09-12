@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             PackageSeeder::class,
             ClientSeeder::class,
             UserSeeder::class,
+            SettingSeeder::class,
         ]);
 
         $this->call([

@@ -2,62 +2,97 @@
 
 namespace App\Livewire\Admin;
 
+use App\Jobs\ProcessIndexOutbox;
 use App\Models\Category;
 use App\Models\MediaAsset;
-use App\Models\Story;
-use App\Models\Tag;
+use App\Models\StoryNote;
+use App\Repositories\StoryRepository;
 use App\Services\AiService;
 use App\Services\HtmlSanitizer;
-use App\Services\NotificationService;
 use App\Services\RbacService;
+use App\Services\RevisionService;
 use App\Services\StoryService;
-use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Livewire\Component;
 
 class AddNews extends Component
 {
+    public bool $showServerHistory = false;
+
+    public int $restoreTarget = 0;
+
     // Stepper state (1: Write, 2: Media, 3: Organize & access, 4: Review & publish)
     public int $step = 1;
+
     public ?int $storyId = null;
+
     public string $status = 'draft';
+
     public string $language = 'en';
 
     // Step 1: Write fields
     public string $headline = '';
+
     public string $subHead = '';
+
     public string $datelineCity = 'Dhaka';
+
     public string $datelineAt = '';
+
     public string $brief = '';
+
     public string $bodyHtml = '';
+
     public string $priority = 'routine';
+
     public bool $isBreaking = false;
+
     public string $embargoUntil = '';
+
     public string $author = 'UNB Desk';
+
+    public string $aiRawText = '';
 
     // Step 2: Media fields
     public ?int $featuredMediaId = null;
+
     public string $featuredCaption = '';
+
     public array $attachedMedia = []; // Array of ['id' => int, 'cap' => string, 'role' => string, 'rights' => string, 'type' => string, 'grad' => string, 'src' => ?string]
+
     public array $selectedMediaIds = [];
 
     // Step 3: Organize & Access fields
     public string $categoryId = '';
+
     public string $subCategoryId = '';
+
     public array $tags = []; // Array of tag names e.g. ['bangladesh', 'dhaka']
+
     public array $newsTypes = []; // e.g. ['has_video', 'top_news', 'trending', 'editors_pick', 'slider', 'special']
+
     public string $access = 'standard'; // 'standard' | 'exclusive'
+
     public array $exclusiveTiers = ['Premium', 'Standard'];
+
     public array $exclusiveClients = [];
 
     // Step 4 & Workflow fields
     public array $aiTouched = [];
+
     public ?array $aiPack = null;
+
     public bool $aiLoading = false;
+
     public string $noteBody = '';
+
     public ?string $successState = null; // 'published' | 'sent' | null
+
     public ?int $ownerId = null;
+
     public string $ownerName = '';
+
     public string $ownerRole = '';
 
     public function mount(?int $id = null): void
@@ -69,7 +104,12 @@ class AddNews extends Component
         $this->datelineAt = now()->setTimezone('Asia/Dhaka')->format('Y-m-d\TH:i');
 
         if ($id) {
-            $s = Story::with(['tags', 'category', 'subCategory', 'owner.role', 'notes.user'])->findOrFail($id);
+            $repo = app(StoryRepository::class);
+            $s = $repo->findWithAllRelations($id);
+            if (! $s) {
+                return;
+            }
+
             $this->storyId = $s->id;
             $this->status = $s->status;
             $this->language = $s->language;
@@ -93,12 +133,7 @@ class AddNews extends Component
             $this->tags = $s->tags->pluck('name')->toArray();
 
             // Load media
-            $mediaRows = DB::table('story_media')
-                ->join('media_assets', 'media_assets.id', '=', 'story_media.asset_id')
-                ->where('story_media.story_id', $s->id)
-                ->orderBy('story_media.sort_order')
-                ->select('media_assets.id', 'media_assets.title', 'media_assets.caption', 'media_assets.kind', 'story_media.role', 'story_media.caption_override')
-                ->get();
+            $mediaRows = $repo->getAttachedMedia($s->id);
 
             foreach ($mediaRows as $m) {
                 $item = [
@@ -107,7 +142,7 @@ class AddNews extends Component
                     'role' => $m->role,
                     'rights' => 'story',
                     'type' => $m->kind === 'video' ? 'video' : 'photo',
-                    'grad' => 'g' . (($m->id % 8) + 1),
+                    'grad' => 'g'.(($m->id % 8) + 1),
                     'src' => null,
                 ];
                 if ($m->role === 'featured') {
@@ -277,11 +312,11 @@ class AddNews extends Component
             $this->selectedMediaIds[] = $id;
             $this->attachedMedia[] = [
                 'id' => $id,
-                'cap' => $caption ?: 'Photo #' . $id,
+                'cap' => $caption ?: 'Photo #'.$id,
                 'role' => 'inline',
                 'rights' => 'story',
                 'type' => $kind === 'video' ? 'video' : 'photo',
-                'grad' => 'g' . (($id % 8) + 1),
+                'grad' => 'g'.(($id % 8) + 1),
                 'src' => null,
             ];
         }
@@ -306,7 +341,7 @@ class AddNews extends Component
         $payload = [
             'headline' => $this->headline,
             'brief' => $this->brief,
-            'text' => HtmlSanitizer::text($this->bodyHtml) ?: $this->brief,
+            'text' => $this->aiRawText ?: (HtmlSanitizer::text($this->bodyHtml) ?: $this->brief),
             'category' => $this->categoryId,
         ];
         $pack = $svc->call($kind, $payload, auth()->id(), $this->storyId);
@@ -314,6 +349,7 @@ class AddNews extends Component
 
         if (isset($pack['error'])) {
             $this->dispatch('toast', message: $pack['error']);
+
             return;
         }
 
@@ -342,7 +378,7 @@ class AddNews extends Component
             $this->dispatch('quill-set-content', html: $this->bodyHtml);
         }
         if ($field === 'category' && isset($this->aiPack['category']['name'])) {
-            $cat = Category::where('name_en', 'like', '%' . $this->aiPack['category']['name'] . '%')->first();
+            $cat = Category::where('name_en', 'like', '%'.$this->aiPack['category']['name'].'%')->first();
             if ($cat) {
                 $this->categoryId = (string) $cat->id;
                 $this->aiTouched['category'] = true;
@@ -355,9 +391,20 @@ class AddNews extends Component
             $this->aiTouched['tags'] = true;
         }
 
-        $this->dispatch('toast', message: 'Applied AI ' . $field);
+        $this->dispatch('toast', message: 'Applied AI '.$field);
         $this->dispatch('story-updated');
         $this->autosave();
+
+        if ($this->storyId) {
+            $story = app(StoryRepository::class)->findOrFail($this->storyId);
+            $story->events()->create([
+                'actor_id' => auth()->id(),
+                'action' => 'ai_applied',
+                'from_status' => $story->status,
+                'to_status' => $story->status,
+                'payload' => ['fields' => [$field]],
+            ]);
+        }
     }
 
     public function autosave(?RbacService $rbac = null, ?StoryService $stories = null): void
@@ -394,8 +441,10 @@ class AddNews extends Component
             'word_count' => str_word_count(strip_tags($cleanHtml)),
         ];
 
+        $repo = app(StoryRepository::class);
+
         if ($this->storyId) {
-            $s = Story::findOrFail($this->storyId);
+            $s = $repo->findOrFail($this->storyId);
             $stories->updateDraft($s, $data, $s->version, auth()->user());
         } else {
             $s = $stories->createDraft($data, auth()->user());
@@ -403,40 +452,11 @@ class AddNews extends Component
             $this->status = $s->status;
         }
 
-        // Sync story_media
-        DB::table('story_media')->where('story_id', $this->storyId)->delete();
-        if ($this->featuredMediaId) {
-            DB::table('story_media')->insert([
-                'story_id' => $this->storyId,
-                'asset_id' => $this->featuredMediaId,
-                'role' => 'featured',
-                'sort_order' => 0,
-                'caption_override' => $this->featuredCaption ?: null,
-            ]);
-        }
-        foreach ($this->attachedMedia as $idx => $att) {
-            if ($att['id'] === $this->featuredMediaId) {
-                continue;
-            }
-            DB::table('story_media')->insert([
-                'story_id' => $this->storyId,
-                'asset_id' => $att['id'],
-                'role' => 'inline',
-                'sort_order' => $idx + 1,
-                'caption_override' => $att['cap'] ?: null,
-            ]);
-        }
+        // Sync story_media via repository
+        $repo->syncMedia($this->storyId, $this->featuredMediaId, $this->featuredCaption, $this->attachedMedia);
 
-        // Sync tags
-        if (! empty($this->tags)) {
-            $tagIds = [];
-            foreach ($this->tags as $tName) {
-                $slug = Str::slug($tName);
-                $tagObj = Tag::firstOrCreate(['name' => $tName], ['slug' => $slug ?: Str::random(8)]);
-                $tagIds[] = $tagObj->id;
-            }
-            $s->tags()->sync($tagIds);
-        }
+        // Sync tags via repository
+        $repo->syncTags($repo->findOrFail($this->storyId), $this->tags);
 
         $this->dispatch('draft-autosaved', [
             'id' => $this->storyId,
@@ -447,7 +467,7 @@ class AddNews extends Component
     private function parseEmbargo(string $input): ?string
     {
         try {
-            return \Carbon\Carbon::parse($input, 'Asia/Dhaka')->utc()->toDateTimeString();
+            return Carbon::parse($input, 'Asia/Dhaka')->utc()->toDateTimeString();
         } catch (\Throwable $e) {
             return $input;
         }
@@ -457,7 +477,7 @@ class AddNews extends Component
     {
         $stories = $stories ?? app(StoryService::class);
         if ($this->storyId) {
-            $s = Story::findOrFail($this->storyId);
+            $s = app(StoryRepository::class)->findOrFail($this->storyId);
             $stories->takeOver($s, auth()->user());
             $this->ownerId = auth()->id();
             $this->ownerName = auth()->user()->name;
@@ -466,9 +486,8 @@ class AddNews extends Component
         }
     }
 
-    public function sendToReview(?NotificationService $notifs = null, ?RbacService $rbac = null, ?StoryService $svc = null): void
+    public function sendToReview(?RbacService $rbac = null, ?StoryService $svc = null): void
     {
-        $notifs = $notifs ?? app(NotificationService::class);
         $rbac = $rbac ?? app(RbacService::class);
         $svc = $svc ?? app(StoryService::class);
 
@@ -481,18 +500,16 @@ class AddNews extends Component
         ]);
 
         $this->autosave($rbac, $svc);
-        $s = Story::findOrFail($this->storyId);
+        $s = app(StoryRepository::class)->findOrFail($this->storyId);
         $svc->transition($s, 'in_review', auth()->user());
         $this->status = 'in_review';
 
-        $notifs->notifyReviewRequested($s->id, $s->headline, auth()->id());
         $this->successState = 'sent';
         $this->dispatch('toast', message: 'Sent for review to the desk editor');
     }
 
-    public function publish(?NotificationService $notifs = null, ?RbacService $rbac = null, ?StoryService $svc = null): void
+    public function publish(?RbacService $rbac = null, ?StoryService $svc = null): void
     {
-        $notifs = $notifs ?? app(NotificationService::class);
         $rbac = $rbac ?? app(RbacService::class);
         $svc = $svc ?? app(StoryService::class);
 
@@ -505,7 +522,7 @@ class AddNews extends Component
         ]);
 
         $this->autosave($rbac, $svc);
-        $s = Story::findOrFail($this->storyId);
+        $s = app(StoryRepository::class)->findOrFail($this->storyId);
 
         // Wizard publish may be invoked from draft by an editor/admin with publish permission.
         // Walk through the workflow so every transition is audited.
@@ -525,17 +542,15 @@ class AddNews extends Component
         $this->status = $s->status;
 
         if ($s->status === 'published') {
-            dispatch(new \App\Jobs\FanoutStory($s->id));
-            dispatch(new \App\Jobs\ProcessIndexOutbox());
-            $notifs->notifyStatusChange($s->id, 'published', auth()->id());
+            dispatch(new ProcessIndexOutbox);
             $this->successState = 'published';
             $this->dispatch('toast', message: 'Story successfully published to wire feed');
         }
     }
 
-    public function quickPublish(?NotificationService $notifs = null, ?RbacService $rbac = null, ?StoryService $svc = null): void
+    public function quickPublish(?RbacService $rbac = null, ?StoryService $svc = null): void
     {
-        $this->publish($notifs, $rbac, $svc);
+        $this->publish($rbac, $svc);
     }
 
     public function addNote(): void
@@ -545,15 +560,16 @@ class AddNews extends Component
             $this->autosave();
         }
 
-        \App\Models\StoryNote::create([
-            'story_id' => $this->storyId,
+        $repo = app(StoryRepository::class);
+        $story = $repo->findOrFail($this->storyId);
+
+        $repo->createNote($story, [
             'user_id' => auth()->id(),
             'body' => $this->noteBody,
             'is_internal' => true,
         ]);
 
-        \App\Models\StoryEvent::create([
-            'story_id' => $this->storyId,
+        $repo->createEvent($story, [
             'actor_id' => auth()->id(),
             'action' => 'note_added',
             'from_status' => $this->status,
@@ -564,12 +580,49 @@ class AddNews extends Component
         $this->dispatch('toast', message: 'Note added to newsroom thread');
     }
 
+    public function listVersions(): array
+    {
+        if (! $this->storyId) {
+            return [];
+        }
+        $story = app(StoryRepository::class)->findOrFail($this->storyId);
+
+        return $story->versions()
+            ->with('creator:id,name')
+            ->orderByDesc('version')
+            ->get()
+            ->map(fn ($v) => [
+                'version' => $v->version,
+                'creator' => $v->creator?->name ?? 'System',
+                'created_at' => $v->created_at?->timezone('Asia/Dhaka')->format('M j, h:i A'),
+            ])
+            ->all();
+    }
+
+    public function restoreVersion(int $version): void
+    {
+        if (! $this->storyId) {
+            return;
+        }
+        app(RbacService::class)->assertCan(auth()->user(), 'stories', 'edit');
+        $story = app(StoryRepository::class)->findOrFail($this->storyId);
+        $restored = app(RevisionService::class)->restore($story, $version, auth()->user(), $story->version);
+        $this->headline = $restored->headline;
+        $this->subHead = $restored->sub_head ?? '';
+        $this->brief = $restored->brief ?? '';
+        $this->bodyHtml = $restored->body_html ?? '';
+        $this->version = $restored->version;
+        $this->showServerHistory = false;
+        $this->dispatch('quill-set-content', html: $this->bodyHtml);
+        $this->dispatch('toast', message: "Restored to v{$version}");
+    }
+
     public function render()
     {
         $cats = Category::whereNull('parent_id')->orderBy('sort_order')->get();
         $subs = $this->categoryId ? Category::where('parent_id', $this->categoryId)->orderBy('sort_order')->get() : collect();
         $media = MediaAsset::where('status', 'library')->orderByDesc('created_at')->limit(24)->get();
-        $notes = $this->storyId ? \App\Models\StoryNote::with('user.role')->where('story_id', $this->storyId)->where('is_internal', true)->orderBy('created_at')->get() : collect();
+        $notes = $this->storyId ? StoryNote::with('user.role')->where('story_id', $this->storyId)->where('is_internal', true)->orderBy('created_at')->get() : collect();
 
         return view('livewire.admin.add-news', compact('cats', 'subs', 'media', 'notes'));
     }

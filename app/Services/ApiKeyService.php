@@ -18,6 +18,7 @@ class ApiKeyService
             'scopes' => $scopes,
             'rate_limit_rpm' => $rpm,
         ]);
+
         return [$key, $raw];
     }
 
@@ -32,6 +33,7 @@ class ApiKeyService
             'rate_limit_rpm' => $old->rate_limit_rpm,
         ]);
         $old->update(['expires_at' => now()->addHour()]);
+
         return [$new, $raw];
     }
 
@@ -43,11 +45,18 @@ class ApiKeyService
     public function authenticate(string $raw): ?ClientApiKey
     {
         $hash = hash('sha256', $raw);
-        $key = ClientApiKey::where('key_hash', $hash)->whereNull('revoked_at')->first();
-        if(! $key) return null;
-        if($key->expires_at && $key->expires_at->isPast()) return null;
-        if($key->client->status !== 'active') return null;
+        $key = ClientApiKey::with('client')->where('key_hash', $hash)->whereNull('revoked_at')->first();
+        if (! $key) {
+            return null;
+        }
+        if ($key->expires_at && $key->expires_at->isPast()) {
+            return null;
+        }
+        if ($key->client->status !== 'active') {
+            return null;
+        }
         $key->update(['last_used_at' => now()]);
+
         return $key;
     }
 

@@ -97,4 +97,122 @@ test.describe('News List Faithful (M8-NEWS-001 & M8-NEWS-002)', () => {
     await expect(page.getByRole('heading', { name: 'Bangla News' })).toBeVisible({ timeout: 5000 });
     await expect(page.locator('.news-table')).toBeVisible();
   });
+
+  test('Status filter tabs cycle and update active state correctly', async ({ page }) => {
+    await page.goto('/admin/news/en');
+    await expect(page.getByRole('heading', { name: 'English News' })).toBeVisible({ timeout: 5000 });
+
+    const statusTabs = [
+      { name: /Live/i, value: 'published' },
+      { name: /Draft/i, value: 'draft' },
+      { name: /In review/i, value: 'in_review' },
+      { name: /Needs work/i, value: 'changes_requested' },
+      { name: /All/i, value: 'all' },
+    ];
+
+    for (const tab of statusTabs) {
+      const tabButton = page.getByRole('button', { name: tab.name }).first();
+      await expect(tabButton).toBeVisible();
+      await tabButton.click();
+      // Verify active background class
+      await expect(tabButton).toHaveClass(/bg-navy-800/);
+    }
+  });
+
+  test('Search input and category filter filter table rows dynamically', async ({ page }) => {
+    await page.goto('/admin/news/en');
+    await expect(page.getByRole('heading', { name: 'English News' })).toBeVisible({ timeout: 5000 });
+
+    // Search input
+    const searchInput = page.locator('input.search-input');
+    await expect(searchInput).toBeVisible();
+    await searchInput.fill('NonexistentQueryX123999');
+    
+    // Check empty state appears or row count drops
+    await expect(page.locator('.news-table tbody')).toContainText('No stories found', { timeout: 7000 });
+
+    // Clear search
+    await searchInput.fill('');
+    await page.waitForTimeout(500);
+
+    // Category dropdown filter
+    const catSelect = page.locator('select.filter-select').first();
+    await expect(catSelect).toBeVisible();
+    const options = await catSelect.locator('option').allInnerTexts();
+    if (options.length > 1) {
+      await catSelect.selectOption({ index: 1 });
+      await page.waitForTimeout(400);
+      // Verify table is still rendered
+      await expect(page.locator('.news-table')).toBeVisible();
+    }
+  });
+
+  test('Multi-select row checkboxes toggle bulk action bar and actions', async ({ page }) => {
+    await page.goto('/admin/news/en');
+    await expect(page.getByRole('heading', { name: 'English News' })).toBeVisible({ timeout: 5000 });
+
+    const rows = page.locator('.news-table tbody tr');
+    const rowCount = await rows.count();
+
+    if (rowCount > 0 && !await rows.first().locator('td[colspan]').isVisible().catch(() => false)) {
+      const firstRowCheckbox = rows.first().locator('td').first().locator('input[type="checkbox"]');
+      await expect(firstRowCheckbox).toBeVisible();
+
+      // Bulk bar should not be visible before selection
+      await expect(page.locator('text=stories selected')).not.toBeVisible();
+
+      // Select first row
+      await firstRowCheckbox.check();
+      
+      // Bulk bar should become visible
+      const bulkBar = page.locator('.bg-navy-800.text-white:has-text("selected")');
+      await expect(bulkBar).toBeVisible({ timeout: 5000 });
+      await expect(bulkBar).toContainText('1 story selected');
+      await expect(bulkBar.getByRole('button', { name: 'Publish Selected' })).toBeVisible();
+      await expect(bulkBar.getByRole('button', { name: 'Delete Selected' })).toBeVisible();
+
+      // Select all header checkbox
+      const selectAllCheckbox = page.locator('thead input[type="checkbox"]');
+      await selectAllCheckbox.check();
+      await expect(bulkBar).toContainText(/selected/);
+
+      // Uncheck select all
+      await selectAllCheckbox.uncheck();
+      await expect(bulkBar).not.toBeVisible({ timeout: 5000 });
+    }
+  });
+
+  test('Row navigation links and live toggle switches function properly', async ({ page }) => {
+    test.setTimeout(60000);
+    await page.goto('/admin/news/en');
+    await expect(page.getByRole('heading', { name: 'English News' })).toBeVisible({ timeout: 5000 });
+
+    // "+ Add News" button
+    const addBtn = page.getByRole('link', { name: '+ Add News' });
+    await expect(addBtn).toHaveAttribute('href', /.*add-news.*/);
+
+    const rows = page.locator('.news-table tbody tr');
+    if (await rows.count() > 0 && !await rows.first().locator('td[colspan]').isVisible().catch(() => false)) {
+      // Story view reader link
+      const readerLink = rows.first().locator('.actions a.story-view-link');
+      if (await readerLink.isVisible().catch(() => false)) {
+        await expect(readerLink).toHaveAttribute('href', /.*admin\/story\/.*/);
+      }
+
+      // Edit story link
+      const editLink = rows.first().locator('.actions a[title="Edit story"]');
+      if (await editLink.isVisible().catch(() => false)) {
+        await expect(editLink).toHaveAttribute('href', /.*add-news\?id=.*/);
+      }
+
+      // Live switch toggle
+      const switchLabel = rows.first().locator('label.switch');
+      if (await switchLabel.isVisible().catch(() => false)) {
+        await switchLabel.click();
+        // Allow Livewire roundtrip
+        await page.waitForTimeout(1000);
+      }
+    }
+  });
 });
+

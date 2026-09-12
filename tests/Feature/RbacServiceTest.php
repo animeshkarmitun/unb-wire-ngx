@@ -3,9 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Role;
-use App\Models\RolePermission;
 use App\Models\User;
 use App\Services\RbacService;
+use Database\Seeders\RoleSeeder;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -15,8 +16,9 @@ class RbacServiceTest extends TestCase
 
     private function makeUser(string $roleName = 'Editor'): User
     {
-        $this->seed(\Database\Seeders\RoleSeeder::class);
+        $this->seed(RoleSeeder::class);
         $role = Role::where('name', $roleName)->firstOrFail();
+
         return User::factory()->create(['role_id' => $role->id]);
     }
 
@@ -62,7 +64,7 @@ class RbacServiceTest extends TestCase
     {
         $user = $this->makeUser('Uploader-Bangla');
         $svc = app(RbacService::class);
-        $this->expectException(\Illuminate\Auth\Access\AuthorizationException::class);
+        $this->expectException(AuthorizationException::class);
         $svc->assertCan($user, 'clients', 'view');
     }
 
@@ -80,5 +82,55 @@ class RbacServiceTest extends TestCase
         $user = $this->makeUser('Admin');
         $svc = app(RbacService::class);
         $this->assertFalse($svc->can($user, 'nonexistent', 'view'));
+    }
+
+    public function test_editor_can_view_history_not_audit(): void
+    {
+        $user = $this->makeUser('Editor');
+        $svc = app(RbacService::class);
+        $this->assertTrue($svc->can($user, 'history', 'view'));
+        $this->assertFalse($svc->can($user, 'audit', 'view'));
+    }
+
+    public function test_strategist_can_view_history_not_audit(): void
+    {
+        $user = $this->makeUser('Strategist');
+        $svc = app(RbacService::class);
+        $this->assertTrue($svc->can($user, 'history', 'view'));
+        $this->assertFalse($svc->can($user, 'audit', 'view'));
+    }
+
+    public function test_admin_report_can_view_history_and_audit(): void
+    {
+        $user = $this->makeUser('Admin Report');
+        $svc = app(RbacService::class);
+        $this->assertTrue($svc->can($user, 'history', 'view'));
+        $this->assertTrue($svc->can($user, 'audit', 'view'));
+    }
+
+    public function test_business_team_denied_history_and_audit(): void
+    {
+        $user = $this->makeUser('Business Team');
+        $svc = app(RbacService::class);
+        $this->assertFalse($svc->can($user, 'history', 'view'));
+        $this->assertFalse($svc->can($user, 'audit', 'view'));
+    }
+
+    public function test_client_denied_history_and_audit(): void
+    {
+        $user = $this->makeUser('Client Bangla (Without AP)');
+        $svc = app(RbacService::class);
+        $this->assertFalse($svc->can($user, 'history', 'view'));
+        $this->assertFalse($svc->can($user, 'audit', 'view'));
+    }
+
+    public function test_uploaders_can_view_history_not_audit(): void
+    {
+        $svc = app(RbacService::class);
+        foreach (['Uploader-Bangla', 'Uploader-English'] as $roleName) {
+            $user = $this->makeUser($roleName);
+            $this->assertTrue($svc->can($user, 'history', 'view'), $roleName);
+            $this->assertFalse($svc->can($user, 'audit', 'view'), $roleName);
+        }
     }
 }
