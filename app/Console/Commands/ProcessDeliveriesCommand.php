@@ -6,12 +6,15 @@ use App\Models\Delivery;
 use App\Models\Setting;
 use App\Models\Story;
 use App\Repositories\ClientRepository;
+use App\Services\Delivery\WebhookPayloadBuilder;
+use App\Services\Delivery\WebhookSigner;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 
 class ProcessDeliveriesCommand extends Command
 {
     protected $signature = 'delivery:process {--limit=50}';
+
     protected $description = 'Process queued and failed deliveries';
 
     public function handle(ClientRepository $clients)
@@ -57,19 +60,20 @@ class ProcessDeliveriesCommand extends Command
                         $delivery->update([
                             'status' => 'failed',
                             'error' => 'Story not found',
-                            'attempt_count' => $delivery->attempt_count + 1
+                            'attempt_count' => $delivery->attempt_count + 1,
                         ]);
+
                         continue;
                     }
 
-                    $payload = app(\App\Services\Delivery\WebhookPayloadBuilder::class)->build($story, 'story.published');
+                    $payload = app(WebhookPayloadBuilder::class)->build($story, 'story.published');
                     $jsonPayload = json_encode($payload);
                     $secret = $config['signing_secret'] ?? '';
-                    $headers = app(\App\Services\Delivery\WebhookSigner::class)->headers($jsonPayload, $secret, 'story.published');
-                    
+                    $headers = app(WebhookSigner::class)->headers($jsonPayload, $secret, 'story.published');
+
                     try {
                         $response = Http::withHeaders($headers)->timeout(5)->post($config['url'], $payload);
-                        
+
                         if ($response->successful()) {
                             $delivery->update([
                                 'status' => 'sent',
@@ -92,7 +96,7 @@ class ProcessDeliveriesCommand extends Command
     private function handleFailure(Delivery $delivery, ClientRepository $clients, int $maxRetries, int $autoPauseThreshold, ?int $code, string $error)
     {
         $newCount = $delivery->attempt_count + 1;
-        
+
         $delivery->update([
             'status' => 'failed',
             'attempt_count' => $newCount,

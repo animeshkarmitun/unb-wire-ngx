@@ -4,6 +4,9 @@ namespace App\Jobs;
 
 use App\Models\Story;
 use App\Repositories\ClientRepository;
+use App\Services\Delivery\TriggerMatcher;
+use App\Services\Delivery\WebhookPayloadBuilder;
+use App\Services\Delivery\WebhookSigner;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
@@ -75,16 +78,17 @@ class FanoutStory implements ShouldQueue
                     $config = is_string($ch->config) ? json_decode($ch->config, true) : $ch->config;
                     if ($ch->type === 'webhook' && ! empty($config['url'])) {
                         $triggers = $config['triggers'] ?? [];
-                        if (! app(\App\Services\Delivery\TriggerMatcher::class)->shouldFire($story, $triggers)) {
+                        if (! app(TriggerMatcher::class)->shouldFire($story, $triggers)) {
                             DB::table('deliveries')->where('idempotency_key', $key)->update(['status' => 'skipped_entitlement']);
+
                             continue;
                         }
 
-                        $payload = app(\App\Services\Delivery\WebhookPayloadBuilder::class)->build($story, 'story.published');
+                        $payload = app(WebhookPayloadBuilder::class)->build($story, 'story.published');
                         $jsonPayload = json_encode($payload);
                         $secret = $config['signing_secret'] ?? '';
-                        $headers = app(\App\Services\Delivery\WebhookSigner::class)->headers($jsonPayload, $secret, 'story.published');
-                        
+                        $headers = app(WebhookSigner::class)->headers($jsonPayload, $secret, 'story.published');
+
                         $response = Http::withHeaders($headers)->timeout(5)->post($config['url'], $payload);
                         if ($response->successful()) {
                             DB::table('deliveries')->where('idempotency_key', $key)->update(['status' => 'sent', 'sent_at' => now()]);

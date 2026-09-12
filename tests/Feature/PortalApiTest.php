@@ -5,6 +5,11 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Client;
 use App\Models\ClientApiKey;
+use App\Models\ClientChannel;
+use App\Models\ClientPackage;
+use App\Models\Delivery;
+use App\Models\Download;
+use App\Models\Package;
 use App\Models\Story;
 use App\Models\User;
 use Database\Seeders\PackageSeeder;
@@ -396,8 +401,8 @@ class PortalApiTest extends TestCase
             ]),
         ]);
 
-        $package = \App\Models\Package::first() ?? \App\Models\Package::factory()->create(['name' => 'Premium']);
-        \App\Models\ClientPackage::create([
+        $package = Package::first() ?? Package::factory()->create(['name' => 'Premium']);
+        ClientPackage::create([
             'client_id' => $client->id,
             'package_id' => $package->id,
             'starts_at' => now()->subDay(),
@@ -405,7 +410,7 @@ class PortalApiTest extends TestCase
             'status' => 'active',
         ]);
 
-        $rawKey = 'unb_live_' . Str::random(16);
+        $rawKey = 'unb_live_'.Str::random(16);
         ClientApiKey::create([
             'client_id' => $client->id,
             'name' => 'Test Key',
@@ -414,9 +419,9 @@ class PortalApiTest extends TestCase
             'rate_limit_rpm' => 60,
         ]);
 
-        $channel = \App\Models\ClientChannel::factory()->create(['client_id' => $client->id]);
-        
-        \App\Models\Delivery::create([
+        $channel = ClientChannel::factory()->create(['client_id' => $client->id]);
+
+        Delivery::create([
             'client_id' => $client->id,
             'deliverable_type' => 'story',
             'deliverable_id' => 1,
@@ -426,17 +431,17 @@ class PortalApiTest extends TestCase
             'idempotency_key' => Str::random(16),
             'payload_hash' => 'hash123',
         ]);
-        
-        \App\Models\Download::create([
+
+        Download::create([
             'client_id' => $client->id,
             'item_type' => 'App\Models\MediaAsset',
             'item_id' => 1,
             'created_at' => now(),
-            'ip' => '127.0.0.1'
+            'ip' => '127.0.0.1',
         ]);
 
         $resp = $this->getJson('/api/v1/portal/context', [
-            'Authorization' => 'Bearer ' . $rawKey,
+            'Authorization' => 'Bearer '.$rawKey,
         ]);
 
         $resp->assertOk();
@@ -457,7 +462,7 @@ class PortalApiTest extends TestCase
     public function test_context_without_auth_returns_null_client(): void
     {
         $resp = $this->getJson('/api/v1/portal/context');
-        
+
         $resp->assertOk();
         $this->assertNull($resp->json('client'));
         $this->assertEmpty($resp->json('saved_searches'));

@@ -8,11 +8,11 @@ use App\Services\Delivery\FtpDiskFactory;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use InvalidArgumentException;
-use Tests\TestCase;
-use League\Flysystem\PhpseclibV3\SftpAdapter;
 use League\Flysystem\Ftp\FtpAdapter;
+use League\Flysystem\PhpseclibV3\SftpAdapter;
+use Tests\TestCase;
 
-if (!defined('FTP_BINARY')) {
+if (! defined('FTP_BINARY')) {
     define('FTP_BINARY', 2);
 }
 
@@ -25,7 +25,7 @@ class FtpDiskFactoryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->factory = new FtpDiskFactory();
+        $this->factory = new FtpDiskFactory;
     }
 
     public function test_it_creates_sftp_adapter_with_password()
@@ -39,11 +39,11 @@ class FtpDiskFactoryTest extends TestCase
                 'username' => 'user1',
                 'password' => 'secret',
                 'port' => 22,
-            ]
+            ],
         ]);
 
         $disk = $this->factory->make($channel);
-        
+
         $this->assertInstanceOf(FilesystemAdapter::class, $disk);
         $this->assertInstanceOf(SftpAdapter::class, $disk->getAdapter());
     }
@@ -58,12 +58,12 @@ class FtpDiskFactoryTest extends TestCase
                 'host' => 'sftp.example.com',
                 'username' => 'user1',
                 'privateKey' => 'some-private-key-content',
-                'auth_type' => 'sftp'
-            ]
+                'auth_type' => 'sftp',
+            ],
         ]);
 
         $disk = $this->factory->make($channel);
-        
+
         $this->assertInstanceOf(FilesystemAdapter::class, $disk);
         $this->assertInstanceOf(SftpAdapter::class, $disk->getAdapter());
     }
@@ -79,11 +79,11 @@ class FtpDiskFactoryTest extends TestCase
                 'username' => 'user2',
                 'password' => 'secret',
                 'port' => 21,
-            ]
+            ],
         ]);
 
         $disk = $this->factory->make($channel);
-        
+
         $this->assertInstanceOf(FilesystemAdapter::class, $disk);
         $this->assertInstanceOf(FtpAdapter::class, $disk->getAdapter());
     }
@@ -94,12 +94,12 @@ class FtpDiskFactoryTest extends TestCase
         $channel = ClientChannel::factory()->create([
             'client_id' => $client->id,
             'type' => 'api',
-            'config' => []
+            'config' => [],
         ]);
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage("Channel type must be 'ftp'.");
-        
+
         $this->factory->make($channel);
     }
 
@@ -110,13 +110,13 @@ class FtpDiskFactoryTest extends TestCase
             'client_id' => $client->id,
             'type' => 'ftp',
             'config' => [
-                'username' => 'user1'
-            ]
+                'username' => 'user1',
+            ],
         ]);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage("Missing host in channel config.");
-        
+        $this->expectExceptionMessage('Missing host in channel config.');
+
         $this->factory->make($channel);
     }
 
@@ -129,13 +129,13 @@ class FtpDiskFactoryTest extends TestCase
             'config' => [
                 'host' => 'sftp.example.com',
                 'username' => 'user1',
-                'port' => 22
-            ]
+                'port' => 22,
+            ],
         ]);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage("Missing password or privateKey for SFTP connection.");
-        
+        $this->expectExceptionMessage('Missing password or privateKey for SFTP connection.');
+
         $this->factory->make($channel);
     }
 
@@ -148,13 +148,13 @@ class FtpDiskFactoryTest extends TestCase
             'config' => [
                 'host' => 'ftp.example.com',
                 'username' => 'user1',
-                'port' => 21
-            ]
+                'port' => 21,
+            ],
         ]);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage("Missing password for FTP connection.");
-        
+        $this->expectExceptionMessage('Missing password for FTP connection.');
+
         $this->factory->make($channel);
     }
 }

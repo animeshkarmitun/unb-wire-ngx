@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Client;
 use App\Models\ClientApiKey;
+use App\Models\ClientPackage;
+use App\Models\Delivery;
+use App\Models\Download;
 use App\Models\Story;
 use App\Repositories\StoryRepository;
+use App\Services\ApiKeyService;
 use App\Services\Search\TenantTokenIssuer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -62,7 +65,7 @@ class PortalController extends Controller
         return response()->json(['data' => $stories])->header('Cache-Control', 'public, max-age=60');
     }
 
-    public function context(Request $request, \App\Services\ApiKeyService $apiSvc): JsonResponse
+    public function context(Request $request, ApiKeyService $apiSvc): JsonResponse
     {
         $client = null;
         $raw = $request->bearerToken() ?? $request->header('X-API-Key');
@@ -80,7 +83,7 @@ class PortalController extends Controller
             ]);
         }
 
-        $activeSub = \App\Models\ClientPackage::where('client_id', $client->id)
+        $activeSub = ClientPackage::where('client_id', $client->id)
             ->where('starts_at', '<=', now())
             ->where('ends_at', '>=', now())
             ->where('status', 'active')
@@ -89,14 +92,14 @@ class PortalController extends Controller
 
         $notes = is_string($client->notes) ? json_decode($client->notes, true) : (is_array($client->notes) ? $client->notes : []);
         $tierQuotas = $notes['tier_quotas'] ?? [];
-        
-        $storiesUsed = \App\Models\Delivery::where('client_id', $client->id)
+
+        $storiesUsed = Delivery::where('client_id', $client->id)
             ->where('deliverable_type', 'story')
             ->where('status', 'sent')
             ->whereMonth('created_at', now()->month)
             ->count();
 
-        $mediaUsed = \App\Models\Download::where('client_id', $client->id)
+        $mediaUsed = Download::where('client_id', $client->id)
             ->whereMonth('created_at', now()->month)
             ->count();
 

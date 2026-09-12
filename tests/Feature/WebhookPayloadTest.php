@@ -31,9 +31,9 @@ class WebhookPayloadTest extends TestCase
             'owner_id' => $owner->id,
             'published_at' => '2026-09-12 22:00:00',
         ]);
-        
+
         $story->tags()->attach($tag);
-        
+
         $media = MediaAsset::factory()->create([
             'public_id' => 'MEDIA-123',
             'kind' => 'photo',
@@ -47,7 +47,7 @@ class WebhookPayloadTest extends TestCase
 
         $this->assertEquals('story.published', $payload['event']);
         $this->assertArrayHasKey('timestamp', $payload);
-        
+
         $data = $payload['data'];
         $this->assertEquals('UNB-2026-12345', $data['public_id']);
         $this->assertEquals('Test Headline', $data['headline']);
@@ -59,7 +59,7 @@ class WebhookPayloadTest extends TestCase
         $this->assertEquals(['slug' => 'politics', 'name' => 'Politics'], $data['category']);
         $this->assertEquals(['election'], $data['tags']);
         $this->assertEquals('2026-09-12T22:00:00+00:00', $data['published_at']);
-        
+
         $this->assertCount(1, $data['media']);
         $this->assertEquals('MEDIA-123', $data['media'][0]['public_id']);
         $this->assertEquals('photo', $data['media'][0]['kind']);

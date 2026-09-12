@@ -20,20 +20,20 @@ class FtpDiskFactory
         }
 
         $config = $channel->config ?? [];
-        
+
         $host = $config['host'] ?? null;
         $username = $config['username'] ?? null;
-        
+
         if (empty($host)) {
-            throw new InvalidArgumentException("Missing host in channel config.");
+            throw new InvalidArgumentException('Missing host in channel config.');
         }
         if (empty($username)) {
-            throw new InvalidArgumentException("Missing username in channel config.");
+            throw new InvalidArgumentException('Missing username in channel config.');
         }
 
         $port = (int) ($config['port'] ?? 21);
         $authType = $config['auth_type'] ?? ($port === 22 ? 'sftp' : 'ftp');
-        
+
         $password = $config['password'] ?? null;
         $privateKey = $config['privateKey'] ?? null;
         $passphrase = $config['passphrase'] ?? null;
@@ -44,7 +44,7 @@ class FtpDiskFactory
                 'username' => $username,
                 'port' => $port,
             ];
-            
+
             if ($privateKey) {
                 $providerOptions['privateKey'] = $privateKey;
                 if ($passphrase) {
@@ -53,14 +53,14 @@ class FtpDiskFactory
             } elseif ($password) {
                 $providerOptions['password'] = $password;
             } else {
-                throw new InvalidArgumentException("Missing password or privateKey for SFTP connection.");
+                throw new InvalidArgumentException('Missing password or privateKey for SFTP connection.');
             }
 
             $provider = SftpConnectionProvider::fromArray($providerOptions);
             $adapter = new SftpAdapter($provider, '/');
         } else {
-            if (!$password) {
-                throw new InvalidArgumentException("Missing password for FTP connection.");
+            if (! $password) {
+                throw new InvalidArgumentException('Missing password for FTP connection.');
             }
             $options = FtpConnectionOptions::fromArray([
                 'host' => $host,
@@ -76,7 +76,7 @@ class FtpDiskFactory
         }
 
         $driver = new Filesystem($adapter);
-        
+
         return new FilesystemAdapter($driver, $adapter, $config);
     }
 }

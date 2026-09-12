@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\MediaAsset;
 use App\Models\Story;
 use App\Models\Tag;
+use App\Models\User;
 use App\Services\Delivery\WireFormatFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -27,7 +28,7 @@ class WireFormatTest extends TestCase
         $tag = new Tag(['name' => 'test-tag']);
         $tag->slug = 'test-tag';
         $tag->save();
-        
+
         $this->story = Story::factory()->create([
             'headline' => 'Test Headline',
             'brief' => 'Test brief.',
@@ -40,9 +41,9 @@ class WireFormatTest extends TestCase
         ]);
         $this->story->tags()->attach($tag->id);
 
-        $user = \App\Models\User::factory()->create();
-        
-        $media = new MediaAsset();
+        $user = User::factory()->create();
+
+        $media = new MediaAsset;
         $media->forceFill([
             'kind' => 'image',
             'caption' => 'Test Caption',
@@ -54,24 +55,24 @@ class WireFormatTest extends TestCase
             'original_path' => 'test.jpg',
             'checksum' => 'test-checksum',
             'status' => 'ready',
-            'uploaded_by' => $user->id
+            'uploaded_by' => $user->id,
         ]);
         $media->public_id = 'test-media-id';
         $media->save();
         $this->story->media()->attach($media->id);
-        
+
         // Eager load relations
         $this->story->load(['category', 'tags', 'media']);
     }
 
     public function test_json_unb_v1_format(): void
     {
-        $factory = new WireFormatFactory();
+        $factory = new WireFormatFactory;
         $output = $factory->generate($this->story, 'json-unb-v1');
 
         $this->assertEquals("UNB-{$this->story->public_id}.json", $output->filename);
         $this->assertEquals('application/json', $output->contentType);
-        
+
         $data = json_decode($output->content, true);
         $this->assertEquals($this->story->public_id, $data['public_id']);
         $this->assertEquals('Test Headline', $data['headline']);
@@ -85,18 +86,18 @@ class WireFormatTest extends TestCase
 
     public function test_newsml_g2_format(): void
     {
-        $factory = new WireFormatFactory();
+        $factory = new WireFormatFactory;
         $output = $factory->generate($this->story, 'newsml-g2');
 
         $this->assertEquals("UNB-{$this->story->public_id}.xml", $output->filename);
         $this->assertEquals('application/xml', $output->contentType);
-        
+
         $this->assertStringContainsString('<?xml version="1.0" encoding="UTF-8"?>', $output->content);
         $this->assertStringContainsString('<newsItem', $output->content);
         $this->assertStringContainsString('Test Headline', $output->content);
         $this->assertStringContainsString('<p>Test body HTML</p>', $output->content);
         $this->assertStringContainsString('<title>Test Caption</title>', $output->content);
-        
+
         // Ensure it's valid XML
         $xml = simplexml_load_string($output->content);
         $this->assertNotFalse($xml);
@@ -105,19 +106,19 @@ class WireFormatTest extends TestCase
 
     public function test_nitf_format(): void
     {
-        $factory = new WireFormatFactory();
+        $factory = new WireFormatFactory;
         $output = $factory->generate($this->story, 'nitf');
 
         $this->assertEquals("UNB-{$this->story->public_id}.nitf.xml", $output->filename);
         $this->assertEquals('application/xml', $output->contentType);
-        
+
         $this->assertStringContainsString('<?xml version="1.0" encoding="UTF-8"?>', $output->content);
         $this->assertStringContainsString('<nitf>', $output->content);
         $this->assertStringContainsString('<title>Test Headline</title>', $output->content);
         $this->assertStringContainsString('<p>Test brief.</p>', $output->content);
         $this->assertStringContainsString('<p>Test body HTML</p>', $output->content);
         $this->assertStringContainsString('<media-caption>Test Caption</media-caption>', $output->content);
-        
+
         // Ensure it's valid XML
         $xml = simplexml_load_string($output->content);
         $this->assertNotFalse($xml);
