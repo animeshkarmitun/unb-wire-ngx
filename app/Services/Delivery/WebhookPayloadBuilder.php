@@ -22,7 +22,7 @@ class WebhookPayloadBuilder
             'event' => $event,
             'timestamp' => now()->toIso8601String(),
             'data' => [
-                'public_id' => $story->public_id,
+                'public_id' => trim((string) $story->public_id),
                 'headline' => $story->headline,
                 'summary' => $story->brief,
                 'body_html' => $story->body_html,
@@ -33,7 +33,7 @@ class WebhookPayloadBuilder
                 'tags' => $story->tags ? $story->tags->pluck('name')->toArray() : [],
                 'published_at' => $story->published_at ? $story->published_at->toIso8601String() : null,
                 'media' => $story->media ? $story->media->map(fn ($m) => [
-                    'public_id' => $m->public_id,
+                    'public_id' => trim((string) $m->public_id),
                     'kind' => $m->kind,
                     'caption' => $m->pivot?->caption_override ?: $m->caption,
                     'download_url' => url("/api/v1/media/{$m->id}/download"),
