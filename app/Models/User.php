@@ -30,6 +30,8 @@ class User extends Authenticatable
         'role_id',
         'desk',
         'timezone',
+        'date_format',
+        'density',
         'status',
         'last_seen_at',
     ];

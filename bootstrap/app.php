@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureClientApiKey;
+use App\Http\Middleware\EnsurePortalSession;
 use App\Http\Middleware\EnsureRbac;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'rbac' => EnsureRbac::class,
             'client.api' => EnsureClientApiKey::class,
+            'portal.session' => EnsurePortalSession::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

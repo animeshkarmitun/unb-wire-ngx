@@ -32,7 +32,7 @@
 
 | Domain | Tables |
 |---|---|
-| Identity & access | `roles`, `role_permissions`, `users`, `devices` (retained, DEC-011) |
+| Identity & access | `roles`, `role_permissions`, `users` (+`date_format`, `density` — M12-PROFILE-002), `devices` (retained, DEC-011) |
 | Clients | `clients`, `client_users`, `client_api_keys` |
 | Taxonomy | `categories`, `tags`, `story_tag`, `media_tag` |
 | Stories | `stories`, `story_versions`, `story_notes` (+`is_internal`), `story_events`, `story_media` |

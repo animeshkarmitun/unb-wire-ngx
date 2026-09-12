@@ -15,7 +15,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="font-sans bg-paper text-ink antialiased" x-data="{ sidebarOpen: false }">
+<body class="font-sans bg-paper text-ink antialiased" x-data="{ sidebarOpen: false }" data-density="{{ auth()->user()->density ?? 'comfortable' }}">
     {{-- Brand strip across the very top --}}
     <div class="fixed top-0 inset-x-0 h-1 z-50 bg-[linear-gradient(90deg,#e5484d_0%,#f0a832_45%,#16204a_100%)]"></div>
 
