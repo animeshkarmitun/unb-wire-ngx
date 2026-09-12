@@ -5,6 +5,11 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Client;
 use App\Models\ClientApiKey;
+use App\Models\ClientChannel;
+use App\Models\ClientPackage;
+use App\Models\Delivery;
+use App\Models\Download;
+use App\Models\Package;
 use App\Models\Story;
 use App\Models\User;
 use Database\Seeders\PackageSeeder;
@@ -125,7 +130,7 @@ class PortalApiTest extends TestCase
     public function test_feed_filters_by_search_query(): void
     {
         if (config('database.default') === 'sqlite') {
-            $this->markTestSkipped('ilike is PostgreSQL-specific');
+            $this->markTestSkipped('ILIKE is PostgreSQL-specific; run with --env=testing or DB_CONNECTION=pgsql');
         }
 
         Story::factory()->published()->create([
@@ -388,9 +393,56 @@ class PortalApiTest extends TestCase
 
     public function test_context_returns_client_and_saved_searches(): void
     {
-        Client::factory()->create(['name' => 'The Daily Star']);
+        $client = Client::factory()->create([
+            'name' => 'The Daily Star',
+            'notes' => json_encode([
+                'tier_quotas' => ['stories_quota' => 500, 'media_quota' => 150],
+                'saved_searches' => [['name' => 'Test', 'q' => 'test']],
+            ]),
+        ]);
 
-        $resp = $this->getJson('/api/v1/portal/context');
+        $package = Package::first() ?? Package::factory()->create(['name' => 'Premium']);
+        ClientPackage::create([
+            'client_id' => $client->id,
+            'package_id' => $package->id,
+            'starts_at' => now()->subDay(),
+            'ends_at' => now()->addYear(),
+            'status' => 'active',
+        ]);
+
+        $rawKey = 'unb_live_'.Str::random(16);
+        ClientApiKey::create([
+            'client_id' => $client->id,
+            'name' => 'Test Key',
+            'key_hash' => hash('sha256', $rawKey),
+            'scopes' => json_encode(['feed:read']),
+            'rate_limit_rpm' => 60,
+        ]);
+
+        $channel = ClientChannel::factory()->create(['client_id' => $client->id]);
+
+        Delivery::create([
+            'client_id' => $client->id,
+            'deliverable_type' => 'story',
+            'deliverable_id' => 1,
+            'channel_id' => $channel->id,
+            'status' => 'sent',
+            'created_at' => now(),
+            'idempotency_key' => Str::random(16),
+            'payload_hash' => 'hash123',
+        ]);
+
+        Download::create([
+            'client_id' => $client->id,
+            'item_type' => 'media',
+            'item_id' => 1,
+            'created_at' => now(),
+            'ip' => '127.0.0.1',
+        ]);
+
+        $resp = $this->getJson('/api/v1/portal/context', [
+            'Authorization' => 'Bearer '.$rawKey,
+        ]);
 
         $resp->assertOk();
         $resp->assertJsonStructure([
@@ -398,7 +450,22 @@ class PortalApiTest extends TestCase
             'saved_searches',
         ]);
         $this->assertEquals('The Daily Star', $resp->json('client.name'));
-        $this->assertIsArray($resp->json('saved_searches'));
+        $this->assertEquals('TD', $resp->json('client.initials'));
+        $this->assertEquals($package->name, $resp->json('client.tier'));
+        $this->assertEquals(500, $resp->json('client.stories_quota'));
+        $this->assertEquals(150, $resp->json('client.media_quota'));
+        $this->assertEquals(1, $resp->json('client.stories_used'));
+        $this->assertEquals(1, $resp->json('client.media_used'));
+        $this->assertCount(1, $resp->json('saved_searches'));
+    }
+
+    public function test_context_without_auth_returns_null_client(): void
+    {
+        $resp = $this->getJson('/api/v1/portal/context');
+
+        $resp->assertOk();
+        $this->assertNull($resp->json('client'));
+        $this->assertEmpty($resp->json('saved_searches'));
     }
 
     // ─── Rate Limiting ──────────────────────────────────────────────

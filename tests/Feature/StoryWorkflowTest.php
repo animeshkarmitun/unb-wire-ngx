@@ -174,7 +174,7 @@ class StoryWorkflowTest extends TestCase
 
     public function test_publish_snapshot_contains_full_fields(): void
     {
-        $s = $this->draft(['priority' => 'high', 'language' => 'en']);
+        $s = $this->draft(['priority' => 'urgent', 'language' => 'en']);
         $svc = app(StoryService::class);
         $s = $svc->transition($s, 'in_review', $this->actor);
         $s = $svc->transition($s, 'approved', $this->actor);
@@ -183,7 +183,7 @@ class StoryWorkflowTest extends TestCase
         $v = $s->versions()->where('version', 4)->first();
         $this->assertNotNull($v);
         $this->assertEquals('en', $v->snapshot['language']);
-        $this->assertEquals('high', $v->snapshot['priority']);
+        $this->assertEquals('urgent', $v->snapshot['priority']);
         $this->assertNotNull($s->published_at);
     }
 

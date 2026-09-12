@@ -22,7 +22,7 @@ class MediaAssetFactory extends Factory
             'caption' => fake()->sentence(),
             'credit_line' => 'UNB',
             'photographer_id' => null,
-            'source' => 'desk',
+            'source' => 'staff',
             'category_id' => null,
             'event_label' => null,
             'location_city' => 'Dhaka',

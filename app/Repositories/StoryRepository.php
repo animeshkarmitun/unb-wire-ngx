@@ -204,8 +204,11 @@ class StoryRepository
 
         if ($activeCategory !== 'all') {
             $query->where(function ($q) use ($activeCategory) {
-                $q->where('category_id', $activeCategory)
-                    ->orWhereHas('category', fn ($c) => $c->where('slug', $activeCategory));
+                if (is_numeric($activeCategory)) {
+                    $q->where('category_id', (int) $activeCategory);
+                } else {
+                    $q->whereHas('category', fn ($c) => $c->where('slug', $activeCategory));
+                }
             });
         } else {
             $breaking = (clone $query)->where('is_breaking', true)->latest('published_at')->first();
@@ -359,7 +362,11 @@ class StoryRepository
             $query->where('status', $status);
         }
         if ($category !== 'all') {
-            $query->where('category_id', $category);
+            if (is_numeric($category)) {
+                $query->where('category_id', (int) $category);
+            } else {
+                $query->whereHas('category', fn ($c) => $c->where('slug', $category));
+            }
         }
         if ($search !== '') {
             $query->where(function ($q) use ($search) {

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\StoryPublished;
 use App\Jobs\FanoutStory;
 use App\Models\Story;
 use App\Models\StoryNote;
@@ -170,6 +171,8 @@ class StoryService
             Cache::forget('portal:feed:*');
             Cache::forget('feed:v1:*');
             if ($to === 'published') {
+                event(new StoryPublished($story));
+
                 DB::table('index_outbox')->insert([
                     'index_name' => 'main',
                     'op' => 'upsert',

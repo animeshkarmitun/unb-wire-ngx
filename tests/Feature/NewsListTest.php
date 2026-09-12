@@ -140,7 +140,7 @@ class NewsListTest extends TestCase
         StoryNote::create([
             'story_id' => $story->id,
             'user_id' => $this->otherUser->id,
-            'kind' => 'sub',
+            'kind' => 'note',
             'is_internal' => true,
             'body' => 'Please check the quotes from OC.',
             'created_at' => now(),

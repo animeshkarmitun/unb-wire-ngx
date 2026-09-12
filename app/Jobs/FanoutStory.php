@@ -2,8 +2,12 @@
 
 namespace App\Jobs;
 
+use App\Models\Client;
 use App\Models\Story;
 use App\Repositories\ClientRepository;
+use App\Services\Delivery\TriggerMatcher;
+use App\Services\Delivery\WebhookPayloadBuilder;
+use App\Services\Delivery\WebhookSigner;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +30,7 @@ class FanoutStory implements ShouldQueue
     public function handle(?ClientRepository $clients = null): void
     {
         $clients = $clients ?? app(ClientRepository::class);
-        $story = Story::with('media')->find($this->storyId);
+        $story = Story::with(['media', 'category', 'tags', 'owner'])->find($this->storyId);
         if (! $story || $story->status !== 'published') {
             return;
         }
@@ -68,16 +72,39 @@ class FanoutStory implements ShouldQueue
             foreach ($channels as $ch) {
                 $key = hash('sha256', $story->id.'-'.$ch->id.'-'.$story->version);
                 $payloadHash = hash('sha256', $story->body_text ?? '');
+
+                if (DB::table('deliveries')->where('idempotency_key', $key)->exists()) {
+                    continue;
+                }
+
                 try {
-                    DB::table('deliveries')->insert([
+                    $deliveryId = DB::table('deliveries')->insertGetId([
                         'deliverable_type' => 'story', 'deliverable_id' => $story->id, 'client_id' => $row->client_id, 'channel_id' => $ch->id, 'status' => 'queued', 'attempt_count' => 0, 'idempotency_key' => $key, 'payload_hash' => $payloadHash, 'created_at' => now(),
                     ]);
                     $config = is_string($ch->config) ? json_decode($ch->config, true) : $ch->config;
                     if ($ch->type === 'webhook' && ! empty($config['url'])) {
-                        Http::timeout(5)->post($config['url'], ['public_id' => $story->public_id, 'headline' => $story->headline]);
-                        DB::table('deliveries')->where('idempotency_key', $key)->update(['status' => 'sent', 'sent_at' => now()]);
+                        $triggers = $config['triggers'] ?? [];
+                        if (! app(TriggerMatcher::class)->shouldFire($story, $triggers)) {
+                            DB::table('deliveries')->where('idempotency_key', $key)->update(['status' => 'skipped_entitlement']);
+
+                            continue;
+                        }
+
+                        $payload = app(WebhookPayloadBuilder::class)->build($story, 'story.published');
+                        $jsonPayload = json_encode($payload);
+                        $secret = $config['signing_secret'] ?? '';
+                        $headers = app(WebhookSigner::class)->headers($jsonPayload, $secret, 'story.published');
+
+                        $response = Http::withHeaders($headers)->timeout(5)->post($config['url'], $payload);
+                        if ($response->successful()) {
+                            DB::table('deliveries')->where('idempotency_key', $key)->update(['status' => 'sent', 'sent_at' => now()]);
+                            $clients->recordChannelSuccess($ch->id);
+                        } else {
+                            $clients->recordChannelFailure($ch->id);
+                        }
+                    } elseif ($ch->type === 'ftp') {
+                        PushFtpDelivery::dispatch($deliveryId);
                     }
-                    $clients->recordChannelSuccess($ch->id);
                 } catch (\Throwable $e) {
                     if (str_contains($e->getMessage(), 'duplicate') || str_contains($e->getMessage(), 'Unique')) {
                         continue;
@@ -86,6 +113,19 @@ class FanoutStory implements ShouldQueue
                     $clients->recordChannelFailure($ch->id);
                 }
             }
+        }
+
+        // Email delivery (via clients.notes, not client_channels)
+        $emailClients = Client::whereNotNull('notes')
+            ->get()
+            ->filter(function ($c) {
+                $notes = is_string($c->notes) ? json_decode($c->notes, true) : ($c->notes ?? []);
+
+                return ! empty($notes['channels']['email']['on']);
+            });
+
+        foreach ($emailClients as $emailClient) {
+            SendStoryEmail::dispatch($story->id, $emailClient->id);
         }
     }
 }

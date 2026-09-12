@@ -15,7 +15,7 @@ class DownloadFactory extends Factory
         return [
             'client_id' => Client::factory(),
             'client_user_id' => null,
-            'item_type' => fake()->randomElement(['story', 'photo']),
+            'item_type' => fake()->randomElement(['story', 'media']),
             'item_id' => fake()->numberBetween(1, 1000),
             'format' => fake()->randomElement(['xml', 'json', 'jpg', 'png']),
             'size_bytes' => fake()->numberBetween(1000, 5000000),

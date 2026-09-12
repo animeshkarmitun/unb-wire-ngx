@@ -58,7 +58,7 @@ class StoryViewTest extends TestCase
             'created_by' => $this->editor->id,
             'version' => 1,
             'word_count' => 350,
-            'priority' => 'normal',
+            'priority' => 'routine',
         ]);
     }
 

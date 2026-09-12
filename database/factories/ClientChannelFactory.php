@@ -15,8 +15,8 @@ class ClientChannelFactory extends Factory
     {
         return [
             'client_id' => Client::factory(),
-            'type' => 'email',
-            'config' => ['list' => [fake()->safeEmail()], 'on' => true, 'health' => 'ok'],
+            'type' => 'webhook',
+            'config' => ['url' => 'https://example.com/webhook', 'health' => 'ok'],
             'status' => 'active',
             'failure_count' => 0,
             'last_success_at' => now(),

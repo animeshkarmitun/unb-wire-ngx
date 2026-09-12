@@ -12,7 +12,7 @@ class CategoryFactory extends Factory
     public function definition(): array
     {
         return [
-            'slug' => fake()->unique()->slug(),
+            'slug' => substr(fake()->unique()->slug(2), 0, 50),
             'name_en' => fake()->words(2, true),
             'name_bn' => fake()->words(2, true),
             'parent_id' => null,

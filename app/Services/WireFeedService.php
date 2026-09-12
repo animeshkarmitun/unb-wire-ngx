@@ -34,9 +34,9 @@ class WireFeedService
 
     private function singleCategorySection(string $language, string $search, string $activeCategory, ?int $excludeId): Collection
     {
-        $category = Category::where('id', $activeCategory)
-            ->orWhere('slug', $activeCategory)
-            ->first();
+        $category = is_numeric($activeCategory)
+            ? Category::find((int) $activeCategory)
+            : Category::where('slug', $activeCategory)->first();
 
         if (! $category) {
             return collect();

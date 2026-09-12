@@ -263,6 +263,19 @@
                 <hr class="divider">
 
                 <div class="field">
+                    <label for="signingSecret">
+                        Signing Secret <span style="color:var(--muted-2);font-weight:400">— used to verify webhook signatures (HMAC-SHA256)</span>
+                    </label>
+                    <div class="key-row">
+                        <input class="inp mono" id="signingSecret" value="{{ $isSecretRevealed ? $rawSigningSecret : $maskedSigningSecret }}" readonly>
+                        <button type="button" class="btn ghost sm" id="revealSecret" wire:click="toggleRevealSecret">
+                            {{ $isSecretRevealed ? 'Hide' : 'Reveal' }}
+                        </button>
+                        <button type="button" class="btn ghost sm" id="copySecret" @click="copyValue('signingSecret', $el)">Copy</button>
+                    </div>
+                </div>
+
+                <div class="field">
                     <label for="webhookUrl">
                         Webhook URL <span style="color:var(--muted-2);font-weight:400">— we POST here the moment something relevant publishes</span>
                     </label>

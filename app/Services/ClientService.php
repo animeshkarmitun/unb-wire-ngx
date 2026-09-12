@@ -8,8 +8,10 @@ use App\Models\ClientChannel;
 use App\Models\ClientPackage;
 use App\Models\Package;
 use App\Models\Role;
+use App\Services\Delivery\FtpDiskFactory;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -209,7 +211,7 @@ class ClientService
                 DB::table('client_channels')->insert([
                     'client_id' => $clientId,
                     'type' => 'ftp',
-                    'config' => json_encode(['host' => '', 'username' => '', 'port' => '21', 'password' => '', 'health' => 'ok']),
+                    'config' => json_encode(['host' => '', 'username' => '', 'port' => '21', 'password' => Crypt::encryptString(''), 'health' => 'ok']),
                     'status' => 'active',
                     'failure_count' => 0,
                     'created_at' => now(),
@@ -222,7 +224,7 @@ class ClientService
                 DB::table('client_channels')->insert([
                     'client_id' => $clientId,
                     'type' => 'api',
-                    'config' => json_encode(['endpoint' => '', 'key' => $apiKey, 'webhook' => '', 'health' => 'ok']),
+                    'config' => json_encode(['endpoint' => '', 'key' => $apiKey, 'url' => '', 'health' => 'ok', 'signing_secret' => Str::random(40)]),
                     'status' => 'active',
                     'failure_count' => 0,
                     'created_at' => now(),
@@ -279,10 +281,12 @@ class ClientService
         } else {
             $config = [];
             if ($type === 'ftp') {
-                $config = ['host' => 'ftp.'.strtolower($client->code).'.com', 'username' => strtolower($client->code).'_unb', 'port' => '21', 'password' => 'Unb@'.rand(1000, 9999), 'health' => 'ok'];
+                $config = ['host' => 'ftp.'.strtolower($client->code).'.com', 'username' => strtolower($client->code).'_unb', 'port' => '21', 'password' => Crypt::encryptString('Unb@'.rand(1000, 9999)), 'health' => 'ok'];
             } elseif ($type === 'api') {
                 $key = 'unb_live_'.Str::random(16);
-                $config = ['endpoint' => 'https://api.'.strtolower($client->code).'.com/unb', 'key' => $key, 'webhook' => '', 'health' => 'ok'];
+                $config = ['endpoint' => 'https://api.'.strtolower($client->code).'.com/unb', 'key' => $key, 'url' => '', 'health' => 'ok', 'signing_secret' => Str::random(40)];
+            } elseif ($type === 'webhook') {
+                $config = ['url' => '', 'health' => 'ok', 'signing_secret' => Str::random(40)];
             }
 
             ClientChannel::create([
@@ -323,18 +327,58 @@ class ClientService
     public function testFtpConnection(Client $client): void
     {
         $ftpChan = $client->clientChannels->firstWhere('type', 'ftp');
-        if ($ftpChan) {
+        if (! $ftpChan) {
+            return;
+        }
+
+        try {
+            // Temporarily set a 5s timeout for the test
+            $originalConfig = $ftpChan->config;
+            $config = $ftpChan->config ?? [];
+            $config['timeout'] = 5;
+            $ftpChan->config = $config;
+
+            $factory = app(FtpDiskFactory::class);
+            $disk = $factory->make($ftpChan);
+
+            $filename = '.unb-test-'.time();
+            $disk->write($filename, 'ok');
+            $disk->delete($filename);
+
+            $ftpChan->config = $originalConfig;
+            $cfg = $ftpChan->config ?? [];
+            $cfg['health'] = 'ok';
+
             $ftpChan->update([
+                'config' => $cfg,
                 'failure_count' => 0,
                 'last_success_at' => now(),
             ]);
-        }
 
-        $meta = $this->getClientMeta($client);
-        $meta['activity'] = array_merge([
-            ['c' => '#16a34a', 't' => 'FTP connection test passed', 'w' => 'Just now'],
-        ], $meta['activity'] ?? []);
-        $client->update(['notes' => json_encode($meta)]);
+            $meta = $this->getClientMeta($client);
+            $meta['activity'] = array_merge([
+                ['c' => '#16a34a', 't' => 'FTP connection test passed', 'w' => 'Just now'],
+            ], $meta['activity'] ?? []);
+            $client->update(['notes' => json_encode($meta)]);
+
+        } catch (\Exception $e) {
+            $ftpChan->config = $originalConfig ?? [];
+            $cfg = $ftpChan->config ?? [];
+            $cfg['health'] = 'fail';
+
+            $ftpChan->update([
+                'config' => $cfg,
+                'failure_count' => $ftpChan->failure_count + 1,
+            ]);
+
+            $meta = $this->getClientMeta($client);
+            $meta['activity'] = array_merge([
+                ['c' => '#dc2626', 't' => 'FTP connection failed: '.Str::limit($e->getMessage(), 60), 'w' => 'Just now'],
+            ], $meta['activity'] ?? []);
+            $client->update(['notes' => json_encode($meta)]);
+
+            throw $e;
+        }
     }
 
     public function saveFtpCredentials(Client $client, string $host, string $user, string $port, string $pass): void
@@ -344,7 +388,7 @@ class ClientService
             'host' => trim($host),
             'username' => trim($user),
             'port' => trim($port) ?: '21',
-            'password' => $pass,
+            'password' => Crypt::encryptString($pass),
             'health' => 'ok',
         ];
 
@@ -403,10 +447,11 @@ class ClientService
 
     public function saveWebhookUrl(Client $client, string $webhookUrl): void
     {
-        $apiChan = $client->clientChannels->firstWhere('type', 'api');
+        $apiChan = $client->clientChannels->firstWhere('type', 'api')
+            ?? $client->clientChannels->firstWhere('type', 'webhook');
         if ($apiChan) {
             $config = $apiChan->config;
-            $config['webhook'] = trim($webhookUrl);
+            $config['url'] = trim($webhookUrl);
             $apiChan->update(['config' => $config]);
         }
     }

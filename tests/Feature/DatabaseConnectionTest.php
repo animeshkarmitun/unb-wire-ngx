@@ -53,7 +53,7 @@ class DatabaseConnectionTest extends TestCase
 
     public function test_basic_select_query_executes(): void
     {
-        $result = \DB::connection('sqlite')->select('SELECT 1 AS value');
+        $result = \DB::select('SELECT 1 AS value');
 
         $this->assertEquals(1, $result[0]->value);
     }

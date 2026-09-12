@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Client;
 use App\Models\ClientApiKey;
+use App\Models\ClientPackage;
+use App\Models\Delivery;
+use App\Models\Download;
 use App\Models\Story;
 use App\Repositories\StoryRepository;
+use App\Services\ApiKeyService;
 use App\Services\Search\TenantTokenIssuer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -62,27 +65,61 @@ class PortalController extends Controller
         return response()->json(['data' => $stories])->header('Cache-Control', 'public, max-age=60');
     }
 
-    public function context(): JsonResponse
+    public function context(Request $request, ApiKeyService $apiSvc): JsonResponse
     {
-        $client = Client::where('name', 'like', '%Daily Star%')->first() ?? Client::first();
+        $client = null;
+        $raw = $request->bearerToken() ?? $request->header('X-API-Key');
+        if ($raw) {
+            $key = $apiSvc->authenticate($raw);
+            if ($key && $key->client) {
+                $client = $key->client;
+            }
+        }
+
+        if (! $client) {
+            return response()->json([
+                'client' => null,
+                'saved_searches' => [],
+            ]);
+        }
+
+        $activeSub = ClientPackage::where('client_id', $client->id)
+            ->where('starts_at', '<=', now())
+            ->where('ends_at', '>=', now())
+            ->where('status', 'active')
+            ->with('package')
+            ->first();
+
+        $notes = is_string($client->notes) ? json_decode($client->notes, true) : (is_array($client->notes) ? $client->notes : []);
+        $tierQuotas = $notes['tier_quotas'] ?? [];
+
+        $storiesUsed = Delivery::where('client_id', $client->id)
+            ->where('deliverable_type', 'story')
+            ->where('status', 'sent')
+            ->whereMonth('created_at', now()->month)
+            ->count();
+
+        $mediaUsed = Download::where('client_id', $client->id)
+            ->whereMonth('created_at', now()->month)
+            ->count();
+
+        $initials = collect(explode(' ', $client->name))
+            ->map(fn ($w) => strtoupper(substr($w, 0, 1)))
+            ->take(2)
+            ->implode('');
 
         return response()->json([
             'client' => [
-                'name' => $client ? $client->name : 'The Daily Star',
-                'initials' => 'DS',
-                'tier' => 'Premium',
-                'renews_at' => '1 Oct 2026',
-                'stories_quota' => 500,
-                'stories_used' => 342,
-                'media_quota' => 150,
-                'media_used' => 87,
+                'name' => $client->name,
+                'initials' => $initials,
+                'tier' => $activeSub?->package?->name,
+                'renews_at' => $activeSub?->ends_at?->format('Y-m-d'),
+                'stories_quota' => $tierQuotas['stories_quota'] ?? null,
+                'stories_used' => $storiesUsed,
+                'media_quota' => $tierQuotas['media_quota'] ?? null,
+                'media_used' => $mediaUsed,
             ],
-            'saved_searches' => [
-                ['name' => 'National elections', 'q' => 'election'],
-                ['name' => 'Chittagong port', 'q' => 'port'],
-                ['name' => 'Solar energy', 'q' => 'solar'],
-                ['name' => 'Padma bridge', 'q' => 'padma'],
-            ],
+            'saved_searches' => $notes['saved_searches'] ?? [],
         ]);
     }
 

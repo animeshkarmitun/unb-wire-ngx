@@ -241,10 +241,10 @@ class ClientsManager extends Component
         $this->ftpPass = $ftpConfig['password'] ?? ($ftpConfig['pass'] ?? '');
 
         // API channel fields
-        $apiChan = $client->clientChannels->firstWhere('type', 'api');
+        $apiChan = $client->clientChannels->firstWhere('type', 'api') ?? $client->clientChannels->firstWhere('type', 'webhook');
         $apiConfig = $apiChan?->config ?? [];
         $this->apiKey = $apiConfig['key'] ?? '';
-        $this->webhookUrl = $apiConfig['webhook'] ?? ($apiConfig['endpoint'] ?? '');
+        $this->webhookUrl = $apiConfig['url'] ?? ($apiConfig['webhook'] ?? ($apiConfig['endpoint'] ?? ''));
         $this->showApiKey = false;
         $this->confirmRegen = false;
 

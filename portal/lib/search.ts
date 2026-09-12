@@ -3,12 +3,14 @@ import { Meilisearch } from "meilisearch";
 let client: Meilisearch | null = null;
 let tenantToken: string | null = null;
 
+import { authHeaders } from "./auth";
+
 export async function getSearchClient(): Promise<{ client: Meilisearch; token: string } | null> {
   if (client && tenantToken) return { client, token: tenantToken };
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_LARAVEL_URL ?? "http://localhost:8000"}/api/v1/portal/search-token`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       cache: "no-store",
     });
     if (!res.ok) return null;

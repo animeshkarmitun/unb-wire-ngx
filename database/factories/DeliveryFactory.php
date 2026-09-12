@@ -19,7 +19,7 @@ class DeliveryFactory extends Factory
             'deliverable_id' => 1,
             'client_id' => Client::factory(),
             'channel_id' => ClientChannel::factory(),
-            'status' => 'pending',
+            'status' => 'queued',
             'attempt_count' => 0,
             'idempotency_key' => Str::uuid()->toString(),
             'payload_hash' => hash('sha256', Str::random()),

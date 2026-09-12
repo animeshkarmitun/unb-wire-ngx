@@ -8,8 +8,11 @@ use App\Models\ClientChannel;
 use App\Models\Download;
 use App\Models\Setting;
 use App\Services\ApiKeyService;
+use App\Services\Delivery\FtpDiskFactory;
 use App\Services\RbacService;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -64,6 +67,12 @@ class DeliverySettings extends Component
     public string $maskedApiKey = 'unb_live_••••••••••••3f9a';
 
     public bool $isKeyRevealed = false;
+
+    public string $rawSigningSecret = '';
+
+    public string $maskedSigningSecret = '';
+
+    public bool $isSecretRevealed = false;
 
     public int $regenStep = 0;
 
@@ -160,6 +169,19 @@ class DeliverySettings extends Component
             $this->sftpPort = (string) ($cfg['port'] ?? '22');
             $this->sftpUser = $cfg['username'] ?? 'unb-delivery';
             $this->sftpAuth = $cfg['auth_type'] ?? 'SSH key (recommended)';
+
+            $password = $cfg['password'] ?? null;
+            if ($password) {
+                try {
+                    $password = Crypt::decryptString($password);
+                } catch (DecryptException $e) {
+                    // Fallback to raw plaintext
+                }
+                $this->sftpPassword = str_repeat('•', max(0, strlen($password) - 4)).substr($password, -4);
+            } else {
+                $this->sftpPassword = '••••••••••••';
+            }
+
             $this->wireFormat = $cfg['wire_format'] ?? 'NewsML-G2 (XML)';
             $this->pushSchedule = $cfg['push_schedule'] ?? 'Instantly on publish';
             $this->connectionEndpoint = 'sftp://'.($this->sftpHost ?: 'ftp.dailystar.com');
@@ -195,10 +217,16 @@ class DeliverySettings extends Component
         $this->isKeyRevealed = false;
         $this->regenStep = 0;
 
-        $apiChan = ClientChannel::where('client_id', $client->id)->whereIn('type', ['api', 'webhook'])->first();
+        $apiChan = ClientChannel::where('client_id', $client->id)->where('type', 'webhook')->first()
+            ?? ClientChannel::where('client_id', $client->id)->where('type', 'api')->first();
         if ($apiChan) {
             $apiCfg = $apiChan->config ?? [];
-            $this->webhookUrl = $apiCfg['webhook'] ?? 'https://cms.dailystar.com/hooks/unb';
+            $this->webhookUrl = $apiCfg['url'] ?? ($apiCfg['webhook'] ?? 'https://cms.dailystar.com/hooks/unb');
+
+            $secret = $apiCfg['signing_secret'] ?? 'whsec_dummy';
+            $this->rawSigningSecret = $secret;
+            $this->maskedSigningSecret = str_repeat('•', max(0, strlen($secret) - 4)).substr($secret, -4);
+            $this->isSecretRevealed = false;
             $triggers = $apiCfg['triggers'] ?? [];
             $this->notifyBreaking = $triggers['breaking'] ?? true;
             $this->notifyMediaPack = $triggers['media_pack'] ?? true;
@@ -242,8 +270,64 @@ class DeliverySettings extends Component
 
     public function testConnection(): void
     {
-        $this->testBtnText = '✓ Connection OK';
-        $this->dispatch('toast', message: 'SFTP connection successful — credentials valid');
+        if (! $this->selectedClientId) {
+            return;
+        }
+
+        $channel = ClientChannel::where('client_id', $this->selectedClientId)
+            ->where('type', 'ftp')
+            ->first();
+
+        if (! $channel) {
+            $this->dispatch('toast', message: 'No FTP channel found for this client');
+
+            return;
+        }
+
+        $startTime = microtime(true);
+
+        try {
+            // Temporarily set a 5s timeout for the test
+            $originalConfig = $channel->config;
+            $config = $channel->config ?? [];
+            $config['timeout'] = 5;
+            $channel->config = $config;
+
+            $factory = app(FtpDiskFactory::class);
+            $disk = $factory->make($channel);
+
+            $filename = '.unb-test-'.time();
+            $disk->write($filename, 'ok');
+            $disk->delete($filename);
+
+            $latency = round((microtime(true) - $startTime) * 1000);
+
+            $channel->config = $originalConfig;
+            $cfg = $channel->config ?? [];
+            $cfg['health'] = 'ok';
+
+            $channel->update([
+                'config' => $cfg,
+                'failure_count' => 0,
+                'last_success_at' => now(),
+            ]);
+
+            $this->testBtnText = '✓ Connection OK';
+            $this->dispatch('toast', message: "SFTP connection successful ({$latency}ms)");
+
+        } catch (\Exception $e) {
+            $channel->config = $originalConfig ?? [];
+            $cfg = $channel->config ?? [];
+            $cfg['health'] = 'fail';
+
+            $channel->update([
+                'config' => $cfg,
+                'failure_count' => $channel->failure_count + 1,
+            ]);
+
+            $this->testBtnText = '✗ Failed';
+            $this->dispatch('toast', message: 'Connection failed: '.$e->getMessage());
+        }
     }
 
     public function toggleCreds(): void
@@ -264,7 +348,14 @@ class DeliverySettings extends Component
             $cfg['port'] = $this->sftpPort;
             $cfg['username'] = $this->sftpUser;
             $cfg['auth_type'] = $this->sftpAuth;
-            $cfg['password'] = $this->sftpPassword;
+
+            // Only encrypt if password was actually changed (not masked)
+            if (! str_contains($this->sftpPassword, '••••')) {
+                $cfg['password'] = Crypt::encryptString($this->sftpPassword);
+            } else {
+                // Retain existing password if it's just masked
+                $cfg['password'] = $channel->config['password'] ?? null;
+            }
 
             $channel->config = $cfg;
             $channel->status = $this->pushMaster ? 'active' : 'disabled';
@@ -307,6 +398,11 @@ class DeliverySettings extends Component
     public function toggleRevealKey(): void
     {
         $this->isKeyRevealed = ! $this->isKeyRevealed;
+    }
+
+    public function toggleRevealSecret(): void
+    {
+        $this->isSecretRevealed = ! $this->isSecretRevealed;
     }
 
     public function requestRegenerateKey(): void
@@ -356,7 +452,7 @@ class DeliverySettings extends Component
             ]);
 
             $cfg = $channel->config ?? [];
-            $cfg['webhook'] = $this->webhookUrl;
+            $cfg['url'] = $this->webhookUrl;
             $cfg['triggers'] = [
                 'breaking' => $this->notifyBreaking,
                 'media_pack' => $this->notifyMediaPack,
