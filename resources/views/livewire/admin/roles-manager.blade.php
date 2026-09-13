@@ -124,13 +124,13 @@
                     </div>
 
                     <div class="rc-foot">
-                        <button type="button" class="rc-btn" wire:click="openDrawer({{ $role->id }})" aria-label="{{ $role->is_locked ? 'View' : 'Edit' }} permissions for {{ $role->name }}">
-                            {{ $role->is_locked ? 'View permissions' : 'Edit permissions' }}
+                        <button type="button" class="rc-btn" wire:click="openDrawer({{ $role->id }})" aria-label="{{ $role->is_locked && ! auth()->user()->isSuperAdmin() ? 'View' : 'Edit' }} permissions for {{ $role->name }}">
+                            {{ $role->is_locked && ! auth()->user()->isSuperAdmin() ? 'View permissions' : 'Edit permissions' }}
                         </button>
                         <button type="button" class="rc-btn" wire:click="duplicateRole({{ $role->id }})" aria-label="Duplicate role {{ $role->name }}">
                             Duplicate
                         </button>
-                        @if(! $role->is_locked)
+                        @if(! $role->is_locked || auth()->user()->isSuperAdmin())
                             <button type="button" class="rc-btn danger" wire:click="openDelete({{ $role->id }})" aria-label="Delete role {{ $role->name }}">
                                 Delete
                             </button>
@@ -182,6 +182,9 @@
                             @if($isYou)
                                 <span class="pp-you">You</span>
                             @endif
+                            @if($p->is_superadmin)
+                                <span class="rc-lock" style="background:var(--crimson, #e5484d)">Superadmin</span>
+                            @endif
                         </div>
                         <div class="pp-email">{{ $p->email }}</div>
                     </div>
@@ -212,6 +215,21 @@
                         </div>
                     </div>
                     <div>
+                        @if(auth()->user()->isSuperAdmin() && ! $isYou)
+                            @if($p->is_superadmin)
+                                <button type="button" class="pp-act" style="color:var(--amber, #b7791f)"
+                                        wire:click="toggleSuperadmin({{ $p->id }})"
+                                        wire:confirm="Revoke superadmin access from {{ $p->name }}?">
+                                    Revoke superadmin
+                                </button>
+                            @else
+                                <button type="button" class="pp-act" style="color:var(--green, #16a34a)"
+                                        wire:click="toggleSuperadmin({{ $p->id }})"
+                                        wire:confirm="Grant superadmin access to {{ $p->name }}?">
+                                    Grant superadmin
+                                </button>
+                            @endif
+                        @endif
                         @if(! $isYou)
                             @if($p->status === 'invited')
                                 <button type="button" class="pp-act" wire:click="resendInvite({{ $p->id }})">Resend invite</button>
@@ -275,7 +293,7 @@
                 </div>
             </div>
             <div class="dr-body">
-                @if(! $editLocked)
+                @if(! $editLocked || auth()->user()->isSuperAdmin())
                     <div class="dr-sec">
                         <div class="dr-sec-title">Role info</div>
                         <div class="field">
@@ -317,7 +335,7 @@
 
                 <!-- Permissions Section -->
                 <div class="dr-sec">
-                    <div class="dr-sec-title">Permissions{{ $editLocked ? ' — read only' : '' }}</div>
+                    <div class="dr-sec-title">Permissions{{ $editLocked && ! auth()->user()->isSuperAdmin() ? ' — read only' : '' }}</div>
                     @foreach($modules as $m)
                         @php
                             $mid = $m['id'];
@@ -331,7 +349,7 @@
                             <div class="mx-mod-head">
                                 <span class="mx-mod-name">{{ $m['label'] }}</span>
                                 <span class="mx-mod-count {{ $onCount > 0 ? 'on' : '' }}">{{ $onCount }}/{{ count($m['actions']) }}</span>
-                                @if(! $editLocked)
+                                @if(! $editLocked || auth()->user()->isSuperAdmin())
                                     <button type="button" class="mx-all" wire:click="toggleModuleAll('{{ $mid }}')">
                                         {{ $isAll ? 'None' : 'All' }}
                                     </button>
@@ -340,10 +358,10 @@
                             <div class="mx-chips">
                                 @foreach($m['actions'] as $act)
                                     <label class="mx-chip {{ in_array($act, $dangerActions, true) ? 'danger' : '' }}"
-                                           style="{{ $editLocked ? 'pointer-events:none;opacity:0.75' : '' }}">
+                                           style="{{ $editLocked && ! auth()->user()->isSuperAdmin() ? 'pointer-events:none;opacity:0.75' : '' }}">
                                         <input type="checkbox"
                                                wire:model.live="editPerms.{{ $mid }}.{{ $act }}"
-                                               {{ $editLocked ? 'disabled' : '' }}>
+                                               {{ $editLocked && ! auth()->user()->isSuperAdmin() ? 'disabled' : '' }}>
                                         <span>{{ ucfirst($act) }}</span>
                                     </label>
                                 @endforeach
@@ -374,7 +392,7 @@
                 <span class="dr-foot-note">Changes apply to every member of this role immediately</span>
                 <span class="spacer"></span>
                 <button type="button" class="btn btn-outline btn-sm" wire:click="closeDrawer">Discard</button>
-                @if(! $editLocked)
+                @if(! $editLocked || auth()->user()->isSuperAdmin())
                     <button type="button" class="btn btn-primary btn-sm" wire:click="saveRole">Save role</button>
                 @endif
             </div>

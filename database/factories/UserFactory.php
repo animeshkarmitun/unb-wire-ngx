@@ -35,6 +35,7 @@ class UserFactory extends Factory
             'role_id' => Role::query()->inRandomOrder()->value('id'),
             'timezone' => 'Asia/Dhaka',
             'status' => 'active',
+            'is_superadmin' => false,
         ];
     }
 
@@ -45,6 +46,13 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    public function superadmin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_superadmin' => true,
         ]);
     }
 }
