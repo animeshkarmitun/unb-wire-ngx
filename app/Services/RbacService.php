@@ -9,6 +9,10 @@ class RbacService
 {
     public function can(User $user, string $module, string $action): bool
     {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
         $perm = $user->role?->permissions()->where('module', $module)->first();
         if (! $perm) {
             return false;

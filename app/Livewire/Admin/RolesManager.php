@@ -240,7 +240,7 @@ class RolesManager extends Component
         $rbac->assertCan(auth()->user(), 'settings', 'edit');
 
         $role = Role::findOrFail($this->editingRoleId);
-        if ($role->is_locked) {
+        if ($role->is_locked && ! auth()->user()->isSuperAdmin()) {
             abort(403, 'System role cannot be modified');
         }
 
@@ -346,7 +346,7 @@ class RolesManager extends Component
     public function openDelete(int $roleId): void
     {
         $role = Role::with('users')->findOrFail($roleId);
-        if ($role->is_locked) {
+        if ($role->is_locked && ! auth()->user()->isSuperAdmin()) {
             $this->dispatch('toast', message: 'System role cannot be deleted');
 
             return;
@@ -370,7 +370,7 @@ class RolesManager extends Component
         $rbac->assertCan(auth()->user(), 'settings', 'delete');
 
         $role = Role::withCount('users')->findOrFail($this->deleteRoleId);
-        if ($role->is_locked) {
+        if ($role->is_locked && ! auth()->user()->isSuperAdmin()) {
             abort(403, 'System role cannot be deleted');
         }
 
@@ -495,6 +495,11 @@ class RolesManager extends Component
         }
 
         $target = User::findOrFail($userId);
+
+        if ($target->isSuperAdmin() && ! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Cannot modify superadmin role');
+        }
+
         $newRole = Role::findOrFail($roleId);
 
         $target->update(['role_id' => $newRole->id]);
@@ -526,6 +531,11 @@ class RolesManager extends Component
         }
 
         $target = User::findOrFail($userId);
+
+        if ($target->isSuperAdmin() && ! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Cannot deactivate superadmin');
+        }
+
         $target->update(['status' => 'deactivated']);
 
         DB::table('audit_logs')->insert([
@@ -568,6 +578,47 @@ class RolesManager extends Component
         ]);
 
         $this->dispatch('toast', message: $target->name.' reactivated');
+    }
+
+    public function toggleSuperadmin(int $userId): void
+    {
+        if (! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Only superadmin can manage superadmin status');
+        }
+
+        $target = User::findOrFail($userId);
+
+        if ($target->id === auth()->id()) {
+            $this->dispatch('toast', message: 'Cannot change your own superadmin status');
+
+            return;
+        }
+
+        if ($target->isSuperAdmin()) {
+            $otherSuperadmins = User::where('is_superadmin', true)->where('id', '!=', $target->id)->count();
+            if ($otherSuperadmins === 0) {
+                $this->dispatch('toast', message: 'Cannot revoke — last superadmin');
+
+                return;
+            }
+        }
+
+        $target->update(['is_superadmin' => ! $target->is_superadmin]);
+
+        DB::table('audit_logs')->insert([
+            'actor_type' => 'user',
+            'actor_id' => auth()->id(),
+            'action' => $target->is_superadmin ? 'user.superadmin.granted' : 'user.superadmin.revoked',
+            'entity_type' => 'user',
+            'entity_id' => $target->id,
+            'diff' => json_encode([
+                'message' => '<b>'.e($target->name).'</b> '.($target->is_superadmin ? 'granted' : 'revoked').' superadmin access',
+                'color' => $target->is_superadmin ? 'var(--green, #16a34a)' : '#b7791f',
+            ]),
+            'created_at' => now(),
+        ]);
+
+        $this->dispatch('toast', message: $target->name.' superadmin '.($target->is_superadmin ? 'granted' : 'revoked'));
     }
 
     public function resendInvite(int $userId): void

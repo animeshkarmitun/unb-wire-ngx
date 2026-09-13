@@ -93,5 +93,11 @@ class RoleSeeder extends Seeder
                 );
             }
         }
+
+        // Mark users with Admin role as superadmin
+        $adminRole = DB::table('roles')->where('name', 'Admin')->first();
+        if ($adminRole) {
+            DB::table('users')->where('role_id', $adminRole->id)->update(['is_superadmin' => true]);
+        }
     }
 }

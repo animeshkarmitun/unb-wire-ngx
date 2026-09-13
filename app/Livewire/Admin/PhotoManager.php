@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Repositories\MediaRepository;
 use App\Repositories\StoryRepository;
 use App\Services\NotificationService;
+use App\Services\RbacService;
 use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -80,6 +81,11 @@ class PhotoManager extends Component
         'category' => ['except' => 'all'],
         'sort' => ['except' => 'new'],
     ];
+
+    public function mount(): void
+    {
+        app(RbacService::class)->assertCan(auth()->user(), 'media', 'view');
+    }
 
     public function updatedSearch(): void
     {
@@ -198,6 +204,8 @@ class PhotoManager extends Component
 
     public function saveAssetMetadata(): void
     {
+        app(RbacService::class)->assertCan(auth()->user(), 'media', 'edit');
+
         if (! $this->selectedAssetId) {
             return;
         }
@@ -226,6 +234,8 @@ class PhotoManager extends Component
 
     public function approveInspected(): void
     {
+        app(RbacService::class)->assertCan(auth()->user(), 'media', 'edit');
+
         if (! $this->selectedAssetId) {
             return;
         }
@@ -274,6 +284,8 @@ class PhotoManager extends Component
     // Bulk actions
     public function bulkApprove(): void
     {
+        app(RbacService::class)->assertCan(auth()->user(), 'media', 'edit');
+
         if (empty($this->selectedIds)) {
             return;
         }
@@ -294,6 +306,8 @@ class PhotoManager extends Component
 
     public function bulkAssignPackage(string $packageName): void
     {
+        app(RbacService::class)->assertCan(auth()->user(), 'media', 'edit');
+
         if (empty($this->selectedIds) || empty($packageName)) {
             return;
         }
@@ -312,6 +326,8 @@ class PhotoManager extends Component
 
     public function approveFieldAsset(int $id): void
     {
+        app(RbacService::class)->assertCan(auth()->user(), 'media', 'edit');
+
         $repo = app(MediaRepository::class);
         $asset = $repo->findById($id);
         if (! $asset) {
@@ -426,6 +442,8 @@ class PhotoManager extends Component
 
     public function confirmModalAction(): void
     {
+        app(RbacService::class)->assertCan(auth()->user(), 'media', 'edit');
+
         $reviewerId = auth()->id() ?? User::first()?->id;
         $fullNote = $this->selectedReason.($this->reasonNote ? ' — '.trim($this->reasonNote) : '');
         $notifs = app(NotificationService::class);
@@ -508,6 +526,8 @@ class PhotoManager extends Component
 
     public function handleUploads(): void
     {
+        app(RbacService::class)->assertCan(auth()->user(), 'media', 'create');
+
         $this->validate(['uploads.*' => 'image|mimes:jpg,jpeg,png,webp|max:10240']);
         $count = count($this->uploads);
         $uploaderId = auth()->id() ?? User::first()?->id;
