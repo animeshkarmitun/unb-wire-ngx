@@ -41,4 +41,11 @@ return [
         'batch_size' => env('MEILISEARCH_BATCH_SIZE', 50),
     ],
 
+    'openai' => [
+        'driver' => env('OPENAI_DRIVER', 'stub'),
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+        'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+    ],
+
 ];
