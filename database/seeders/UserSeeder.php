@@ -31,6 +31,7 @@ class UserSeeder extends Seeder
                 'role_id' => $adminRole?->id,
                 'desk' => 'Management',
                 'status' => 'active',
+                'is_superadmin' => true,
                 'timezone' => 'Asia/Dhaka',
                 'last_seen_at' => now(),
             ]
@@ -44,6 +45,7 @@ class UserSeeder extends Seeder
                 'desk' => 'Chief Editor',
                 'role_id' => $adminRole?->id,
                 'status' => 'active',
+                'is_superadmin' => true,
                 'last_seen_at' => now(),
             ],
             [

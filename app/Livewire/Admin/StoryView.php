@@ -66,6 +66,24 @@ class StoryView extends Component
         $this->diffResult = app(RevisionService::class)->diff($a, $b);
     }
 
+    public function toggleDiffVersion(int $version): void
+    {
+        if ($this->diffA === $version) {
+            $this->diffA = null;
+            $this->diffResult = null;
+        } elseif ($this->diffB === $version) {
+            $this->diffB = null;
+            $this->diffResult = null;
+        } elseif ($this->diffA === null) {
+            $this->diffA = $version;
+        } elseif ($this->diffB === null) {
+            $this->diffB = $version;
+        } else {
+            $this->diffB = $version;
+            $this->diffResult = null;
+        }
+    }
+
     public function clearDiff(): void
     {
         $this->diffA = null;
