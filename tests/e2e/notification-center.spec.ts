@@ -73,9 +73,10 @@ test.describe('Editorial Notifications & Notification Center (M12-NTF)', () => {
     const unreadDots = page.locator('main span[title="Unread"]');
     await expect(unreadDots).toHaveCount(2);
 
-    // Click first notification to mark as read
+    // Click first notification to mark as read and follow deep link
     const firstNotif = page.locator('main a:has-text("Metro rail expansion phase 2 approved")').first();
     await firstNotif.click();
+    await page.waitForURL('**/admin/news/en*');
 
     // Re-visit notifications to check read status
     await page.goto('/admin/notifications');

@@ -10,7 +10,7 @@ test.describe('Superadmin RBAC & System Role Protection (M13-RBAC)', () => {
   });
 
   test('Superadmin user sees Superadmin badge and management actions in People tab', async ({ page }) => {
-    await loginAs(page, 'admin');
+    await loginAs(page, 'superadmin');
     await page.goto('/admin/roles');
     await page.waitForLoadState('networkidle');
 
@@ -28,7 +28,7 @@ test.describe('Superadmin RBAC & System Role Protection (M13-RBAC)', () => {
   });
 
   test('Superadmin can edit locked system roles', async ({ page }) => {
-    await loginAs(page, 'admin');
+    await loginAs(page, 'superadmin');
     await page.goto('/admin/roles');
     await page.waitForLoadState('networkidle');
 
@@ -55,7 +55,7 @@ test.describe('Superadmin RBAC & System Role Protection (M13-RBAC)', () => {
   });
 
   test('Non-superadmin cannot edit system roles or toggle superadmin access', async ({ page }) => {
-    await loginAs(page, 'regularAdmin');
+    await loginAs(page, 'admin');
     await page.goto('/admin/roles');
     await page.waitForLoadState('networkidle');
 

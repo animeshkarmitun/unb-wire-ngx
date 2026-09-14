@@ -130,7 +130,7 @@
                         <button type="button" class="rc-btn" wire:click="duplicateRole({{ $role->id }})" aria-label="Duplicate role {{ $role->name }}">
                             Duplicate
                         </button>
-                        @if(! $role->is_locked || auth()->user()->isSuperAdmin())
+                        @if(! $role->is_locked)
                             <button type="button" class="rc-btn danger" wire:click="openDelete({{ $role->id }})" aria-label="Delete role {{ $role->name }}">
                                 Delete
                             </button>
@@ -404,7 +404,7 @@
         <div class="modal">
             <div class="mo-head">
                 <div class="mo-title">Create a role</div>
-                <button type="button" class="mo-close" wire:click="closeNewModal" title="Close" aria-label="Close create role dialog">✕</button>
+                <button type="button" class="mo-close" wire:click="closeNewModal" title="Close" aria-label="Close dialog">✕</button>
             </div>
             <div class="mo-body">
                 <div class="field">
@@ -449,7 +449,7 @@
         <div class="modal">
             <div class="mo-head">
                 <div class="mo-title">Delete "{{ $deleteRoleName }}"?</div>
-                <button type="button" class="mo-close" wire:click="closeDeleteModal" title="Close" aria-label="Close delete role dialog">✕</button>
+                <button type="button" class="mo-close" wire:click="closeDeleteModal" title="Close" aria-label="Close dialog">✕</button>
             </div>
             <div class="mo-body">
                 @if($deleteRoleMemberCount > 0)

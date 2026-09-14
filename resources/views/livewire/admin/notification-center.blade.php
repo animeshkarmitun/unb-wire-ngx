@@ -50,7 +50,7 @@
                     default => ucfirst(str_replace('_', ' ', $event)),
                 };
             @endphp
-            <a href="{{ $link }}" wire:click="markRead('{{ $n->id }}')"
+            <a href="{{ $link }}" wire:click.prevent="openNotification('{{ $n->id }}')"
                class="flex gap-3 items-start px-4 py-3.5 transition-colors hover:bg-paper/60 {{ is_null($n->read_at) ? 'bg-paper' : '' }}">
                 <span class="w-2 h-2 rounded-full mt-[7px] shrink-0 {{ $dotColor }}"></span>
                 <div class="flex-1 min-w-0">
