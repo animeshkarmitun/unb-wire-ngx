@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Support\RateLimitHelper;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -60,7 +61,11 @@ class LoginRequest extends FormRequest
      */
     public function ensureIsNotRateLimited(): void
     {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+        if (RateLimitHelper::disabled()) {
+            return;
+        }
+
+        if (! RateLimiter::tooManyAttempts($this->throttleKey(), RateLimitHelper::attempts('staff_login'))) {
             return;
         }
 

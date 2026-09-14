@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Repositories\ClientRepository;
 use App\Services\ApiKeyService;
+use App\Support\RateLimitHelper;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -28,7 +29,19 @@ class EnsureClientApiKey
         if ($scope && ! $this->svc->hasScope($key, $scope)) {
             return response()->json(['message' => 'Insufficient scope'], 403);
         }
+
+        if (RateLimitHelper::disabled()) {
+            $request->attributes->set('clientApiKey', $key);
+            $client = $key->client ?? $this->clients->findWithRelations($key->client_id, ['clientChannels']);
+            $request->attributes->set('client', $client);
+
+            return $next($request);
+        }
+
         $rpm = $key->rate_limit_rpm ?: 60;
+        if (! app()->isProduction()) {
+            $rpm = (int) ($rpm * config('rate-limiting.dev_multiplier', 1));
+        }
         $rateLimitKey = 'api-key:'.$key->id;
         if (RateLimiter::tooManyAttempts($rateLimitKey, $rpm)) {
             $retryAfter = RateLimiter::availableIn($rateLimitKey);
