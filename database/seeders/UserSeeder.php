@@ -22,7 +22,7 @@ class UserSeeder extends Seeder
         $upEnRole = Role::where('name', 'Uploader-English')->first();
 
         // 1. Ensure test user exists for testing
-        User::firstOrCreate(
+        User::updateOrCreate(
             ['email' => 'test@example.com'],
             [
                 'public_id' => (string) Str::ulid(),
@@ -31,7 +31,7 @@ class UserSeeder extends Seeder
                 'role_id' => $adminRole?->id,
                 'desk' => 'Management',
                 'status' => 'active',
-                'is_superadmin' => true,
+                'is_superadmin' => false,
                 'timezone' => 'Asia/Dhaka',
                 'last_seen_at' => now(),
             ]
@@ -107,7 +107,7 @@ class UserSeeder extends Seeder
         ];
 
         foreach ($members as $m) {
-            User::firstOrCreate(
+            User::updateOrCreate(
                 ['email' => $m['email']],
                 [
                     'public_id' => (string) Str::ulid(),
@@ -117,6 +117,7 @@ class UserSeeder extends Seeder
                     'desk' => $m['desk'],
                     'status' => $m['status'],
                     'timezone' => 'Asia/Dhaka',
+                    'is_superadmin' => $m['is_superadmin'] ?? false,
                     'last_seen_at' => $m['last_seen_at'],
                 ]
             );
