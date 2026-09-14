@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Setting;
+use App\Services\RbacService;
 use Livewire\Component;
 
 class ServiceConfig extends Component
@@ -17,6 +18,8 @@ class ServiceConfig extends Component
 
     public function mount(string $service = 'en'): void
     {
+        app(RbacService::class)->assertCan(auth()->user(), 'settings', 'view');
+
         $this->service = $service;
         $s = Setting::where('key', 'service.'.$service)->first();
         if ($s) {
@@ -29,6 +32,8 @@ class ServiceConfig extends Component
 
     public function save(): void
     {
+        app(RbacService::class)->assertCan(auth()->user(), 'settings', 'edit');
+
         Setting::updateOrCreate(['key' => 'service.'.$this->service], ['value' => ['wireName' => $this->wireName, 'description' => $this->description, 'enabled' => $this->enabled], 'updated_by' => auth()->id(), 'updated_at' => now()]);
         $this->dispatch('toast', message: 'Service config saved');
     }

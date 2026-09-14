@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Repositories\DeliveryRepository;
+use App\Services\RbacService;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -13,6 +14,11 @@ class DistributionLog extends Component
     public string $status = 'all';
 
     public string $search = '';
+
+    public function mount(): void
+    {
+        app(RbacService::class)->assertCan(auth()->user(), 'distribution', 'view');
+    }
 
     public function updatedStatus(): void
     {
@@ -26,6 +32,8 @@ class DistributionLog extends Component
 
     public function retry(int $id): void
     {
+        app(RbacService::class)->assertCan(auth()->user(), 'distribution', 'edit');
+
         app(DeliveryRepository::class)->markQueued($id);
         $this->dispatch('toast', message: 'Queued for retry');
     }

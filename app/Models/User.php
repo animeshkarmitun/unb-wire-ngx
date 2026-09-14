@@ -34,6 +34,7 @@ class User extends Authenticatable
         'density',
         'status',
         'last_seen_at',
+        'is_superadmin',
     ];
 
     /**
@@ -58,6 +59,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'last_seen_at' => 'datetime',
             'deleted_at' => 'datetime',
+            'is_superadmin' => 'boolean',
         ];
     }
 
@@ -78,5 +80,10 @@ class User extends Authenticatable
     public function devices(): HasMany
     {
         return $this->hasMany(Device::class);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return (bool) $this->is_superadmin;
     }
 }

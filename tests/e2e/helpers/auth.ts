@@ -2,6 +2,8 @@ import { Page, expect } from '@playwright/test';
 
 export const USERS = {
   admin: { email: 'test@example.com', password: 'password' },
+  superadmin: { email: 'nahar@unbnews.org', password: 'password' },
+  regularAdmin: { email: 'test@example.com', password: 'password' },
   editor: { email: 'shohel@unbnews.org', password: 'password' },
   biz: { email: 'arif@unbnews.org', password: 'password' },
 } as const;

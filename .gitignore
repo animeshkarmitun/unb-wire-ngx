@@ -26,6 +26,7 @@
 .env.backup
 .env.production
 auth.json
+.secrets/
 
 # Test & tooling artifacts
 .phpunit.result.cache

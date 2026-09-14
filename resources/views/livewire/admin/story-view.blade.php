@@ -636,18 +636,9 @@
                             <div class="flex items-center justify-between text-[11px] py-1 px-2 rounded {{ $ver->version === $story->version ? 'bg-navy-50 border border-navy-200' : 'hover:bg-gray-50' }}">
                                 <div class="flex items-center gap-2">
                                     <input type="checkbox"
-                                        wire:model.live="diffA"
+                                        wire:click="toggleDiffVersion({{ $ver->version }})"
+                                        @checked($diffA === $ver->version || $diffB === $ver->version)
                                         value="{{ $ver->version }}"
-                                        x-on:change="
-                                            if ($el.checked) {
-                                                if (!@js($diffA)) { $wire.set('diffA', {{ $ver->version }}) }
-                                                else if (!@js($diffB)) { $wire.set('diffB', {{ $ver->version }}) }
-                                                else { $el.checked = false }
-                                            } else {
-                                                if (@js($diffA) === {{ $ver->version }}) { $wire.set('diffA', null) }
-                                                if (@js($diffB) === {{ $ver->version }}) { $wire.set('diffB', null) }
-                                            }
-                                        "
                                         class="rounded border-gray-300 text-navy-800 focus:ring-navy-800"
                                     >
                                     <span class="font-mono font-bold text-ink">v{{ $ver->version }}</span>

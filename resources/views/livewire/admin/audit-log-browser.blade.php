@@ -85,8 +85,8 @@
                             <span class="px-2 py-0.5 rounded-full text-[9px] font-bold {{ $actionColor }}">{{ $actionLabel }}</span>
                         </td>
                         <td class="px-4 py-2">
-                            @if($log->entity_type === 'Story' && $log->entity_id)
-                                <a href="{{ route('admin.story', \App\Models\Story::find($log->entity_id)?->public_id ?? '') }}" class="text-navy-800 hover:underline">
+                            @if($log->entity_type === 'Story' && $log->entity_id && ($storyPublicId = \App\Models\Story::find($log->entity_id)?->public_id))
+                                <a href="{{ route('admin.story', $storyPublicId) }}" class="text-navy-800 hover:underline">
                                     Story #{{ $log->entity_id }}
                                 </a>
                             @else

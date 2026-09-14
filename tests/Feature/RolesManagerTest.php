@@ -85,9 +85,9 @@ class RolesManagerTest extends TestCase
 
     public function test_system_role_cannot_be_modified_or_deleted(): void
     {
-        $adminUser = User::where('email', 'nahar@unbnews.org')->firstOrFail();
         $adminRole = Role::where('name', 'Admin')->firstOrFail();
         $this->assertTrue($adminRole->is_locked);
+        $adminUser = User::factory()->create(['role_id' => $adminRole->id, 'status' => 'active', 'is_superadmin' => false]);
 
         Livewire::actingAs($adminUser)
             ->test(RolesManager::class)

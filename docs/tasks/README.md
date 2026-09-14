@@ -256,7 +256,17 @@
 
 ---
 
-## 15. How to Add a Task
+## 15. RBAC Hardening & Superadmin (`M13-RBAC`) — 2026-09-13
+
+> Add superadmin concept, fix rbac gaps in 4 Livewire components, protect system roles, add comprehensive endpoint tests.
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M13-RBAC-001` | Superadmin + RBAC hardening (is_superadmin flag, component rbac, system role protection, endpoint tests) | — | ⏳ | — | — |
+
+---
+
+## 16. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.

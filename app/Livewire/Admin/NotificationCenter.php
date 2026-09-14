@@ -17,6 +17,20 @@ class NotificationCenter extends Component
         $this->resetPage();
     }
 
+    public function openNotification(string $id): mixed
+    {
+        $notification = Auth::user()->notifications()->where('id', $id)->first();
+        if ($notification) {
+            $notification->markAsRead();
+            $event = $notification->data['event'] ?? '';
+            $data = $notification->data['data'] ?? [];
+
+            return $this->redirect(self::deepLink($data, $event));
+        }
+
+        return null;
+    }
+
     public function markRead(string $id): void
     {
         $notification = Auth::user()->notifications()->where('id', $id)->first();

@@ -6,6 +6,7 @@ use App\Models\MediaAsset;
 use App\Models\Story;
 use App\Repositories\MediaRepository;
 use App\Repositories\StoryRepository;
+use App\Services\RbacService;
 use Illuminate\Support\Str;
 use Livewire\Component;
 
@@ -64,6 +65,11 @@ class ApPhotoManager extends Component
         'category' => ['except' => 'all'],
     ];
 
+    public function mount(): void
+    {
+        app(RbacService::class)->assertCan(auth()->user(), 'media', 'view');
+    }
+
     public function updatedSearch(): void
     {
         $this->perPage = 11;
@@ -111,6 +117,8 @@ class ApPhotoManager extends Component
 
     public function attachToStory(int $assetId, ?int $storyId = null): void
     {
+        app(RbacService::class)->assertCan(auth()->user(), 'media', 'edit');
+
         $mediaRepo = app(MediaRepository::class);
         $asset = $mediaRepo->findById($assetId);
         if (! $asset) {

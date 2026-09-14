@@ -13,34 +13,50 @@ test.describe('Client API + Media + Billing', () => {
     expect(r.status()).toBe(401);
   });
 
-  test('X-API-Key header accepted (try) → 401 or 403 or 200 (no crash)', async ({ request }) => {
+  test('X-API-Key header with invalid key returns 401 Unauthorized', async ({ request }) => {
     const r = await request.get(`${base}/api/v1/feed`, { headers: { 'X-API-Key': 'not-a-real-key' } });
-    expect([401,403,429].includes(r.status())).toBeTruthy();
+    expect(r.status()).toBe(401);
   });
 
-  test('POST /api/uploads without auth → guarded', async ({ request }) => {
-    const r = await request.post(`${base}/api/uploads`, { data: { upload_length: 10 } });
-    expect([200,401,302,419,422].includes(r.status())).toBeTruthy();
+  test('POST /api/uploads without auth returns 401', async ({ request }) => {
+    const r = await request.post(`${base}/api/uploads`, { data: { upload_length: 10 }, headers: { Accept: 'application/json' } });
+    expect(r.status()).toBe(401);
   });
 
-  test('GET /api/media/{id}/presigned without auth → guarded', async ({ request }) => {
-    const r = await request.get(`${base}/api/media/01-fake-000000000000000000/presigned`);
-    expect([200,401,302,404,419].includes(r.status())).toBeTruthy();
+  test('GET /api/media/{id}/presigned without auth returns 401', async ({ request }) => {
+    const r = await request.get(`${base}/api/media/01-fake-000000000000000000/presigned`, { headers: { Accept: 'application/json' } });
+    expect(r.status()).toBe(401);
   });
 
-  test('POST /api/ai/generate without auth → guarded', async ({ request }) => {
-    const r = await request.post(`${base}/api/ai/generate`, { data: { text: 'hi' } });
-    expect([200,401,302,404,419].includes(r.status())).toBeTruthy();
+  test('POST /api/ai/headline without auth returns 401', async ({ request }) => {
+    const r = await request.post(`${base}/api/ai/headline`, { data: { text: 'test' }, headers: { Accept: 'application/json' } });
+    expect(r.status()).toBe(401);
   });
 
-  test('GET /up still 200 even after auth probes (no side-effects)', async ({ request }) => {
+  test('GET /up health check returns 200', async ({ request }) => {
     const r = await request.get(`${base}/up`);
     expect(r.status()).toBe(200);
   });
 });
 
-test.describe('Distribution + Billing smoke via feature expectations', () => {
-  test('feature suite already covers entitlements, outbox, FanoutStory idempotency, MRR — see php artisan test', async () => {
-    expect(true).toBeTruthy();
+test.describe('Portal Client API Contract & Entitlements', () => {
+  const base = process.env.LARAVEL_URL ?? 'http://localhost:8000';
+
+  test('GET /api/v1/portal/context returns 200 with client context contract', async ({ request }) => {
+    const r = await request.get(`${base}/api/v1/portal/context`);
+    expect(r.ok()).toBeTruthy();
+    const json = await r.json();
+    expect(json).toHaveProperty('client');
+    expect(json).toHaveProperty('saved_searches');
+  });
+
+  test('POST /api/v1/portal/search-token returns valid JWT structure and filter', async ({ request }) => {
+    const r = await request.post(`${base}/api/v1/portal/search-token`);
+    expect(r.ok()).toBeTruthy();
+    const json = await r.json();
+    expect(json).toHaveProperty('token');
+    expect(json.token.split('.').length).toBe(3);
+    expect(json).toHaveProperty('host');
   });
 });
+
