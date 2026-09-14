@@ -3,22 +3,34 @@
 namespace App\Services;
 
 use App\Models\AiGeneration;
+use App\Services\Ai\AiProvider;
+use App\Services\Ai\OpenAiProvider;
+use App\Services\Ai\StubAiProvider;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class AiService
 {
+    private AiProvider $provider;
+
+    public function __construct(?AiProvider $provider = null)
+    {
+        $this->provider = $provider ?? $this->resolveProvider();
+    }
+
     public function call(string $kind, array $payload, int $userId, ?int $storyId = null): array
     {
         $settings = DB::table('settings')->where('key', 'ai.desk')->first();
         $cfg = $settings ? (is_string($settings->value) ? json_decode($settings->value, true) : $settings->value) : [];
+
         if (! empty($cfg['killed'])) {
             return ['error' => 'AI kill switch is ON'];
         }
+
         $deskKey = ($payload['language'] ?? 'en') === 'bn' ? 'preeditBn' : 'preeditEn';
         if (isset($cfg[$deskKey]) && ! $cfg[$deskKey]) {
             return ['error' => 'AI disabled for this desk'];
         }
+
         $cap = (int) ($cfg['monthlyCap'] ?? 500000);
         $monthStart = now()->startOfMonth()->toDateString();
         $used = (int) DB::table('ai_token_usage_daily')->where('date', '>=', $monthStart)->sum('tokens');
@@ -26,22 +38,53 @@ class AiService
             return ['error' => 'Monthly AI token budget exceeded'];
         }
 
-        $pack = match ($kind) {
-            'preedit' => ['headline' => $payload['headline'] ?? 'AI: '.$payload['text'] ?? Str::limit($payload['text'] ?? '', 60).' — polished', 'brief' => 'AI brief — '.$payload['text'] ?? '', 'category' => ['name' => 'Business'], 'tags' => ['economy', 'bangladesh'], 'body' => '<p>AI polished body for: '.e($payload['text'] ?? '').'</p>'],
-            'tags' => ['category' => ['name' => 'Sports'], 'tags' => ['cricket', 'world-cup']],
-            'translate' => ['headline' => 'বাংলা শিরোনাম', 'body' => '<p>বাংলা অনুবাদ</p>'],
-            'generate' => ['headline' => 'AI Generated headline', 'brief' => 'AI brief', 'body' => '<p>AI generated body from raw: '.e($payload['text'] ?? '').'</p>', 'category' => ['name' => 'Bangladesh'], 'tags' => ['breaking']],
-            default => ['note' => 'unknown kind'],
-        };
+        $payload['stylePrompt'] = $cfg['stylePrompt'] ?? null;
+
+        $result = $this->provider->call($kind, $payload);
+
+        if ($result->isError()) {
+            return ['error' => $result->error];
+        }
 
         AiGeneration::create([
-            'story_id' => $storyId, 'user_id' => $userId, 'kind' => $kind, 'prompt_version' => 'v1', 'model' => $cfg['model'] ?? 'stub', 'input_hash' => hash('sha256', json_encode($payload)), 'pack' => $pack, 'new_facts' => null, 'tokens_in' => 100, 'tokens_out' => 200, 'cost_micros' => 1000, 'applied' => null, 'created_at' => now(),
+            'story_id' => $storyId,
+            'user_id' => $userId,
+            'kind' => $kind,
+            'prompt_version' => 'v1',
+            'model' => $result->model,
+            'input_hash' => hash('sha256', json_encode($payload)),
+            'pack' => $result->toPack(),
+            'new_facts' => null,
+            'tokens_in' => $result->tokensIn,
+            'tokens_out' => $result->tokensOut,
+            'cost_micros' => $result->costMicros,
+            'applied' => null,
+            'created_at' => now(),
         ]);
 
+        $totalTokens = $result->tokensIn + $result->tokensOut;
         DB::table('ai_token_usage_daily')->upsert([
-            'date' => now()->toDateString(), 'scope' => 'desk:en', 'kind' => $kind, 'tokens' => 300, 'cost_micros' => 1000,
-        ], ['date', 'scope', 'kind'], ['tokens' => DB::raw('ai_token_usage_daily.tokens + 300'), 'cost_micros' => DB::raw('ai_token_usage_daily.cost_micros + 1000')]);
+            'date' => now()->toDateString(),
+            'scope' => 'desk:en',
+            'kind' => $kind,
+            'tokens' => $totalTokens,
+            'cost_micros' => $result->costMicros,
+        ], ['date', 'scope', 'kind'], [
+            'tokens' => DB::raw('ai_token_usage_daily.tokens + '.$totalTokens),
+            'cost_micros' => DB::raw('ai_token_usage_daily.cost_micros + '.$result->costMicros),
+        ]);
 
-        return $pack;
+        return $result->toPack();
+    }
+
+    private function resolveProvider(): AiProvider
+    {
+        $driver = config('services.openai.driver', 'stub');
+
+        if ($driver === 'openai' && config('services.openai.api_key')) {
+            return new OpenAiProvider;
+        }
+
+        return new StubAiProvider;
     }
 }
