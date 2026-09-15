@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Notifications\StoryNotification;
 use App\Services\StoryService;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -138,4 +139,21 @@ if ($action === 'superadmin') {
         ]
     );
     echo "superadmin seeded\n";
+}
+
+if ($action === 'ai') {
+    DB::table('settings')->updateOrInsert(
+        ['key' => 'ai.desk'],
+        ['value' => json_encode([
+            'preeditEn' => true,
+            'preeditBn' => true,
+            'preeditPhotos' => false,
+            'autoPublish' => false,
+            'autoCategories' => ['Weather', 'Sports results'],
+            'monthlyCap' => 500000,
+            'stylePrompt' => 'You are a UNB wire copy editor. Polish for wire service clarity.',
+            'killed' => false,
+        ])]
+    );
+    echo "ai settings seeded\n";
 }

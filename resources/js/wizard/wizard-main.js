@@ -95,12 +95,26 @@
       syncLivewireStep(n);
     }
 
+    function getCurrentStep() {
+      const activeStp = document.querySelector('.stp.active');
+      if (activeStp && activeStp.dataset.go) {
+        return +activeStp.dataset.go;
+      }
+      const activePanel = document.querySelector('.step-panel.active');
+      if (activePanel && activePanel.dataset.step) {
+        return +activePanel.dataset.step;
+      }
+      return currentStep;
+    }
+
     function validateStep(n) {
       if (n === 1) {
-        if (!headlineInput || !headlineInput.value.trim()) {
-          if (headlineInput) headlineInput.classList.add('input-error');
-          if (headlineError) headlineError.classList.add('show');
-          if (headlineInput) headlineInput.focus();
+        const hInput = document.getElementById('headlineInput');
+        const hError = document.getElementById('headlineError');
+        if (!hInput || !hInput.value.trim()) {
+          if (hInput) hInput.classList.add('input-error');
+          if (hError) hError.classList.add('show');
+          if (hInput) hInput.focus();
           return false;
         }
       }
@@ -112,7 +126,7 @@
       const wireEl = app ? app.closest('[wire\\:id]') : null;
       if (wireEl && window.Livewire) {
         const wireComponent = window.Livewire.find(wireEl.getAttribute('wire:id'));
-        if (wireComponent) wireComponent.set('step', n);
+        if (wireComponent) wireComponent.call('go', n);
       }
     }
 
@@ -129,20 +143,33 @@
       });
     }
 
-    const nextBtn = document.getElementById('nextBtn');
-    if (nextBtn) nextBtn.onclick = () => { if (validateStep(currentStep)) showStep(currentStep + 1); };
-
-    const backBtn = document.getElementById('backBtn');
-    if (backBtn) backBtn.onclick = () => { if (currentStep > 1) showStep(currentStep - 1); };
-
-    document.querySelectorAll('.stp').forEach(s => {
-      s.onclick = () => {
-        const target = +s.dataset.go;
-        if (target <= currentStep || validateStep(currentStep)) {
+    document.addEventListener('click', (e) => {
+      const stp = e.target.closest('.stp');
+      if (stp && document.getElementById('addNewsApp')?.contains(stp)) {
+        const target = +stp.dataset.go;
+        const cur = getCurrentStep();
+        if (target && (target <= cur || validateStep(cur))) {
           showStep(target);
         }
-      };
+        return;
+      }
+
+      const next = e.target.closest('#nextBtn');
+      if (next && document.getElementById('addNewsApp')?.contains(next)) {
+        const cur = getCurrentStep();
+        if (validateStep(cur)) showStep(cur + 1);
+        return;
+      }
+
+      const back = e.target.closest('#backBtn');
+      if (back && document.getElementById('addNewsApp')?.contains(back)) {
+        const cur = getCurrentStep();
+        if (cur > 1) showStep(cur - 1);
+        return;
+      }
     });
+
+    window.showAddNewsStep = showStep;
 
     // ===== 2. Render Review Rows on Step 4 =====
     function renderReview() {
