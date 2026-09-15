@@ -38,6 +38,8 @@ class NewsList extends Component
 
     public ?string $conflictError = null;
 
+    public ?int $selectedVersion = null;
+
     public function mount(string $language = 'en'): void
     {
         $this->language = in_array($language, ['en', 'bn'], true) ? $language : 'en';
@@ -76,6 +78,8 @@ class NewsList extends Component
     public function openDrawer(int $id): void
     {
         $this->selectedId = $id;
+        $story = app(StoryRepository::class)->findOrFail($id);
+        $this->selectedVersion = (int) $story->version;
         $this->noteText = '';
         $this->conflictError = null;
     }
@@ -83,6 +87,7 @@ class NewsList extends Component
     public function closeDrawer(): void
     {
         $this->selectedId = null;
+        $this->selectedVersion = null;
         $this->noteText = '';
         $this->conflictError = null;
     }
@@ -98,7 +103,8 @@ class NewsList extends Component
         app(RbacService::class)->assertCan($user, 'stories', 'edit');
 
         try {
-            app(StoryService::class)->takeOver($story, $user, $story->version);
+            app(StoryService::class)->takeOver($story, $user, $this->selectedVersion ?? $story->version);
+            $this->selectedVersion = $story->fresh()->version;
             $this->conflictError = null;
             $this->dispatch('toast', message: 'Ownership taken over successfully.');
         } catch (ConflictHttpException $e) {
