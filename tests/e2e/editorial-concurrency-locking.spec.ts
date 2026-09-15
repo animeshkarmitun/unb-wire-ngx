@@ -134,8 +134,8 @@ test.describe('Editorial Concurrency, Soft Locking & Shift Handover (M10-CONC / 
     await page.waitForLoadState('networkidle');
 
     // Expect handover notification in notification list
-    await expect(page.locator('main').getByText('Story ownership transferred')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('main').getByText('Sylhet flood relief dispatch operation underway')).toBeVisible();
+    await expect(page.locator('main').getByText('Story ownership transferred').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('main').getByText('Sylhet flood relief dispatch operation underway').first()).toBeVisible();
   });
 
   test('Handover records audit event visible in Audit Log Browser', async ({ page }) => {

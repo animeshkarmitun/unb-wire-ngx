@@ -5,12 +5,16 @@ use App\Models\Category;
 use App\Models\Client;
 use App\Models\ClientChannel;
 use App\Models\Delivery;
+use App\Models\MediaAsset;
+use App\Models\MediaBatch;
+use App\Models\MediaReview;
 use App\Models\Role;
 use App\Models\Story;
 use App\Models\User;
 use App\Notifications\StoryNotification;
 use App\Services\StoryService;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -210,4 +214,118 @@ if ($action === 'concurrency-stale') {
         $story->increment('version');
         echo "concurrency story version bumped to {$story->version}\n";
     }
+}
+
+if ($action === 'media') {
+    $mim = User::where('email', 'mim@unbnews.org')->first();
+    if (! $mim) {
+        $role = Role::where('name', 'Uploader-English')->first() ?? Role::first();
+        $mim = User::create([
+            'public_id' => (string) Str::ulid(),
+            'name' => 'Mim Akter',
+            'email' => 'mim@unbnews.org',
+            'password' => Hash::make('password'),
+            'role_id' => $role->id,
+            'desk' => 'Photo',
+            'status' => 'active',
+            'timezone' => 'Asia/Dhaka',
+        ]);
+    }
+
+    // Clear specific media burst keys
+    Cache::forget('notify_burst:media:01JMEDIABATCH0000000001:media_approved');
+    Cache::forget('notify_burst:media:01JMEDIABATCH0000000001:media_rejected');
+    Cache::forget('notify_burst:media:01JMEDIABATCH0000000001:media_reedit');
+
+    // Clean previous test batches/assets
+    $prevBatches = MediaBatch::where('event_label', 'like', '%Sylhet flood relief%')->get();
+    foreach ($prevBatches as $pb) {
+        MediaReview::whereIn('asset_id', $pb->assets()->pluck('id'))->delete();
+        $pb->assets()->forceDelete();
+        $pb->delete();
+    }
+
+    $batch = MediaBatch::create([
+        'public_id' => '01JMEDIABATCH0000000001',
+        'uploader_id' => $mim->id,
+        'event_label' => 'Sylhet flood relief field photos',
+        'urgency' => 'urgent',
+        'status' => 'pending',
+        'submitted_at' => now()->subMinutes(12),
+    ]);
+
+    $asset1 = MediaAsset::create([
+        'public_id' => '01JMEDIAASSET0000000001',
+        'batch_id' => $batch->id,
+        'kind' => 'photo',
+        'status' => 'field',
+        'title' => 'Emergency relief boat in submerged village',
+        'caption' => 'Volunteers distribute drinking water to marooned villagers in Sylhet',
+        'credit_line' => 'Photo: Mim Akter / UNB',
+        'photographer_id' => $mim->id,
+        'uploaded_by' => $mim->id,
+        'location_city' => 'Sylhet',
+        'location_country' => 'Bangladesh',
+        'en_tags' => ['flood', 'relief', 'sylhet'],
+        'mime' => 'image/jpeg',
+        'size_bytes' => 2450000,
+        'width' => 1200,
+        'height' => 800,
+        'storage_disk' => 'public',
+        'original_path' => 'media/test/relief-boat.jpg',
+        'checksum' => hash('sha256', 'test-relief-boat-01'),
+        'derivatives' => ['grad' => 'g2', 'r' => 1.5],
+    ]);
+
+    $asset2 = MediaAsset::create([
+        'public_id' => '01JMEDIAASSET0000000002',
+        'batch_id' => $batch->id,
+        'kind' => 'photo',
+        'status' => 'field',
+        'title' => 'Temporary shelter at higher ground',
+        'caption' => 'Villagers take refuge on an elevated road embankment with their belongings',
+        'credit_line' => 'Photo: Mim Akter / UNB',
+        'photographer_id' => $mim->id,
+        'uploaded_by' => $mim->id,
+        'location_city' => 'Sylhet',
+        'location_country' => 'Bangladesh',
+        'en_tags' => ['flood', 'shelter', 'displaced'],
+        'mime' => 'image/jpeg',
+        'size_bytes' => 3120000,
+        'width' => 1200,
+        'height' => 800,
+        'storage_disk' => 'public',
+        'original_path' => 'media/test/shelter.jpg',
+        'checksum' => hash('sha256', 'test-shelter-02'),
+        'derivatives' => ['grad' => 'g4', 'r' => 1.5],
+    ]);
+
+    $libAsset = MediaAsset::updateOrCreate(
+        ['public_id' => '01JMEDIALIBASSET00000001'],
+        [
+            'kind' => 'photo',
+            'status' => 'library',
+            'title' => 'BAPA press conference on river water quality',
+            'caption' => 'BAPA press conference on Buriganga river water pollution',
+            'credit_line' => 'Photo: Staff Photographer / UNB',
+            'photographer_id' => $mim->id,
+            'uploaded_by' => $mim->id,
+            'approved_by' => 1,
+            'approved_at' => now()->subDay(),
+            'created_at' => now(),
+            'location_city' => 'Dhaka',
+            'location_country' => 'Bangladesh',
+            'en_tags' => ['environment', 'pollution', 'bapa'],
+            'mime' => 'image/jpeg',
+            'size_bytes' => 1950000,
+            'width' => 1200,
+            'height' => 800,
+            'storage_disk' => 'public',
+            'original_path' => 'media/test/bapa.jpg',
+            'checksum' => hash('sha256', 'test-bapa-01'),
+            'derivatives' => ['grad' => 'g1', 'r' => 1.5],
+        ]
+    );
+
+    echo "media seeded batch: {$batch->id}, asset1: {$asset1->id}, asset2: {$asset2->id}, lib: {$libAsset->id}\n";
 }

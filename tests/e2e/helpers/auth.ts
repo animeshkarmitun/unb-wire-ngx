@@ -6,6 +6,7 @@ export const USERS = {
   regularAdmin: { email: 'test@example.com', password: 'password' },
   editor: { email: 'shohel@unbnews.org', password: 'password' },
   biz: { email: 'arif@unbnews.org', password: 'password' },
+  photographer: { email: 'mim@unbnews.org', password: 'password' },
 } as const;
 
 export const CLIENTS = {
