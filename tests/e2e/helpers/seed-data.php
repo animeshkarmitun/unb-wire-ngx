@@ -157,3 +157,57 @@ if ($action === 'ai') {
     );
     echo "ai settings seeded\n";
 }
+
+if ($action === 'concurrency') {
+    $shohel = User::where('email', 'shohel@unbnews.org')->first();
+    $cat = Category::first();
+    if ($shohel && $cat) {
+        $story = Story::updateOrCreate(
+            ['public_id' => '01JCONCURRENCYTEST00000001'],
+            [
+                'language' => 'en',
+                'headline' => 'Sylhet flood relief dispatch operation underway',
+                'sub_head' => 'Emergency response unit mobilised',
+                'brief' => 'District administration launches emergency relief distribution in flood-affected upazilas.',
+                'body_html' => '<p>District administration launches emergency relief distribution in flood-affected upazilas.</p>',
+                'body_text' => 'District administration launches emergency relief distribution in flood-affected upazilas.',
+                'status' => 'draft',
+                'category_id' => $cat->id,
+                'created_by' => $shohel->id,
+                'owner_id' => $shohel->id,
+                'locked_by' => $shohel->id,
+                'locked_at' => now(),
+                'version' => 1,
+                'priority' => 'routine',
+                'source' => 'desk',
+            ]
+        );
+
+        $story->notes()->delete();
+        $story->events()->delete();
+
+        $story->events()->create([
+            'actor_id' => $shohel->id,
+            'action' => 'created',
+            'from_status' => 'draft',
+            'to_status' => 'draft',
+            'payload' => ['initial' => true],
+        ]);
+        $story->notes()->create([
+            'user_id' => $shohel->id,
+            'kind' => 'note',
+            'is_internal' => true,
+            'body' => 'Initial field notes received from Sylhet bureau.',
+        ]);
+
+        echo "concurrency story seeded id: {$story->id}\n";
+    }
+}
+
+if ($action === 'concurrency-stale') {
+    $story = Story::where('public_id', '01JCONCURRENCYTEST00000001')->first();
+    if ($story) {
+        $story->increment('version');
+        echo "concurrency story version bumped to {$story->version}\n";
+    }
+}
