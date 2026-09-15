@@ -52,6 +52,6 @@ class NotificationService
             return;
         }
         Cache::put($cacheKey, true, 300);
-        Notification::send($users, new StoryNotification($event, $data));
+        Notification::sendNow($users, new StoryNotification($event, $data));
     }
 }
