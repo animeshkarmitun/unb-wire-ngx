@@ -40,7 +40,7 @@ class NotificationService
 
     public function notifyMediaDecision(int $batchId, string $decision, int $actorId, User $uploader): void
     {
-        $this->burstNotify('media:'.$batchId, collect([$uploader]), $decision, [
+        $this->burstNotify('media:'.$batchId.':'.$decision, collect([$uploader]), $decision, [
             'batch_id' => $batchId, 'actor_id' => $actorId,
         ]);
     }
