@@ -247,6 +247,12 @@ class AddNews extends Component
         $this->dispatch('story-updated');
     }
 
+    public function updatedPriority(string $val): void
+    {
+        $this->isBreaking = ($val === 'flash');
+        $this->dispatch('story-updated');
+    }
+
     public function syncBody(string $html): void
     {
         $this->bodyHtml = HtmlSanitizer::clean($html);
@@ -333,6 +339,11 @@ class AddNews extends Component
         $this->featuredCaption = '';
         $this->dispatch('story-updated');
         $this->autosave();
+    }
+
+    public function closeAiDrawer(): void
+    {
+        $this->aiPack = null;
     }
 
     public function callAi(string $kind, ?AiService $svc = null): void
@@ -435,7 +446,7 @@ class AddNews extends Component
             'sub_category_id' => $subCatId,
             'dateline_city' => $this->datelineCity ?: null,
             'dateline_at' => $dateline,
-            'is_breaking' => $this->isBreaking,
+            'is_breaking' => $this->isBreaking || $this->priority === 'flash',
             'priority' => $this->priority,
             'embargo_until' => $embargo,
             'ai_touched' => $this->aiTouched ?: null,
@@ -525,18 +536,24 @@ class AddNews extends Component
         $this->autosave($rbac, $svc);
         $s = app(StoryRepository::class)->findOrFail($this->storyId);
 
-        // Wizard publish may be invoked from draft by an editor/admin with publish permission.
-        // Walk through the workflow so every transition is audited.
-        if ($s->status === 'draft') {
-            $svc->transition($s, 'in_review', auth()->user());
-            $s->refresh();
-        }
-        if ($s->status === 'in_review') {
-            $svc->transition($s, 'approved', auth()->user());
-            $s->refresh();
-        }
-        if ($s->status === 'approved') {
-            $svc->transition($s, 'published', auth()->user());
+        try {
+            // Wizard publish may be invoked from draft by an editor/admin with publish permission.
+            // Walk through the workflow so every transition is audited.
+            if ($s->status === 'draft') {
+                $svc->transition($s, 'in_review', auth()->user());
+                $s->refresh();
+            }
+            if ($s->status === 'in_review') {
+                $svc->transition($s, 'approved', auth()->user());
+                $s->refresh();
+            }
+            if ($s->status === 'approved') {
+                $svc->transition($s, 'published', auth()->user());
+            }
+        } catch (\Throwable $e) {
+            $this->dispatch('toast', message: $e->getMessage());
+
+            return;
         }
 
         $s->refresh();
