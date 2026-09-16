@@ -52,9 +52,11 @@ class NitfFormatter
         $xml .= '  </body>'."\n";
         $xml .= '</nitf>'."\n";
 
+        $publicId = trim($story->public_id);
+
         return new WireOutput(
             content: $xml,
-            filename: "UNB-{$story->public_id}.nitf.xml",
+            filename: "UNB-{$publicId}.nitf.xml",
             contentType: 'application/xml'
         );
     }
