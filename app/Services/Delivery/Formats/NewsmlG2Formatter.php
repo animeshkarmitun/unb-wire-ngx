@@ -11,8 +11,9 @@ class NewsmlG2Formatter
     {
         $publishedAt = $story->published_at ? $story->published_at->format('Y-m-d\TH:i:s\Z') : now()->format('Y-m-d\TH:i:s\Z');
 
+        $publicId = trim($story->public_id);
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
-        $xml .= '<newsItem xmlns="http://iptc.org/std/nar/2006-10-01/" standard="NewsML-G2" standardversion="2.32" guid="urn:newsml:unb.news:'.$story->public_id.'">'."\n";
+        $xml .= '<newsItem xmlns="http://iptc.org/std/nar/2006-10-01/" standard="NewsML-G2" standardversion="2.32" guid="urn:newsml:unb.news:'.$publicId.'">'."\n";
 
         $xml .= '  <itemMeta>'."\n";
         $xml .= '    <itemClass qcode="ninat:text"/>'."\n";
@@ -47,7 +48,7 @@ class NewsmlG2Formatter
 
         return new WireOutput(
             content: $xml,
-            filename: "UNB-{$story->public_id}.xml",
+            filename: "UNB-{$publicId}.xml",
             contentType: 'application/xml'
         );
     }
