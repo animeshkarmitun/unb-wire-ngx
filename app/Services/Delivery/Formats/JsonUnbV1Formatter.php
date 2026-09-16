@@ -9,8 +9,9 @@ class JsonUnbV1Formatter
 {
     public function format(Story $story): WireOutput
     {
+        $publicId = trim($story->public_id);
         $data = [
-            'public_id' => $story->public_id,
+            'public_id' => $publicId,
             'headline' => $story->headline,
             'sub_head' => $story->sub_head,
             'brief' => $story->brief,
@@ -34,7 +35,7 @@ class JsonUnbV1Formatter
 
         return new WireOutput(
             content: json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
-            filename: "UNB-{$story->public_id}.json",
+            filename: "UNB-{$publicId}.json",
             contentType: 'application/json'
         );
     }

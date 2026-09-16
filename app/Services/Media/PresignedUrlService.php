@@ -24,6 +24,9 @@ class PresignedUrlService
             if ($cdn) {
                 return "{$cdn}/{$path}?expires=".now()->addMinutes($ttlMinutes)->timestamp;
             }
+            if ($disk === 'public' || $disk === 'local') {
+                return url("/storage/{$path}?expires=".now()->addMinutes($ttlMinutes)->timestamp);
+            }
             abort(500, 'Storage misconfigured — presigned URL unavailable');
         }
     }

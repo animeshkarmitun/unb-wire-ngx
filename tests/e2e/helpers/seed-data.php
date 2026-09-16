@@ -3,11 +3,14 @@
 use App\Models\AuditLog;
 use App\Models\Category;
 use App\Models\Client;
+use App\Models\ClientApiKey;
 use App\Models\ClientChannel;
+use App\Models\ClientPackage;
 use App\Models\Delivery;
 use App\Models\MediaAsset;
 use App\Models\MediaBatch;
 use App\Models\MediaReview;
+use App\Models\Package;
 use App\Models\Role;
 use App\Models\Story;
 use App\Models\User;
@@ -17,6 +20,8 @@ use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 require __DIR__.'/../../../vendor/autoload.php';
@@ -328,4 +333,282 @@ if ($action === 'media') {
     );
 
     echo "media seeded batch: {$batch->id}, asset1: {$asset1->id}, asset2: {$asset2->id}, lib: {$libAsset->id}\n";
+}
+
+if ($action === 'wire_api') {
+    // 1. Categories
+    $catPolitics = Category::firstOrCreate(['slug' => 'national-politics'], ['name_en' => 'National Politics', 'name_bn' => 'জাতীয় রাজনীতি', 'is_active' => true]);
+    $catBusiness = Category::firstOrCreate(['slug' => 'economy-business'], ['name_en' => 'Economy & Business', 'name_bn' => 'অর্থনীতি ও বাণিজ্য', 'is_active' => true]);
+    $catSports = Category::firstOrCreate(['slug' => 'sports-cricket'], ['name_en' => 'Sports', 'name_bn' => 'খেলাধুলা', 'is_active' => true]);
+
+    // 2. Packages
+    $pkgEnPol = Package::updateOrCreate(
+        ['code' => 'PKG-E2E-EN-POL'],
+        [
+            'name' => 'English Politics Wire',
+            'kind' => 'news',
+            'description' => 'English language national politics wire',
+            'entitlement_filter' => [
+                'languages' => ['en'],
+                'category_ids' => [$catPolitics->id],
+                'media_kinds' => ['photo'],
+            ],
+            'price_monthly' => 25000,
+            'status' => 'active',
+        ]
+    );
+
+    $pkgBnAll = Package::updateOrCreate(
+        ['code' => 'PKG-E2E-BN-ALL'],
+        [
+            'name' => 'Bangla Full Wire',
+            'kind' => 'news',
+            'description' => 'Full Bangla wire feed',
+            'entitlement_filter' => [
+                'languages' => ['bn'],
+                'category_ids' => null,
+                'media_kinds' => ['photo'],
+            ],
+            'price_monthly' => 30000,
+            'status' => 'active',
+        ]
+    );
+
+    // 3. Clients
+    $clientDailyStar = Client::updateOrCreate(
+        ['code' => 'DST-E2E'],
+        [
+            'name' => 'The Daily Star E2E',
+            'type' => 'newspaper',
+            'status' => 'active',
+            'country' => 'BD',
+            'timezone' => 'Asia/Dhaka',
+            'billing_email' => 'dailystar-e2e@example.com',
+        ]
+    );
+
+    $clientProthomAlo = Client::updateOrCreate(
+        ['code' => 'PALO-E2E'],
+        [
+            'name' => 'Prothom Alo E2E',
+            'type' => 'newspaper',
+            'status' => 'active',
+            'country' => 'BD',
+            'timezone' => 'Asia/Dhaka',
+            'billing_email' => 'prothomalo-e2e@example.com',
+        ]
+    );
+
+    $clientSuspended = Client::updateOrCreate(
+        ['code' => 'SUSP-E2E'],
+        [
+            'name' => 'Suspended Media E2E',
+            'type' => 'online',
+            'status' => 'suspended',
+            'country' => 'BD',
+            'timezone' => 'Asia/Dhaka',
+            'billing_email' => 'suspended-e2e@example.com',
+        ]
+    );
+
+    // 4. Subscriptions
+    ClientPackage::updateOrCreate(
+        ['client_id' => $clientDailyStar->id, 'package_id' => $pkgEnPol->id],
+        [
+            'status' => 'active',
+            'starts_at' => now()->subDays(10),
+            'ends_at' => now()->addDays(20),
+            'auto_renew' => true,
+        ]
+    );
+
+    ClientPackage::updateOrCreate(
+        ['client_id' => $clientProthomAlo->id, 'package_id' => $pkgBnAll->id],
+        [
+            'status' => 'active',
+            'starts_at' => now()->subDays(10),
+            'ends_at' => now()->addDays(20),
+            'auto_renew' => true,
+        ]
+    );
+
+    // 5. API Keys
+    $keyA = ClientApiKey::updateOrCreate(
+        ['key_hash' => hash('sha256', 'unb_live_testkey_dailystar_001')],
+        [
+            'client_id' => $clientDailyStar->id,
+            'name' => 'Daily Star Primary API Key',
+            'scopes' => ['feed:read', 'media:read'],
+            'rate_limit_rpm' => 60,
+            'expires_at' => now()->addYear(),
+        ]
+    );
+
+    $keyB = ClientApiKey::updateOrCreate(
+        ['key_hash' => hash('sha256', 'unb_live_testkey_feedonly_002')],
+        [
+            'client_id' => $clientDailyStar->id,
+            'name' => 'Daily Star Feed Only Key',
+            'scopes' => ['feed:read'],
+            'rate_limit_rpm' => 60,
+            'expires_at' => now()->addYear(),
+        ]
+    );
+
+    $keyC = ClientApiKey::updateOrCreate(
+        ['key_hash' => hash('sha256', 'unb_live_testkey_ratelimited_003')],
+        [
+            'client_id' => $clientDailyStar->id,
+            'name' => 'Daily Star Rate Limited Key',
+            'scopes' => ['feed:read'],
+            'rate_limit_rpm' => 2,
+            'expires_at' => now()->addYear(),
+        ]
+    );
+
+    $keyD = ClientApiKey::updateOrCreate(
+        ['key_hash' => hash('sha256', 'unb_live_testkey_suspended_004')],
+        [
+            'client_id' => $clientSuspended->id,
+            'name' => 'Suspended Key',
+            'scopes' => ['feed:read', 'media:read'],
+            'rate_limit_rpm' => 60,
+            'expires_at' => now()->addYear(),
+        ]
+    );
+
+    $keyE = ClientApiKey::updateOrCreate(
+        ['key_hash' => hash('sha256', 'unb_live_testkey_prothomalo_005')],
+        [
+            'client_id' => $clientProthomAlo->id,
+            'name' => 'Prothom Alo Primary Key',
+            'scopes' => ['feed:read', 'media:read'],
+            'rate_limit_rpm' => 60,
+            'expires_at' => now()->addYear(),
+        ]
+    );
+
+    RateLimiter::clear('api-key:'.$keyC->id);
+
+    // 6. Test Stories
+    $author = User::first();
+
+    $storyEnPol = Story::updateOrCreate(
+        ['public_id' => '01JWIREAPITESTENPOL0000001'],
+        [
+            'language' => 'en',
+            'headline' => 'Parliament approves National Budget for FY2026-27',
+            'sub_head' => 'Focus on macro-economic stability',
+            'brief' => 'Lawmakers pass national budget for the upcoming financial year with priority on inflation control.',
+            'body_html' => '<p>Lawmakers pass national budget for the upcoming financial year with priority on inflation control.</p>',
+            'body_text' => 'Lawmakers pass national budget for the upcoming financial year with priority on inflation control.',
+            'category_id' => $catPolitics->id,
+            'status' => 'published',
+            'published_at' => now()->subHours(2),
+            'created_by' => $author->id,
+            'owner_id' => $author->id,
+            'version' => 1,
+            'source' => 'desk',
+        ]
+    );
+
+    $storyEnBiz = Story::updateOrCreate(
+        ['public_id' => '01JWIREAPITESTENBIZ0000002'],
+        [
+            'language' => 'en',
+            'headline' => 'Central Bank raises policy repo rate by 25 basis points',
+            'sub_head' => 'Monetary tightening to contain inflation',
+            'brief' => 'Bangladesh Bank raises policy repo rate to tighten money market liquidity.',
+            'body_html' => '<p>Bangladesh Bank raises policy repo rate to tighten money market liquidity.</p>',
+            'body_text' => 'Bangladesh Bank raises policy repo rate to tighten money market liquidity.',
+            'category_id' => $catBusiness->id,
+            'status' => 'published',
+            'published_at' => now()->subHours(3),
+            'created_by' => $author->id,
+            'owner_id' => $author->id,
+            'version' => 1,
+            'source' => 'desk',
+        ]
+    );
+
+    $storyBnSpt = Story::updateOrCreate(
+        ['public_id' => '01JWIREAPITESTBNSPT0000003'],
+        [
+            'language' => 'bn',
+            'headline' => 'এশিয়া কাপ ক্রিকেটে বাংলাদেশের শ্বাসরুদ্ধকর জয়',
+            'sub_head' => 'শেষ ওভারে চার মেরে ম্যাচ জিতলেন অধিনায়ক',
+            'brief' => 'মিরপুর শের-ই-বাংলা জাতীয় ক্রিকেট স্টেডিয়ামে নাটকীয় ম্যাচে জয় তুলে নিল বাংলাদেশ।',
+            'body_html' => '<p>মিরপুর শের-ই-বাংলা জাতীয় ক্রিকেট স্টেডিয়ামে নাটকীয় ম্যাচে জয় তুলে নিল বাংলাদেশ।</p>',
+            'body_text' => 'মিরপুর শের-ই-বাংলা জাতীয় ক্রিকেট স্টেডিয়ামে নাটকীয় ম্যাচে জয় তুলে নিল বাংলাদেশ।',
+            'category_id' => $catSports->id,
+            'status' => 'published',
+            'published_at' => now()->subHours(1),
+            'created_by' => $author->id,
+            'owner_id' => $author->id,
+            'version' => 1,
+            'source' => 'desk',
+        ]
+    );
+
+    $storyKilled = Story::updateOrCreate(
+        ['public_id' => '01JWIREAPITESTKILLED000004'],
+        [
+            'language' => 'en',
+            'headline' => 'Erroneous report on highway accident casualties retracted',
+            'sub_head' => 'Correction notice',
+            'brief' => 'STORY KILLED / RETRACTED',
+            'body_html' => '<p>This story has been killed and retracted from the UNB wire.</p>',
+            'body_text' => 'This story has been killed and retracted from the UNB wire.',
+            'category_id' => $catPolitics->id,
+            'status' => 'killed',
+            'published_at' => now()->subHours(5),
+            'created_by' => $author->id,
+            'owner_id' => $author->id,
+            'version' => 2,
+            'source' => 'desk',
+        ]
+    );
+
+    $media = MediaAsset::updateOrCreate(
+        ['public_id' => '01JWIREAPITESTMEDIA0000001'],
+        [
+            'kind' => 'photo',
+            'status' => 'library',
+            'title' => 'Parliament Budget Session Highlights',
+            'caption' => 'Lawmakers in Parliament during the passage of FY2026-27 National Budget',
+            'credit_line' => 'Photo: UNB Archive',
+            'uploaded_by' => $author->id,
+            'approved_by' => $author->id,
+            'approved_at' => now()->subDay(),
+            'storage_disk' => 'public',
+            'original_path' => 'media/test/budget-session.jpg',
+            'checksum' => hash('sha256', 'test-wire-media-001'),
+            'size_bytes' => 1540000,
+            'width' => 1200,
+            'height' => 800,
+            'mime' => 'image/jpeg',
+            'derivatives' => ['grad' => 'g1', 'r' => 1.5],
+        ]
+    );
+
+    Storage::disk('public')->put('media/test/budget-session.jpg', 'fake-jpeg-content');
+    $storyEnPol->media()->syncWithoutDetaching([$media->id => ['role' => 'featured', 'sort_order' => 1]]);
+
+    // Forget client feed cache keys
+    Cache::forget('feed:v1:'.$clientDailyStar->id.':'.md5('http://localhost:8000/api/v1/feed'));
+    Cache::forget('feed:v1:'.$clientDailyStar->id.':'.md5('http://127.0.0.1:8000/api/v1/feed'));
+    Cache::forget('feed:v1:'.$clientProthomAlo->id.':'.md5('http://localhost:8000/api/v1/feed'));
+    Cache::forget('feed:v1:'.$clientProthomAlo->id.':'.md5('http://127.0.0.1:8000/api/v1/feed'));
+
+    echo "wire_api seeded: stories=[{$storyEnPol->id}, {$storyEnBiz->id}, {$storyBnSpt->id}, {$storyKilled->id}], media={$media->id}\n";
+}
+
+if ($action === 'download_count') {
+    $itemType = $argv[2] ?? null;
+    $q = DB::table('downloads');
+    if ($itemType) {
+        $q->where('item_type', $itemType);
+    }
+    echo (int) $q->count();
+    exit(0);
 }
