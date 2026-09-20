@@ -10,6 +10,7 @@ use InvalidArgumentException;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Ftp\FtpAdapter;
 use League\Flysystem\Ftp\FtpConnectionOptions;
+use League\Flysystem\Local\LocalFilesystemAdapter;
 use League\Flysystem\PhpseclibV3\SftpAdapter;
 use League\Flysystem\PhpseclibV3\SftpConnectionProvider;
 
@@ -31,6 +32,17 @@ class FtpDiskFactory
         }
         if (empty($username)) {
             throw new InvalidArgumentException('Missing username in channel config.');
+        }
+
+        if (! app()->isProduction()) {
+            $testDir = storage_path('app/testing-sftp');
+            if (! is_dir($testDir)) {
+                @mkdir($testDir, 0777, true);
+            }
+            $adapter = new LocalFilesystemAdapter($testDir);
+            $driver = new Filesystem($adapter);
+
+            return new FilesystemAdapter($driver, $adapter, $config);
         }
 
         $port = (int) ($config['port'] ?? 21);
