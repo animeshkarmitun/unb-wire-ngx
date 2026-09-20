@@ -34,17 +34,6 @@ class FtpDiskFactory
             throw new InvalidArgumentException('Missing username in channel config.');
         }
 
-        if (! app()->isProduction()) {
-            $testDir = storage_path('app/testing-sftp');
-            if (! is_dir($testDir)) {
-                @mkdir($testDir, 0777, true);
-            }
-            $adapter = new LocalFilesystemAdapter($testDir);
-            $driver = new Filesystem($adapter);
-
-            return new FilesystemAdapter($driver, $adapter, $config);
-        }
-
         $port = (int) ($config['port'] ?? 21);
         $authType = $config['auth_type'] ?? ($port === 22 ? 'sftp' : 'ftp');
 
@@ -61,6 +50,27 @@ class FtpDiskFactory
         $passphrase = $config['passphrase'] ?? null;
 
         if ($authType === 'sftp') {
+            if (! $privateKey && ! $password) {
+                throw new InvalidArgumentException('Missing password or privateKey for SFTP connection.');
+            }
+        } else {
+            if (! $password) {
+                throw new InvalidArgumentException('Missing password for FTP connection.');
+            }
+        }
+
+        if (! app()->isProduction()) {
+            $testDir = storage_path('app/testing-sftp');
+            if (! is_dir($testDir)) {
+                @mkdir($testDir, 0777, true);
+            }
+            $adapter = new LocalFilesystemAdapter($testDir);
+            $driver = new Filesystem($adapter);
+
+            return new FilesystemAdapter($driver, $adapter, $config);
+        }
+
+        if ($authType === 'sftp') {
             $providerOptions = [
                 'host' => $host,
                 'username' => $username,
@@ -73,18 +83,13 @@ class FtpDiskFactory
                 if ($passphrase) {
                     $providerOptions['passphrase'] = $passphrase;
                 }
-            } elseif ($password) {
-                $providerOptions['password'] = $password;
             } else {
-                throw new InvalidArgumentException('Missing password or privateKey for SFTP connection.');
+                $providerOptions['password'] = $password;
             }
 
             $provider = SftpConnectionProvider::fromArray($providerOptions);
             $adapter = new SftpAdapter($provider, '/');
         } else {
-            if (! $password) {
-                throw new InvalidArgumentException('Missing password for FTP connection.');
-            }
             $options = FtpConnectionOptions::fromArray([
                 'host' => $host,
                 'root' => '/',

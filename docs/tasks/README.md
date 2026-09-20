@@ -236,7 +236,7 @@
 
 | Task ID | Title | Dependencies | Status | Review | Completed |
 |---------|-------|--------------|--------|--------|-----------|
-| `M13-RATE-001` | Environment-aware rate limiting (config + helper + named limiters + dev multiplier) | — | ⏳ | — | — |
+| `M13-RATE-001` | Environment-aware rate limiting (config + helper + named limiters + dev multiplier) | — | ✅ | — | 2026-09-20 |
 
 ---
 

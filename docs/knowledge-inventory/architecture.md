@@ -96,6 +96,10 @@ repositories never cache.
 - RBAC: `role_permissions` matrix → `RbacService.assertCan` on every endpoint;
   UI hides what the role can't do, the server still says no.
 - Client API keys: sha256-hashed, scoped, per-key rate limit, rotation overlap.
+- Environment-aware rate limiting (`config/rate-limiting.php` + `RateLimitHelper`):
+  production strict, development 10x relaxed via `RATE_LIMIT_DEV_MULTIPLIER`,
+  testing disabled via `RATE_LIMIT_ENABLED=false`. Named limiters registered in
+  `AppServiceProvider`; per-key RPM in `EnsureClientApiKey` also respects multiplier.
 - Channel secrets stored as vault references only (`credential_ref`/`secret_ref`).
 - Audit log: append-only (DB-grant enforced), before/after diffs, correlation ids,
   7-year retention.
