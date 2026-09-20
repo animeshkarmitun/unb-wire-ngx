@@ -262,7 +262,7 @@
 
 | Task ID | Title | Dependencies | Status | Review | Completed |
 |---------|-------|--------------|--------|--------|-----------|
-| `M13-RBAC-001` | Superadmin + RBAC hardening (is_superadmin flag, component rbac, system role protection, endpoint tests) | — | ⏳ | — | — |
+| `M13-RBAC-001` | Superadmin + RBAC hardening (is_superadmin flag, component rbac, system role protection, endpoint tests) | — | ✅ | — | 2026-09-13 |
 
 ---
 
