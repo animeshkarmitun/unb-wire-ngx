@@ -110,7 +110,7 @@ class BackupDatabase extends Command
         $in = fopen($src, 'rb');
         $out = gzopen($dest, 'wb6');
         try {
-            while (!feof($in)) {
+            while (! feof($in)) {
                 gzwrite($out, fread($in, 1024 * 1024));
             }
         } finally {
