@@ -276,7 +276,17 @@
 
 ---
 
-## 17. How to Add a Task
+## 17. Ops (`M13-OPS`) — 2026-09-22
+
+> Automated ops hygiene (COS-23/M13-OPS-001: pg_dump backups with 7 daily / 4 weekly / 3 monthly rotation, listing, failure alerts).
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M13-OPS-001` | Automated database backup cron (pg_dump + gzip + retention + list + alert) | `M1-BOOT-001` | ✅ | — | 2026-09-22 |
+
+---
+
+## 18. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.

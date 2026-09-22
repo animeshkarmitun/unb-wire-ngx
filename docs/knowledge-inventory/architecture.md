@@ -73,6 +73,12 @@ repositories never cache.
   recorded per attempt.
 - **Scheduler (defined in Dhaka wall-clock, executed as UTC instants):** embargo
   lifts (±60s), archival sweep, digests, backup drills.
+- **Database backups (M13-OPS-001):** `backup:run` daily at `BACKUP_SCHEDULE`
+  (default 02:00) — pg_dump → gzip → `backups/db-YYYYMMDD-HHMMSS.sql.gz` on the
+  local disk, optional copy to `BACKUP_DISK` (e.g. S3 offsite). Rotation keeps
+  7 daily (`BACKUP_RETENTION_DAYS`) + 4 weekly (newest per ISO week) + 3 monthly
+  (newest per month). `backup:list` inventories them; failures log + email
+  `BackupFailed` to `BACKUP_ALERT_EMAIL` and exit 1.
 - **Search sync:** `index_outbox` → indexer workers → Meilisearch `main`/`archive`;
   lag budget ≤5s after publish; full reindex from Postgres must stay a tested,
   scripted operation.
