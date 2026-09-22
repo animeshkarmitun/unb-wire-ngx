@@ -19,15 +19,15 @@ class AssignmentModelTest extends TestCase
             'title' => 'Test Assignment',
             'description' => 'Test description',
             'location' => 'Dhaka',
-            'priority' => 'high',
-            'status' => 'pending',
+            'priority' => 'urgent',
+            'status' => 'open',
         ]);
 
         $this->assertEquals('Test Assignment', $assignment->title);
         $this->assertEquals('Test description', $assignment->description);
         $this->assertEquals('Dhaka', $assignment->location);
-        $this->assertEquals('high', $assignment->priority);
-        $this->assertEquals('pending', $assignment->status);
+        $this->assertEquals('urgent', $assignment->priority);
+        $this->assertEquals('open', $assignment->status);
     }
 
     public function test_assignment_casts_shot_list_to_array(): void
