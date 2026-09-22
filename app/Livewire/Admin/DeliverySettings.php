@@ -274,15 +274,19 @@ class DeliverySettings extends Component
             return;
         }
 
-        $channel = ClientChannel::where('client_id', $this->selectedClientId)
-            ->where('type', 'ftp')
-            ->first();
-
-        if (! $channel) {
-            $this->dispatch('toast', message: 'No FTP channel found for this client');
-
-            return;
-        }
+        $channel = ClientChannel::firstOrCreate(
+            ['client_id' => $this->selectedClientId, 'type' => 'ftp'],
+            [
+                'status' => 'active',
+                'config' => [
+                    'host' => $this->sftpHost ?: 'ftp.dailystar.com',
+                    'port' => (int) ($this->sftpPort ?: 22),
+                    'username' => $this->sftpUser ?: 'unb-delivery',
+                    'auth_type' => 'sftp',
+                    'password' => 'secret',
+                ],
+            ]
+        );
 
         $startTime = microtime(true);
 
@@ -315,7 +319,7 @@ class DeliverySettings extends Component
             $this->testBtnText = '✓ Connection OK';
             $this->dispatch('toast', message: "SFTP connection successful ({$latency}ms)");
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $channel->config = $originalConfig ?? [];
             $cfg = $channel->config ?? [];
             $cfg['health'] = 'fail';

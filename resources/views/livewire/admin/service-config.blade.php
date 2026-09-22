@@ -4,7 +4,10 @@
 <div><label class="text-xs font-semibold">Wire name</label><input wire:model="wireName" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="UNB English Wire"></div>
 <div><label class="text-xs font-semibold">Description</label><textarea wire:model="description" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" rows="3"></textarea></div>
 <label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model.live="enabled"> Enabled</label>
-<x-btn variant="primary" wire:click="save">Save</x-btn>
+<x-btn variant="primary" wire:click="save" wire:loading.attr="disabled">
+  <span wire:loading.remove wire:target="save">Save</span>
+  <span wire:loading wire:target="save">Saving…</span>
+</x-btn>
 </div>
 <x-toast />
 </div>

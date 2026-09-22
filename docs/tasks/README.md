@@ -236,7 +236,7 @@
 
 | Task ID | Title | Dependencies | Status | Review | Completed |
 |---------|-------|--------------|--------|--------|-----------|
-| `M13-RATE-001` | Environment-aware rate limiting (config + helper + named limiters + dev multiplier) | — | ⏳ | — | — |
+| `M13-RATE-001` | Environment-aware rate limiting (config + helper + named limiters + dev multiplier) | — | ✅ | — | 2026-09-20 |
 
 ---
 
@@ -262,11 +262,21 @@
 
 | Task ID | Title | Dependencies | Status | Review | Completed |
 |---------|-------|--------------|--------|--------|-----------|
-| `M13-RBAC-001` | Superadmin + RBAC hardening (is_superadmin flag, component rbac, system role protection, endpoint tests) | — | ⏳ | — | — |
+| `M13-RBAC-001` | Superadmin + RBAC hardening (is_superadmin flag, component rbac, system role protection, endpoint tests) | — | ✅ | — | 2026-09-13 |
 
 ---
 
-## 16. How to Add a Task
+## 16. AI Publish Gate (`M13-AI`) — 2026-09-22
+
+> COS-9 audit flagged the untested auto-publish happy path. The new test exposed a gate bug: `StoryService` compared `category_id` (bigint) against `autoCats` (category names) so the allowlist never matched.
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M13-AI-002` | AI auto-publish happy path: allowlisted category test + gate fix (category name match) | `M13-RBAC-001` | ✅ | — | 2026-09-22 |
+
+---
+
+## 17. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.
