@@ -137,7 +137,7 @@ class StoryService
             if (! empty($story->ai_touched) && ! $story->is_breaking) {
                 $cfg = DB::table('settings')->where('key', 'ai.desk')->value('value');
                 $cfg = is_string($cfg) ? json_decode($cfg, true) : $cfg;
-                $allowAuto = ! empty($cfg['autoPublish']) && in_array($story->category_id, (array) ($cfg['autoCats'] ?? []), true);
+                $allowAuto = ! empty($cfg['autoPublish']) && in_array($story->loadMissing('category')->category?->name_en, (array) ($cfg['autoCats'] ?? []), true);
                 if (! $allowAuto) {
                     throw new UnprocessableEntityHttpException('AI-touched fields require review before publish');
                 }

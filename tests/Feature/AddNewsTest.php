@@ -507,6 +507,84 @@ class AddNewsTest extends TestCase
         $this->assertNotEquals('published', $story->status);
     }
 
+    public function test_ai_touched_allowlisted_category_publishes_when_auto_publish_on(): void
+    {
+        Queue::fake();
+        $this->actingAs($this->editor);
+
+        // Ensure AI budget is available
+        DB::table('ai_token_usage_daily')->delete();
+
+        $business = Category::where('name_en', 'Business')->firstOrFail();
+
+        DB::table('settings')->where('key', 'ai.desk')->update([
+            'value' => json_encode(['autoPublish' => true, 'autoCats' => ['Business'], 'killed' => false, 'monthlyCap' => 500000, 'preeditEn' => true]),
+        ]);
+
+        $cmp = Livewire::test(AddNews::class)
+            ->set('headline', 'AI auto publish story')
+            ->set('brief', 'AI brief')
+            ->set('bodyHtml', '<p>Body</p>')
+            ->set('categoryId', (string) $business->id)
+            ->call('autosave');
+
+        $storyId = $cmp->get('storyId');
+        $this->assertNotNull($storyId);
+
+        $cmp->call('callAi', 'preedit');
+
+        $pack = $cmp->get('aiPack');
+        $this->assertNotNull($pack, 'AI pack should not be null');
+        $this->assertArrayNotHasKey('error', $pack, 'AI returned error: '.json_encode($pack));
+
+        $cmp->call('applyAi', 'headline');
+
+        $cmp->call('publish');
+
+        $story = Story::find($storyId);
+        $this->assertEquals('published', $story->status);
+        $this->assertNotNull($story->published_at);
+        $this->assertEquals('published', $cmp->get('successState'));
+
+        $this->assertDatabaseHas('story_events', ['story_id' => $storyId, 'action' => 'published']);
+        Queue::assertPushed(FanoutStory::class);
+    }
+
+    public function test_ai_touched_non_allowlisted_category_blocked_even_when_auto_publish_on(): void
+    {
+        $this->actingAs($this->editor);
+
+        // Ensure AI budget is available
+        DB::table('ai_token_usage_daily')->delete();
+
+        DB::table('settings')->where('key', 'ai.desk')->update([
+            'value' => json_encode(['autoPublish' => true, 'autoCats' => ['Weather', 'Sports results', 'Market close', 'Currency rates'], 'killed' => false, 'monthlyCap' => 500000, 'preeditEn' => true]),
+        ]);
+
+        $cmp = Livewire::test(AddNews::class)
+            ->set('headline', 'AI story outside allowlist')
+            ->set('brief', 'AI brief')
+            ->set('bodyHtml', '<p>Body</p>')
+            ->set('categoryId', (string) $this->cat->id)
+            ->call('autosave');
+
+        $storyId = $cmp->get('storyId');
+        $this->assertNotNull($storyId);
+
+        $cmp->call('callAi', 'preedit');
+
+        $pack = $cmp->get('aiPack');
+        $this->assertNotNull($pack, 'AI pack should not be null');
+        $this->assertArrayNotHasKey('error', $pack, 'AI returned error: '.json_encode($pack));
+
+        $cmp->call('applyAi', 'headline');
+
+        $cmp->call('publish');
+
+        $story = Story::find($storyId);
+        $this->assertNotEquals('published', $story->status);
+    }
+
     // ─── Publish Lifecycle ─────────────────────────────────────────
 
     public function test_full_publish_flow_transitions_to_published(): void
