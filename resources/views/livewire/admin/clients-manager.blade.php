@@ -334,7 +334,10 @@
             <div class="dr-sec-title">Internal note</div>
             <textarea class="note-area" wire:model="clientNoteText" id="noteArea" placeholder="Context for the newsroom — billing, preferences, escalation history…">{{ $clientNoteText }}</textarea>
             <div style="margin-top:9px;text-align:right">
-              <button type="button" class="btn btn-outline btn-sm" wire:click="saveNote" id="noteSave">Save note</button>
+              <button type="button" class="btn btn-outline btn-sm" wire:click="saveNote" id="noteSave" wire:loading.attr="disabled">
+                <span wire:loading.remove wire:target="saveNote">Save note</span>
+                <span wire:loading wire:target="saveNote">Saving…</span>
+              </button>
             </div>
           </div>
 
@@ -430,8 +433,14 @@
                 <input class="chan-input" type="password" wire:model="ftpPass" id="ftPass">
               </div>
               <div style="display:flex;gap:8px;align-items:center">
-                <button type="button" class="btn btn-outline btn-sm" wire:click="testFtpConnection" id="ftTest">Test connection</button>
-                <button type="button" class="btn btn-navy btn-sm" wire:click="saveFtpCredentials" id="ftSave">Save credentials</button>
+                <button type="button" class="btn btn-outline btn-sm" wire:click="testFtpConnection" id="ftTest" wire:loading.attr="disabled">
+                  <span wire:loading.remove wire:target="testFtpConnection">Test connection</span>
+                  <span wire:loading wire:target="testFtpConnection">Testing…</span>
+                </button>
+                <button type="button" class="btn btn-navy btn-sm" wire:click="saveFtpCredentials" id="ftSave" wire:loading.attr="disabled">
+                  <span wire:loading.remove wire:target="saveFtpCredentials">Save credentials</span>
+                  <span wire:loading wire:target="saveFtpCredentials">Saving…</span>
+                </button>
               </div>
               @if($ftFail)
                 <div class="test-note" style="color:var(--crimson-dark, #d13438)">
@@ -470,7 +479,10 @@
                 <label>Webhook URL</label>
                 <div class="flex gap-2">
                   <input class="chan-input" wire:model="webhookUrl" placeholder="https://…" id="apiHook">
-                  <button type="button" class="key-btn" wire:click="saveWebhookUrl">Save</button>
+                  <button type="button" class="key-btn" wire:click="saveWebhookUrl" wire:loading.attr="disabled">
+                    <span wire:loading.remove wire:target="saveWebhookUrl">Save</span>
+                    <span wire:loading wire:target="saveWebhookUrl">Saving…</span>
+                  </button>
                 </div>
               </div>
             </div>

@@ -116,7 +116,10 @@
                         <label for="sftpPassword">Credentials Key / Password</label>
                         <input type="password" class="inp mono" id="sftpPassword" wire:model="sftpPassword">
                     </div>
-                    <button type="button" class="btn navy sm" id="credSave" wire:click="saveCredentials">Save credentials</button>
+                    <button type="button" class="btn navy sm" id="credSave" wire:click="saveCredentials" wire:loading.attr="disabled">
+                      <span wire:loading.remove wire:target="saveCredentials">Save credentials</span>
+                      <span wire:loading wire:target="saveCredentials">Saving…</span>
+                    </button>
                     <hr class="divider">
                 </div>
 
@@ -212,7 +215,10 @@
                     </div>
                 </div>
 
-                <button type="button" class="btn navy" id="pushSave" wire:click="savePushSettings">Save push settings</button>
+                <button type="button" class="btn navy" id="pushSave" wire:click="savePushSettings" wire:loading.attr="disabled">
+                  <span wire:loading.remove wire:target="savePushSettings">Save push settings</span>
+                  <span wire:loading wire:target="savePushSettings">Saving…</span>
+                </button>
             </div>
         </section>
 
@@ -304,7 +310,10 @@
                     </div>
                 </div>
 
-                <button type="button" class="btn navy" id="apiSave" wire:click="saveApiSettings">Save API settings</button>
+                <button type="button" class="btn navy" id="apiSave" wire:click="saveApiSettings" wire:loading.attr="disabled">
+                  <span wire:loading.remove wire:target="saveApiSettings">Save API settings</span>
+                  <span wire:loading wire:target="saveApiSettings">Saving…</span>
+                </button>
                 <div class="note" style="margin-top:10px">
                     Full API reference: <a href="{{ route('admin.distribution') }}" style="text-decoration:underline;color:var(--navy-800)">docs.unbnews.org/api</a> · CMS plugins available for WordPress, Ghost and Arc.
                 </div>
@@ -389,7 +398,10 @@
                     </div>
                 </div>
 
-                <button type="button" class="btn navy" id="alertSave" wire:click="saveAlertSettings">Save alert settings</button>
+                <button type="button" class="btn navy" id="alertSave" wire:click="saveAlertSettings" wire:loading.attr="disabled">
+                  <span wire:loading.remove wire:target="saveAlertSettings">Save alert settings</span>
+                  <span wire:loading wire:target="saveAlertSettings">Saving…</span>
+                </button>
             </div>
         </section>
 
@@ -496,7 +508,10 @@
                     </label>
                 </div>
 
-                <button type="button" class="btn navy mt-4" id="engineSave" wire:click="saveEngineRules">Save engine rules</button>
+                <button type="button" class="btn navy mt-4" id="engineSave" wire:click="saveEngineRules" wire:loading.attr="disabled">
+                  <span wire:loading.remove wire:target="saveEngineRules">Save engine rules</span>
+                  <span wire:loading wire:target="saveEngineRules">Saving…</span>
+                </button>
             </div>
         </section>
     </div>

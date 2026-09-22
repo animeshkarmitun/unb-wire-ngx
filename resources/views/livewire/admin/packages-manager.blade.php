@@ -379,8 +379,14 @@
 
                 <div class="mo-actions">
                     <button class="btn btn-outline" wire:click="closePkgModal">Cancel</button>
-                    <button class="btn btn-outline" wire:click="savePkg('draft')" id="pkgSaveDraft">Save as draft</button>
-                    <button class="btn btn-primary" wire:click="savePkg('live')" id="pkgSave">Save &amp; publish</button>
+                    <button class="btn btn-outline" wire:click="savePkg('draft')" id="pkgSaveDraft" wire:loading.attr="disabled">
+                      <span wire:loading.remove wire:target="savePkg">Save as draft</span>
+                      <span wire:loading wire:target="savePkg">Saving…</span>
+                    </button>
+                    <button class="btn btn-primary" wire:click="savePkg('live')" id="pkgSave" wire:loading.attr="disabled">
+                      <span wire:loading.remove wire:target="savePkg">Save &amp; publish</span>
+                      <span wire:loading wire:target="savePkg">Saving…</span>
+                    </button>
                 </div>
             </div>
         @endif
@@ -441,7 +447,10 @@
 
                 <div class="mo-actions">
                     <button class="btn btn-outline" wire:click="closeAoModal">Cancel</button>
-                    <button class="btn btn-primary" wire:click="saveAo" id="aoSave">Save add-on</button>
+                    <button class="btn btn-primary" wire:click="saveAo" id="aoSave" wire:loading.attr="disabled">
+                      <span wire:loading.remove wire:target="saveAo">Save add-on</span>
+                      <span wire:loading wire:target="saveAo">Saving…</span>
+                    </button>
                 </div>
             </div>
         @endif

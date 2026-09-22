@@ -169,7 +169,10 @@
     {{-- Sticky save bar --}}
     <div class="save-bar">
         <button type="button" class="btn btn-outline" id="resetBtn" wire:click="resetDefaults">Reset to defaults</button>
-        <button type="button" class="btn btn-primary" id="saveBtn" wire:click="save">Save settings</button>
+        <button type="button" class="btn btn-primary" id="saveBtn" wire:click="save" wire:loading.attr="disabled">
+          <span wire:loading.remove wire:target="save">Save settings</span>
+          <span wire:loading wire:target="save">Saving…</span>
+        </button>
     </div>
 
     {{-- auto-publish enable confirmation modal --}}

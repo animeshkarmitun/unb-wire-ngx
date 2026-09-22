@@ -533,8 +533,9 @@ class="relative">
                                 ✓ Approve → library
                             </button>
                         @endif
-                        <button wire:click="saveAssetMetadata" class="btn btn-primary" id="iSave">
-                            Save changes
+                        <button wire:click="saveAssetMetadata" class="btn btn-primary" id="iSave" wire:loading.attr="disabled">
+                          <span wire:loading.remove wire:target="saveAssetMetadata">Save changes</span>
+                          <span wire:loading wire:target="saveAssetMetadata">Saving…</span>
                         </button>
                     </div>
                 </div>
