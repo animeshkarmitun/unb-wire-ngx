@@ -47,3 +47,4 @@ Schedule::call(function () {
 Schedule::command('monitor:outbox-lag')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('delivery:process')->everyMinute()->withoutOverlapping();
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
+Schedule::command('backup:run')->dailyAt((string) config('backup.schedule', '02:00'))->withoutOverlapping()->name('db-backup');
