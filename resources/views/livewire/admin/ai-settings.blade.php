@@ -160,7 +160,8 @@
     <div class="kill-zone">
         <div class="card-title" style="color:var(--crimson-dark)">Emergency kill switch</div>
         <div class="card-sub">Instantly disables every AI feature newsroom-wide — pre-edit, translation, captions, auto-publish. Manual work is never affected.</div>
-        <button type="button" class="kill-btn {{ $killed ? 'restore' : '' }}" id="killBtn" wire:click="toggleKill">
+        <button type="button" class="kill-btn {{ $killed ? 'restore' : '' }}" id="killBtn" wire:click="toggleKill"
+          wire:confirm="{{ $killed ? 'Re-enable all AI features newsroom-wide?' : 'Disable ALL AI features newsroom-wide? This affects every desk immediately.' }}">
             {{ $killed ? 'Re-enable AI features' : 'Disable all AI features now' }}
         </button>
     </div>

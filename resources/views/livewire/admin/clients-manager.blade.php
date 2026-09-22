@@ -594,12 +594,14 @@
                       @endforeach
                     </select>
                     <button type="button" class="btn btn-outline btn-sm" style="font-size:12px;color:var(--crimson-dark,#d13438);border-color:#f0c9ca"
-                      wire:click="deactivatePortalUser({{ $pu->id }})">Deactivate</button>
+                      wire:click="deactivatePortalUser({{ $pu->id }})"
+                      wire:confirm="Deactivate this portal user? They will lose access immediately.">Deactivate</button>
                   @elseif($puStatus === 'invited')
                     <button type="button" class="btn btn-outline btn-sm" style="font-size:12px"
                       wire:click="resendPortalInvite({{ $pu->id }})">Resend invite</button>
                     <button type="button" class="btn btn-outline btn-sm" style="font-size:12px;color:var(--crimson-dark,#d13438);border-color:#f0c9ca"
-                      wire:click="deactivatePortalUser({{ $pu->id }})">Deactivate</button>
+                      wire:click="deactivatePortalUser({{ $pu->id }})"
+                      wire:confirm="Deactivate this portal user? They will lose access immediately.">Deactivate</button>
                   @else
                     <button type="button" class="btn btn-primary btn-sm" style="font-size:12px"
                       wire:click="reactivatePortalUser({{ $pu->id }})">Reactivate</button>
