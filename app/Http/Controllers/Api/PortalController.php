@@ -180,15 +180,15 @@ class PortalController extends Controller
             'status' => $s->status,
             'is_breaking' => (bool) $s->is_breaking,
             'tags' => $s->tags->pluck('name')->values()->all(),
-            'caps' => $s->media->pluck('caption')->filter()->values()->all(),
-            'media' => $s->media->map(fn ($m) => [
+            'caps' => $s->media->reject(fn ($m) => $m->isEmbargoed())->pluck('caption')->filter()->values()->all(),
+            'media' => $s->media->reject(fn ($m) => $m->isEmbargoed())->values()->map(fn ($m) => [
                 'id' => $m->id,
                 'public_id' => $m->public_id,
                 'caption' => $m->caption ?: $m->title,
                 'kind' => $m->kind,
                 'credit' => $m->credit ?? 'UNB',
             ])->values()->all(),
-            'has_video' => $s->media->where('kind', 'video')->isNotEmpty(),
+            'has_video' => $s->media->reject(fn ($m) => $m->isEmbargoed())->where('kind', 'video')->isNotEmpty(),
         ];
     }
 }
