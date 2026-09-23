@@ -70,8 +70,8 @@ class AiService
             'tokens' => $totalTokens,
             'cost_micros' => $result->costMicros,
         ], ['date', 'scope', 'kind'], [
-            'tokens' => DB::raw('ai_token_usage_daily.tokens + '.$totalTokens),
-            'cost_micros' => DB::raw('ai_token_usage_daily.cost_micros + '.$result->costMicros),
+            'tokens' => DB::raw('ai_token_usage_daily.tokens + '.((int) $totalTokens)),
+            'cost_micros' => DB::raw('ai_token_usage_daily.cost_micros + '.((int) $result->costMicros)),
         ]);
 
         return $result->toPack();
