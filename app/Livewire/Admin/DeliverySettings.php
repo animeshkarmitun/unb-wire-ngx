@@ -62,7 +62,7 @@ class DeliverySettings extends Component
     // ---- Card 2: API Access ----
     public string $apiEndpoint = 'https://api.unbnews.org/v1';
 
-    public string $rawApiKey = 'unb_live_9d4f21ab77c03f9a';
+    public string $rawApiKey = '';
 
     public string $maskedApiKey = 'unb_live_••••••••••••3f9a';
 
@@ -209,10 +209,10 @@ class DeliverySettings extends Component
         if ($apiKey) {
             $maskedSuffix = substr($apiKey->key_hash, -4);
             $this->maskedApiKey = 'unb_live_••••••••••••'.$maskedSuffix;
-            $this->rawApiKey = 'unb_live_'.substr($apiKey->key_hash, 0, 16);
+            $this->rawApiKey = '';
         } else {
             $this->maskedApiKey = 'unb_live_••••••••••••3f9a';
-            $this->rawApiKey = 'unb_live_9d4f21ab77c03f9a';
+            $this->rawApiKey = '';
         }
         $this->isKeyRevealed = false;
         $this->regenStep = 0;
@@ -401,7 +401,14 @@ class DeliverySettings extends Component
     // ---- API Access Actions ----
     public function toggleRevealKey(): void
     {
-        $this->isKeyRevealed = ! $this->isKeyRevealed;
+        if ($this->isKeyRevealed) {
+            // Hide consumes the raw key — it can never be revealed again (FR-CLT-003: shown once)
+            $this->isKeyRevealed = false;
+            $this->rawApiKey = '';
+
+            return;
+        }
+        $this->isKeyRevealed = $this->rawApiKey !== '';
     }
 
     public function toggleRevealSecret(): void
@@ -436,14 +443,14 @@ class DeliverySettings extends Component
                 $suffix = substr($raw, -4);
                 $this->maskedApiKey = 'unb_live_••••••••••••'.$suffix;
                 $this->rawApiKey = $raw;
+                $this->isKeyRevealed = true;
             }
         } else {
             $this->maskedApiKey = 'unb_live_••••••••••••b71c';
-            $this->rawApiKey = 'unb_live_9d4f21ab77c0b71c';
+            $this->rawApiKey = '';
         }
 
         $this->regenStep = 0;
-        $this->isKeyRevealed = false;
         $this->dispatch('toast', message: '✓ Old key revoked — update your CMS plugin with the new key');
     }
 
