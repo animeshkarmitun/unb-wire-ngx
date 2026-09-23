@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Analytics from "../components/Analytics";
 
 export const metadata: Metadata = {
   title: "UNB Client Portal — Daily Star",
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-full antialiased">
+        <Analytics />
         <div className="brand-strip" />
         {children}
       </body>
