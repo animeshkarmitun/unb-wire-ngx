@@ -283,3 +283,19 @@ A client-facing API audit revealed critical gaps in news and media distribution:
 - Downstream subscriber CMS systems receive retractions and structured wire feeds conforming to wire agency standards.
 - Full parity with FR-DST-002, FR-DST-008, FR-PRT-004, FR-CLT-004, and FR-MED-009.
 
+
+---
+
+## `DEC-014`: Duplicate News Detection Fingerprint Column (M13-DUP)
+
+### Context
+M13-DUP-001 (COS-20) requires pre-publish duplicate detection against published stories (exact + fuzzy title, body similarity). The check runs on every autosave and on publish; scanning `body_text` against all candidates is O(n·m) and needs a fast exact-body lookup path.
+
+### Decision
+- Add **`stories.body_fingerprint`** (varchar(40) nullable, sha1 of normalized `body_text`, indexed `stories_body_fingerprint_index`) — outside `v1-database-design.md`, ratified here per the schema-parity gate (workflow §6). Computed centrally in `StoryService::createDraft`/`updateDraft` alongside `body_text` (`DuplicateDetectionService::fingerprint`).
+- Fuzzy matching (Levenshtein title ratio + trigram Jaccard body) runs in `DuplicateDetectionService` over published stories from the last 30 days (M13-DUP-001 performance rule). Meilisearch full-text similarity is the scale path — matching runs locally so it works without the search stack.
+- Publish-time blocking + reason-required override (audited as `publish.duplicate_override`) lives in the AddNews wizard per the spec; the fingerprint column is the only schema change.
+
+### Consequences
+- Exact body duplicates resolve via index lookup; fuzzy runs in-process over a bounded window.
+- Column nullable — pre-existing rows stay valid (null = no exact-match signal); no backfill required.

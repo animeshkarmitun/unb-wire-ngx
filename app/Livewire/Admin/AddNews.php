@@ -6,8 +6,10 @@ use App\Jobs\ProcessIndexOutbox;
 use App\Models\Category;
 use App\Models\MediaAsset;
 use App\Models\StoryNote;
+use App\Repositories\AuditLogRepository;
 use App\Repositories\StoryRepository;
 use App\Services\AiService;
+use App\Services\DuplicateDetectionService;
 use App\Services\HtmlSanitizer;
 use App\Services\RbacService;
 use App\Services\RevisionService;
@@ -81,6 +83,12 @@ class AddNews extends Component
 
     // Step 4 & Workflow fields
     public array $aiTouched = [];
+
+    public array $dupMatches = [];
+
+    public bool $dupBlocked = false;
+
+    public string $dupOverrideReason = '';
 
     public ?array $aiPack = null;
 
@@ -470,6 +478,13 @@ class AddNews extends Component
         // Sync tags via repository
         $repo->syncTags($repo->findOrFail($this->storyId), $this->tags);
 
+        $this->dupMatches = app(DuplicateDetectionService::class)->matches(
+            $this->headline,
+            HtmlSanitizer::text($cleanHtml),
+            $this->language,
+            (int) $this->storyId,
+        );
+
         $this->dispatch('draft-autosaved', [
             'id' => $this->storyId,
             'time' => now()->format('g:i A'),
@@ -535,6 +550,29 @@ class AddNews extends Component
 
         $this->autosave($rbac, $svc);
         $s = app(StoryRepository::class)->findOrFail($this->storyId);
+
+        $dupes = app(DuplicateDetectionService::class)->matches(
+            $this->headline,
+            HtmlSanitizer::text($this->bodyHtml ?: ''),
+            $this->language,
+            (int) $this->storyId,
+        );
+        $this->dupMatches = $dupes;
+        $high = array_values(array_filter($dupes, fn ($m) => $m['level'] === DuplicateDetectionService::LEVEL_HIGH));
+        if ($high !== []) {
+            $reason = trim($this->dupOverrideReason);
+            if (mb_strlen($reason) < 5 || mb_strlen($reason) > 500) {
+                $this->dupBlocked = true;
+                $this->dispatch('toast', message: 'Similar story detected — a valid override reason (5–500 chars) is required to publish');
+
+                return;
+            }
+            app(AuditLogRepository::class)->log('publish.duplicate_override', 'Story', (int) $this->storyId, [
+                'reason' => $reason,
+                'matched' => array_map(fn ($m) => $m['public_id'], $high),
+            ]);
+        }
+        $this->dupBlocked = false;
 
         try {
             // Wizard publish may be invoked from draft by an editor/admin with publish permission.

@@ -24,6 +24,7 @@
 - **Append-only** (`story_notes`, `story_events`, `audit_logs`, `deliveries`,
   `downloads`): enforced by DB grants — app role gets INSERT+SELECT only.
 - **Optimistic locking:** `stories.version` incremented on every save; stale → 409.
+- **Duplicate detection:** `stories.body_fingerprint` (sha1 of normalized body text, indexed) — DEC-014.
 - **Idempotency:** unique `idempotency_key` on worker-written tables (deliveries).
 - **Multi-language:** `language` ('en'|'bn') + `mirror_of_id` self-FK — not
   row-per-translation.

@@ -43,6 +43,7 @@ class StoryService
             'version' => 1,
             'body_text' => HtmlSanitizer::text($data['body_html'] ?? ''),
         ]);
+        $data['body_fingerprint'] = DuplicateDetectionService::fingerprint($data['body_text']);
 
         return DB::transaction(function () use ($data, $actor) {
             $story = Story::create($data);
@@ -66,6 +67,7 @@ class StoryService
         if (isset($data['body_html'])) {
             $data['body_html'] = HtmlSanitizer::clean($data['body_html']);
             $data['body_text'] = HtmlSanitizer::text($data['body_html']);
+            $data['body_fingerprint'] = DuplicateDetectionService::fingerprint($data['body_text']);
             if (! empty($story->ai_touched['body']) && $data['body_html'] !== $story->body_html) {
                 $ai = $story->ai_touched;
                 unset($ai['body']);
