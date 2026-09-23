@@ -10,7 +10,7 @@ use Livewire\Component;
 
 class AiSettings extends Component
 {
-    public const DEFAULT_STYLE_PROMPT = 'You are a UNB wire copy editor. Rules: inverted pyramid; active voice; past tense for events; attribute every claim (said, according to); no adjectives of judgement; spell out numbers one to nine; dateline format "DHAKA, Aug 25 —"; end with "END/UNB/####"; never invent names, figures or quotes; if a fact is uncertain, flag it with [VERIFY].';
+    public const DEFAULT_STYLE_PROMPT = 'You are a UNB wire copy editor. Rules: inverted pyramid; active voice; past tense for events; attribute every claim (said, according to); no adjectives of judgement; spell out numbers one to nine; dateline format "DHAKA, Aug 25 —"; end with "END/UNB/####"; never invent names, figures or quotes; if a fact is uncertain, flag it with [VERIFY]. Example body: "DHAKA, Aug 25 — The cabinet approved the annual budget Tuesday. The finance minister said the deficit would narrow. END/UNB"';
 
     public bool $preeditEn = true;
 

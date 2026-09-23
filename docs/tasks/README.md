@@ -308,6 +308,7 @@
 | `M13-DUP-001` | Duplicate news detection: title fuzzy + body trigram + pre-publish block/override | `M13-AI-002` | ✅ | — | 2026-09-23 |
 | `M13-QA-FIX-002` | Fake-success surfaces cleanup: real ZIP, honest AP sync, real ledger analytics | `M13-SEC-001` | ✅ | — | 2026-09-23 |
 | `M13-GA-001` | GA4 analytics on public portal pages (page_view + story_view, admin excluded) | `M8-PORTAL-001` | ✅ | — | 2026-09-23 |
+| `M13-AI-003` | AI pre-edit quality gate: UNB wire style lint + few-shot prompts | `M5-AI-001` | ✅ | — | 2026-09-23 |
 
 ---
 
