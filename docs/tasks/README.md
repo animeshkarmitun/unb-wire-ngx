@@ -296,7 +296,17 @@
 
 ---
 
-## 19. How to Add a Task
+## 19. QA Audit (`M13-QA`) — 2026-09-23
+
+> Spec-vs-implementation cross-check (COS-28/M13-QA-001). Deliverable: `docs/fr-cross-check-report.md` (84 FR matrix + P0–P2 gap backlog).
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M13-QA-001` | FR cross-check: app-data/v1 spec vs implementation (75 in-scope FRs + 10 deferred) | `M13-PERF-001` | ✅ | — | 2026-09-23 |
+
+---
+
+## 20. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.
