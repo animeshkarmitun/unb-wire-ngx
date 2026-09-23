@@ -8,6 +8,7 @@ use App\Repositories\ClientRepository;
 use App\Repositories\DeliveryRepository;
 use App\Repositories\StoryRepository;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardService
 {
@@ -30,38 +31,47 @@ class DashboardService
         $sevenDaysAgo = Carbon::now('Asia/Dhaka')->subDays(7);
         $fourteenDaysAgo = Carbon::now('Asia/Dhaka')->subDays(14);
 
-        // 1. Stories published today & delta vs yesterday
-        $publishedToday = $this->stories->countByDateAndStatus($today, 'published');
-        $publishedYesterday = $this->stories->countByDateAndStatus($yesterday, 'published');
-        $deltaPublished = $publishedToday - $publishedYesterday;
-        $deltaPublishedText = ($deltaPublished >= 0 ? '+' : '').$deltaPublished.' from yesterday';
-        $deltaPublishedDirection = $deltaPublished >= 0 ? 'up' : 'down';
+        // 1–4. KPI aggregates (cached — see M13-PERF-001)
+        $kpis = Cache::remember('dashboard:kpis', now()->addSeconds(60), function () use ($today, $yesterday, $startOfWeek, $sevenDaysAgo, $fourteenDaysAgo) {
+            // 1. Stories published today & delta vs yesterday
+            $publishedToday = $this->stories->countByDateAndStatus($today, 'published');
+            $publishedYesterday = $this->stories->countByDateAndStatus($yesterday, 'published');
+            $deltaPublished = $publishedToday - $publishedYesterday;
 
-        // 2. Active clients & delta this week
-        $activeClients = $this->clients->activeCount();
-        $clientsThisWeek = $this->clients->activeClientsThisWeek($startOfWeek);
-        $deltaClientsText = '+'.$clientsThisWeek.' this week';
-        $deltaClientsDirection = 'up';
+            // 2. Active clients & delta this week
+            $activeClients = $this->clients->activeCount();
+            $clientsThisWeek = $this->clients->activeClientsThisWeek($startOfWeek);
 
-        // 3. Distribution success rate (last 7 days vs previous 7 days)
-        $recentDel = $this->deliveries->recentCount($sevenDaysAgo);
-        $recentDelOk = $this->deliveries->recentDeliveredCount($sevenDaysAgo);
-        $successRate = $recentDel > 0 ? round(($recentDelOk / $recentDel) * 100, 1) : 98.4;
+            // 3. Distribution success rate (last 7 days vs previous 7 days)
+            $recentDel = $this->deliveries->recentCount($sevenDaysAgo);
+            $recentDelOk = $this->deliveries->recentDeliveredCount($sevenDaysAgo);
+            $successRate = $recentDel > 0 ? round(($recentDelOk / $recentDel) * 100, 1) : 98.4;
 
-        $priorDel = $this->deliveries->countBetween($fourteenDaysAgo, $sevenDaysAgo);
-        $priorDelOk = $this->deliveries->deliveredCountBetween($fourteenDaysAgo, $sevenDaysAgo);
-        $priorRate = $priorDel > 0 ? round(($priorDelOk / $priorDel) * 100, 1) : 98.7;
+            $priorDel = $this->deliveries->countBetween($fourteenDaysAgo, $sevenDaysAgo);
+            $priorDelOk = $this->deliveries->deliveredCountBetween($fourteenDaysAgo, $sevenDaysAgo);
+            $priorRate = $priorDel > 0 ? round(($priorDelOk / $priorDel) * 100, 1) : 98.7;
+            $deltaRate = round($successRate - $priorRate, 1);
 
-        $deltaRate = round($successRate - $priorRate, 1);
-        $deltaRateText = ($deltaRate >= 0 ? '+' : '').$deltaRate.'% from last week';
-        $deltaRateDirection = $deltaRate >= 0 ? 'up' : 'down';
+            // 4. Exclusive content sent (breaking, urgent/flash priority, or tagged exclusive)
+            $exclusiveToday = $this->stories->countExclusive($today);
+            $exclusiveYesterday = $this->stories->countExclusive($yesterday);
+            $deltaExclusive = $exclusiveToday - $exclusiveYesterday;
 
-        // 4. Exclusive content sent (breaking, urgent/flash priority, or tagged exclusive)
-        $exclusiveToday = $this->stories->countExclusive($today);
-        $exclusiveYesterday = $this->stories->countExclusive($yesterday);
-        $deltaExclusive = $exclusiveToday - $exclusiveYesterday;
-        $deltaExclusiveText = ($deltaExclusive >= 0 ? '+' : '').$deltaExclusive.' from yesterday';
-        $deltaExclusiveDirection = $deltaExclusive >= 0 ? 'up' : 'down';
+            return [
+                'publishedToday' => $publishedToday,
+                'deltaPublishedText' => ($deltaPublished >= 0 ? '+' : '').$deltaPublished.' from yesterday',
+                'deltaPublishedDirection' => $deltaPublished >= 0 ? 'up' : 'down',
+                'activeClients' => $activeClients,
+                'deltaClientsText' => '+'.$clientsThisWeek.' this week',
+                'deltaClientsDirection' => 'up',
+                'successRate' => $successRate,
+                'deltaRateText' => ($deltaRate >= 0 ? '+' : '').$deltaRate.'% from last week',
+                'deltaRateDirection' => $deltaRate >= 0 ? 'up' : 'down',
+                'exclusiveToday' => $exclusiveToday,
+                'deltaExclusiveText' => ($deltaExclusive >= 0 ? '+' : '').$deltaExclusive.' from yesterday',
+                'deltaExclusiveDirection' => $deltaExclusive >= 0 ? 'up' : 'down',
+            ];
+        });
 
         // 5. Recent stories (4 items, eager loaded)
         $recentStories = $this->stories->recentPublished(4);
@@ -130,25 +140,9 @@ class DashboardService
             ];
         });
 
-        return [
-            'publishedToday' => $publishedToday,
-            'deltaPublishedText' => $deltaPublishedText,
-            'deltaPublishedDirection' => $deltaPublishedDirection,
-
-            'activeClients' => $activeClients,
-            'deltaClientsText' => $deltaClientsText,
-            'deltaClientsDirection' => $deltaClientsDirection,
-
-            'successRate' => $successRate,
-            'deltaRateText' => $deltaRateText,
-            'deltaRateDirection' => $deltaRateDirection,
-
-            'exclusiveToday' => $exclusiveToday,
-            'deltaExclusiveText' => $deltaExclusiveText,
-            'deltaExclusiveDirection' => $deltaExclusiveDirection,
-
+        return array_merge($kpis, [
             'recentStories' => $decoratedStories,
             'topClients' => $decoratedClients,
-        ];
+        ]);
     }
 }
