@@ -6,6 +6,7 @@ use App\Models\AiGeneration;
 use App\Services\Ai\AiProvider;
 use App\Services\Ai\OpenAiProvider;
 use App\Services\Ai\StubAiProvider;
+use App\Services\Ai\WireStyleLinter;
 use Illuminate\Support\Facades\DB;
 
 class AiService
@@ -74,7 +75,14 @@ class AiService
             'cost_micros' => DB::raw('ai_token_usage_daily.cost_micros + '.((int) $result->costMicros)),
         ]);
 
-        return $result->toPack();
+        $pack = $result->toPack();
+        $pack['style_lint'] = app(WireStyleLinter::class)->lint(
+            $pack['headline'] ?? null,
+            $pack['body'] ?? null,
+            ($payload['language'] ?? 'en') === 'bn',
+        );
+
+        return $pack;
     }
 
     private function resolveProvider(): AiProvider
