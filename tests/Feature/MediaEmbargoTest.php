@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Livewire\Admin\PhotoManager;
 use App\Models\Client;
 use App\Models\MediaAsset;
+use App\Models\Role;
 use App\Models\Story;
 use App\Models\User;
 use App\Services\ApiKeyService;
@@ -28,7 +29,7 @@ class MediaEmbargoTest extends TestCase
     {
         parent::setUp();
         $this->seed(RoleSeeder::class);
-        $editorRole = \App\Models\Role::where('name', 'Editor')->first();
+        $editorRole = Role::where('name', 'Editor')->first();
         $this->user = User::factory()->create(['role_id' => $editorRole?->id]);
     }
 
