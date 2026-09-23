@@ -92,6 +92,9 @@ repositories never cache.
   TTL.
 - `CacheAside` get-or-load with tag-based invalidation on publish/update (in the
   service layer).
+- Dashboard KPI aggregates (`DashboardService`) ride a 60s `Cache::remember`
+  (M13-PERF-001); lists stay fresh. Query hot paths are indexed (FK/pivot
+  indexes added 2026-09-22); `index_outbox` processing batch-prefetches stories.
 - Latency budgets (NFR §1/§5): feed API p95 < 200ms; portal/admin search p95
   < 300ms; publish → client feed visible within 60s.
 

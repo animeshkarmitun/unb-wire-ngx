@@ -286,7 +286,17 @@
 
 ---
 
-## 18. How to Add a Task
+## 18. Performance (`M13-PERF`) — 2026-09-22
+
+> Query optimization sweep (COS-26/M13-PERF-001): FK/pivot indexes, N+1 batch fixes, aggregation cache. Audit findings recorded in the task file.
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M13-PERF-001` | Query optimization: indexes, statusCounts 5→1, date-range counts, outbox batching, dashboard KPI cache | `M6-PERF-001` | ✅ | — | 2026-09-22 |
+
+---
+
+## 19. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.

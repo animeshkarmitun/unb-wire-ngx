@@ -85,12 +85,17 @@ class StoryRepository
 
     public function statusCounts(string $language): array
     {
+        $counts = Story::where('language', $language)
+            ->groupBy('status')
+            ->selectRaw('status, count(*) as c')
+            ->pluck('c', 'status');
+
         return [
-            'all' => Story::where('language', $language)->count(),
-            'published' => Story::where('language', $language)->where('status', 'published')->count(),
-            'draft' => Story::where('language', $language)->where('status', 'draft')->count(),
-            'in_review' => Story::where('language', $language)->where('status', 'in_review')->count(),
-            'changes_requested' => Story::where('language', $language)->where('status', 'changes_requested')->count(),
+            'all' => (int) $counts->sum(),
+            'published' => (int) ($counts['published'] ?? 0),
+            'draft' => (int) ($counts['draft'] ?? 0),
+            'in_review' => (int) ($counts['in_review'] ?? 0),
+            'changes_requested' => (int) ($counts['changes_requested'] ?? 0),
         ];
     }
 
@@ -116,12 +121,14 @@ class StoryRepository
 
     public function countByDateAndStatus(Carbon $date, string $status = 'published'): int
     {
-        return Story::whereDate('published_at', $date)->where('status', $status)->count();
+        return Story::whereBetween('published_at', [$date->copy()->startOfDay(), $date->copy()->endOfDay()])
+            ->where('status', $status)
+            ->count();
     }
 
     public function countExclusive(Carbon $date): int
     {
-        return Story::whereDate('published_at', $date)
+        return Story::whereBetween('published_at', [$date->copy()->startOfDay(), $date->copy()->endOfDay()])
             ->where('status', 'published')
             ->where(function ($q) {
                 $q->where('is_breaking', true)
