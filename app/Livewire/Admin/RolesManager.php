@@ -2,10 +2,10 @@
 
 namespace App\Livewire\Admin;
 
+use App\Models\Device;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\RbacService;
-use App\Models\Device;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
