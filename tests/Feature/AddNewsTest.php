@@ -546,8 +546,51 @@ class AddNewsTest extends TestCase
         $this->assertNotNull($story->published_at);
         $this->assertEquals('published', $cmp->get('successState'));
 
-        $this->assertDatabaseHas('story_events', ['story_id' => $storyId, 'action' => 'published']);
+        $this->assertDatabaseHas('story_events', ['story_id' => $storyId, 'action' => 'auto_published']);
+        $raw = DB::table('story_events')->where('story_id', $storyId)->where('action', 'auto_published')->value('payload');
+        $payload = is_string($raw) ? json_decode($raw, true) : $raw;
+        $this->assertSame('auto', $payload['gate'] ?? null);
+        $this->assertSame('skipped_auto_allowlist', $payload['ai_gate'] ?? null);
         Queue::assertPushed(FanoutStory::class);
+    }
+
+    public function test_breaking_gate_bypass_is_audited(): void
+    {
+        Queue::fake();
+        $this->actingAs($this->editor);
+
+        // Ensure AI budget is available
+        DB::table('ai_token_usage_daily')->delete();
+
+        DB::table('settings')->where('key', 'ai.desk')->update([
+            'value' => json_encode(['autoPublish' => false, 'autoCats' => [], 'killed' => false, 'monthlyCap' => 500000, 'preeditEn' => true]),
+        ]);
+
+        $cmp = Livewire::test(AddNews::class)
+            ->set('headline', 'Breaking AI story')
+            ->set('brief', 'AI brief')
+            ->set('bodyHtml', '<p>Body</p>')
+            ->set('categoryId', (string) $this->cat->id)
+            ->set('isBreaking', true)
+            ->call('autosave');
+
+        $storyId = $cmp->get('storyId');
+        $this->assertNotNull($storyId);
+
+        $cmp->call('callAi', 'preedit');
+        $pack = $cmp->get('aiPack');
+        $this->assertNotNull($pack, 'AI pack should not be null');
+        $this->assertArrayNotHasKey('error', $pack, 'AI returned error: '.json_encode($pack));
+
+        $cmp->call('applyAi', 'headline');
+        $cmp->call('publish');
+
+        $story = Story::find($storyId);
+        $this->assertEquals('published', $story->status);
+
+        $raw = DB::table('story_events')->where('story_id', $storyId)->where('action', 'published')->value('payload');
+        $payload = is_string($raw) ? json_decode($raw, true) : $raw;
+        $this->assertSame('skipped_breaking', $payload['ai_gate'] ?? null);
     }
 
     public function test_ai_touched_non_allowlisted_category_blocked_even_when_auto_publish_on(): void

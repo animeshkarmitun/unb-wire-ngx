@@ -3,11 +3,13 @@
 namespace Tests\Feature;
 
 use App\Livewire\Admin\RolesManager;
+use App\Models\Device;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\UserSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -255,6 +257,30 @@ class RolesManagerTest extends TestCase
             ->assertDispatched('toast', message: 'You cannot change your own role');
 
         $this->assertNotSame($editor->id, $admin->fresh()->role_id);
+    }
+
+    public function test_deactivate_purges_sessions_and_revokes_devices(): void
+    {
+        $admin = User::where('email', 'nahar@unbnews.org')->firstOrFail();
+        $target = User::where('email', 'shohel@unbnews.org')->firstOrFail();
+
+        DB::table('sessions')->insert([
+            'id' => 'sess-'.$target->id,
+            'user_id' => $target->id,
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'phpunit',
+            'payload' => base64_encode(serialize([])),
+            'last_activity' => now()->timestamp,
+        ]);
+        $device = Device::create(['user_id' => $target->id, 'label' => 'Desk iPhone', 'platform' => 'ios']);
+
+        Livewire::actingAs($admin)
+            ->test(RolesManager::class)
+            ->call('deactivateUser', $target->id);
+
+        $this->assertSame('deactivated', $target->fresh()->status);
+        $this->assertDatabaseMissing('sessions', ['user_id' => $target->id]);
+        $this->assertNotNull($device->fresh()->revoked_at);
     }
 
     public function test_deactivate_and_activate_user(): void

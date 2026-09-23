@@ -73,12 +73,18 @@ class StoryService
             }
         }
 
-        return DB::transaction(function () use ($story, $data, $actor) {
+        $story = DB::transaction(function () use ($story, $data, $actor) {
             $story->update(array_merge($data, ['version' => $story->version + 1]));
             $this->revisions->snapshot($story->refresh(), $actor);
 
             return $story;
         });
+
+        if ($story->status === 'published') {
+            dispatch(new FanoutStory($story->id))->afterResponse();
+        }
+
+        return $story;
     }
 
     public function acquireLock(Story $story, User $actor): void
@@ -133,6 +139,7 @@ class StoryService
         if (! in_array($to, $allowed, true)) {
             throw new UnprocessableEntityHttpException("Invalid transition {$from} → {$to}");
         }
+        $aiGate = null;
         if ($to === 'published') {
             if (! empty($story->ai_touched) && ! $story->is_breaking) {
                 $cfg = DB::table('settings')->where('key', 'ai.desk')->value('value');
@@ -141,13 +148,17 @@ class StoryService
                 if (! $allowAuto) {
                     throw new UnprocessableEntityHttpException('AI-touched fields require review before publish');
                 }
+                $gate = 'auto';
+                $aiGate = 'skipped_auto_allowlist';
+            } elseif (! empty($story->ai_touched)) {
+                $aiGate = 'skipped_breaking';
             }
             if ($story->embargo_until && $story->embargo_until->isFuture()) {
                 throw new UnprocessableEntityHttpException('Embargo still active');
             }
         }
 
-        return DB::transaction(function () use ($story, $from, $to, $actor, $gate) {
+        return DB::transaction(function () use ($story, $from, $to, $actor, $gate, $aiGate) {
             $extra = [];
             if ($to === 'published' && ! $story->published_at) {
                 $extra['published_at'] = now();
@@ -165,7 +176,7 @@ class StoryService
                 'action' => $action,
                 'from_status' => $from,
                 'to_status' => $to,
-                'payload' => $to === 'published' ? ['gate' => $gate] : null,
+                'payload' => $to === 'published' ? array_filter(['gate' => $gate, 'ai_gate' => $aiGate]) : null,
             ]);
             $this->audit->log(
                 $action,

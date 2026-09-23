@@ -303,6 +303,7 @@
 | Task ID | Title | Dependencies | Status | Review | Completed |
 |---------|-------|--------------|--------|--------|-----------|
 | `M13-QA-001` | FR cross-check: app-data/v1 spec vs implementation (75 in-scope FRs + 10 deferred) | `M13-PERF-001` | ✅ | — | 2026-09-23 |
+| `M13-QA-FIX-001` | P0 gap fixes: kill/correction fan-out, client status gate, AI gate audit, session purge | `M13-QA-001` | ✅ | — | 2026-09-23 |
 
 ---
 
