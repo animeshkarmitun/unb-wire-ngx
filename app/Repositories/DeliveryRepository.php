@@ -24,6 +24,20 @@ class DeliveryRepository
         return $q->paginate($perPage);
     }
 
+    public function hasPriorSuccess(int $storyId, int $channelId, ?int $excludeDeliveryId = null): bool
+    {
+        $q = DB::table('deliveries')
+            ->where('deliverable_type', 'story')
+            ->where('deliverable_id', $storyId)
+            ->where('channel_id', $channelId)
+            ->whereIn('status', ['sent', 'delivered']);
+        if ($excludeDeliveryId !== null) {
+            $q->where('id', '!=', $excludeDeliveryId);
+        }
+
+        return $q->exists();
+    }
+
     public function getDistributionCounts(): array
     {
         return [
