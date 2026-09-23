@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Jobs\ProcessIndexOutbox;
 use App\Models\Story;
+use App\Repositories\StoryRepository;
 use App\Services\DashboardService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -39,7 +40,7 @@ class QueryOptimizationTest extends TestCase
         Story::factory()->create(['language' => 'bn', 'status' => 'published']);
 
         DB::enableQueryLog();
-        $counts = app(\App\Repositories\StoryRepository::class)->statusCounts('en');
+        $counts = app(StoryRepository::class)->statusCounts('en');
         $queries = count(DB::getQueryLog());
         DB::disableQueryLog();
 
@@ -62,7 +63,7 @@ class QueryOptimizationTest extends TestCase
         Story::factory()->create(['language' => 'en', 'status' => 'published', 'published_at' => $today->copy()->subDay()->addHour(3)]);
         Story::factory()->create(['language' => 'en', 'status' => 'published', 'published_at' => $today->copy()->subDays(3), 'is_breaking' => true]);
 
-        $repo = app(\App\Repositories\StoryRepository::class);
+        $repo = app(StoryRepository::class);
 
         $this->assertSame(1, $repo->countByDateAndStatus($today->copy(), 'published'));
         $this->assertSame(1, $repo->countByDateAndStatus($today->copy()->subDay(), 'published'));
