@@ -25,6 +25,7 @@ class Story extends Model
         'brief',
         'body_html',
         'body_text',
+        'body_fingerprint',
         'category_id',
         'sub_category_id',
         'dateline_city',
