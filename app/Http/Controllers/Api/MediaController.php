@@ -49,7 +49,8 @@ class MediaController extends Controller
             $quotaSvc->assertCanDownloadMedia($client);
         }
 
-        $asset = MediaAsset::where('public_id', $id)
+        $asset = MediaAsset::clientVisible()
+            ->where('public_id', $id)
             ->when(is_numeric($id), fn ($q) => $q->orWhere('id', (int) $id))
             ->firstOrFail();
         $variant = (string) $request->input('variant', 'original');
@@ -85,7 +86,7 @@ class MediaController extends Controller
         $variant = $validated['variant'] ?? 'original';
         $assetIds = $validated['asset_ids'];
 
-        $assets = MediaAsset::whereIn('public_id', $assetIds)
+        $assets = MediaAsset::clientVisible()->whereIn('public_id', $assetIds)
             ->when(
                 count(array_filter($assetIds, 'is_numeric')) > 0,
                 fn ($q) => $q->orWhereIn('id', array_filter($assetIds, 'is_numeric'))

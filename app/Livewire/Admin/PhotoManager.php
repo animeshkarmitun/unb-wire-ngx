@@ -11,6 +11,7 @@ use App\Repositories\MediaRepository;
 use App\Repositories\StoryRepository;
 use App\Services\NotificationService;
 use App\Services\RbacService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -43,6 +44,8 @@ class PhotoManager extends Component
     public array $selectedIds = [];
 
     public array $clientUsage = [];
+
+    public string $inspEmbargo = '';
 
     // Burst Series Stack expansion
     public ?int $expandedStackId = null;
@@ -200,6 +203,7 @@ class PhotoManager extends Component
 
         $pkg = $asset->packages->first();
         $this->inspPackage = $pkg ? ($pkg->code === 'PREMIUM-BUNDLE' ? 'Exclusive' : 'Standard') : '—';
+        $this->inspEmbargo = $asset->embargo_until ? $asset->embargo_until->setTimezone('Asia/Dhaka')->format('Y-m-d\TH:i') : '';
         $this->inspStoryInput = '';
 
         $this->clientUsage = DB::table('downloads')
@@ -287,6 +291,7 @@ class PhotoManager extends Component
             'credit_line' => 'Photo: '.$this->inspPhotographer.' / UNB',
             'location_city' => $this->inspLocation,
             'en_tags' => $tags,
+            'embargo_until' => $this->inspEmbargo !== '' ? Carbon::parse($this->inspEmbargo, 'Asia/Dhaka') : null,
         ]);
 
         // Update package assignment

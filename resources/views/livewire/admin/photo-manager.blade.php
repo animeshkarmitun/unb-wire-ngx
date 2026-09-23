@@ -424,6 +424,10 @@ class="relative">
                             <label class="f-label">Location</label>
                             <input wire:model.defer="inspLocation" class="f-inp" id="iLoc">
                         </div>
+                        <div class="f-group">
+                            <label class="f-label">Embargo until (client hold)</label>
+                            <input type="datetime-local" wire:model.defer="inspEmbargo" class="f-inp" id="iEmbargo">
+                        </div>
                     </div>
 
                     <div class="f-group">

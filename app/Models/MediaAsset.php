@@ -86,6 +86,16 @@ class MediaAsset extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 
+    public function isEmbargoed(): bool
+    {
+        return $this->embargo_until !== null && $this->embargo_until->isFuture();
+    }
+
+    public function scopeClientVisible($query)
+    {
+        return $query->where(fn ($q) => $q->whereNull('embargo_until')->orWhere('embargo_until', '<=', now()));
+    }
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
