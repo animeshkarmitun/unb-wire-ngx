@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\ApiKeyService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -214,11 +215,33 @@ class DeliverySettingsTest extends TestCase
         $component = Livewire::actingAs($this->adminUser)
             ->test(DeliverySettings::class);
 
+        $clientId = $component->get('selectedClientId');
+        $this->assertNotNull($clientId);
+        DB::table('downloads')->insert([
+            'client_id' => $clientId,
+            'item_type' => 'media',
+            'item_id' => 1,
+            'created_at' => now(),
+        ]);
+
+        $component = Livewire::actingAs($this->adminUser)
+            ->test(DeliverySettings::class);
+
         $downloads = $component->get('downloads');
         $this->assertNotEmpty($downloads);
 
         $component->call('exportCsv')
             ->assertFileDownloaded('unb-license-history.csv');
+    }
+
+    public function test_download_history_is_empty_without_ledger_rows(): void
+    {
+        DB::table('downloads')->delete();
+
+        $component = Livewire::actingAs($this->adminUser)
+            ->test(DeliverySettings::class);
+
+        $this->assertSame([], $component->get('downloads'));
     }
 
     public function test_save_engine_rules_updates_delivery_setting(): void

@@ -204,17 +204,17 @@ class AiSettings extends Component
         $tokensPhotos = (int) $rollups->where('scope', 'photos')->sum('tokens');
         $totalTokens = $tokensEn + $tokensBn + $tokensPhotos;
 
-        // Use prototype defaults if no tokens recorded yet
-        if ($totalTokens === 0) {
-            $tokensEn = 188200;
-            $tokensBn = 97600;
-            $tokensPhotos = 26600;
-            $totalTokens = 312400;
-        }
-
-        $callsEn = 418;
-        $callsBn = 261;
-        $callsPhotos = 89;
+        $callsEn = (int) DB::table('ai_generations')
+            ->join('stories', 'stories.id', '=', 'ai_generations.story_id')
+            ->where('ai_generations.created_at', '>=', $monthStart)
+            ->where('stories.language', 'en')
+            ->count();
+        $callsBn = (int) DB::table('ai_generations')
+            ->join('stories', 'stories.id', '=', 'ai_generations.story_id')
+            ->where('ai_generations.created_at', '>=', $monthStart)
+            ->where('stories.language', 'bn')
+            ->count();
+        $callsPhotos = 0;
 
         $costEst = round($totalTokens / 1000 * 13.4);
         $pct = $this->monthlyCap > 0 ? min(100, (int) round(($totalTokens / $this->monthlyCap) * 100)) : 0;

@@ -8,48 +8,6 @@
         clearTimeout(this.toastTimer);
         this.toastTimer = setTimeout(() => { this.toastMsg = ''; }, 2600);
     },
-    async downloadZip(selectedAssets) {
-        if (!selectedAssets || selectedAssets.length === 0) return;
-        this.zipping = true;
-        try {
-            if (typeof JSZip === 'undefined') {
-                await new Promise((resolve, reject) => {
-                    const script = document.createElement('script');
-                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-                    script.onload = resolve;
-                    script.onerror = reject;
-                    document.head.appendChild(script);
-                });
-            }
-            const zip = new JSZip();
-            for (let i = 0; i < selectedAssets.length; i++) {
-                const a = selectedAssets[i];
-                const canvas = document.createElement('canvas');
-                canvas.width = 1200; canvas.height = 800;
-                const ctx = canvas.getContext('2d');
-                const cols = [['#3b6fe0','#16204a'],['#e5484d','#7a1f2b'],['#16a34a','#0b3d24'],['#f0a832','#8a5410'],['#7c3aed','#2e1065'],['#0ea5e9','#0c4a6e'],['#db2777','#831843'],['#64748b','#1e293b']][i % 8];
-                const g = ctx.createLinearGradient(0, 0, 1200, 800);
-                g.addColorStop(0, cols[0]); g.addColorStop(1, cols[1]);
-                ctx.fillStyle = g; ctx.fillRect(0, 0, 1200, 800);
-                const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
-                zip.file((a.id || ('p' + (i+1))) + '.png', blob);
-            }
-            const captionText = selectedAssets.map(a => (a.caption || a.title) + '\nPhoto: ' + (a.photographer || 'UNB') + ' / UNB · ' + (a.location || 'Dhaka')).join('\n\n');
-            zip.file('captions.txt', captionText);
-            const content = await zip.generateAsync({ type: 'blob' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(content);
-            link.download = 'unb-photos-' + selectedAssets.length + '.zip';
-            link.click();
-            setTimeout(() => URL.revokeObjectURL(link.href), 4000);
-            this.showToast('✓ ZIP downloaded (' + selectedAssets.length + ' photos)');
-        } catch (e) {
-            console.error('ZIP failed', e);
-            this.showToast('ZIP generation failed');
-        } finally {
-            this.zipping = false;
-        }
-    }
 }"
 @toast.window="showToast($event.detail.message)"
 @dragenter.window="dragDepth++;"
@@ -177,13 +135,13 @@ class="relative">
             }
         @endphp
 
-        <button @click="downloadZip({{ json_encode($selectedAssetsJson) }})" class="bulk-btn" id="bulkZip" aria-label="Download selected photos as ZIP">
+        <button wire:click="downloadZip" wire:loading.attr="disabled" class="bulk-btn" id="bulkZip" aria-label="Download selected photos as ZIP">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/>
                 <line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
-            <span x-text="zipping ? 'Zipping…' : 'ZIP'"></span>
+            <span wire:loading.remove wire:target="downloadZip">ZIP</span><span wire:loading wire:target="downloadZip">Zipping...</span>
         </button>
 
         <button wire:click="clearSelection" class="bulk-clear" id="bulkClear" aria-label="Clear photo selection">Clear</button>
@@ -506,13 +464,9 @@ class="relative">
                                 {{ $selected->download_count }} downloads <span>all time</span>
                             </div>
                             @php
-                                $clientsList = [
-                                    ['Daily Star', round($selected->download_count * 0.4)],
-                                    ['Prothom Alo', round($selected->download_count * 0.3)],
-                                    ['bdnews24', round($selected->download_count * 0.2)],
-                                ];
+                                $clientsList = $clientUsage;
                             @endphp
-                            @if($selected->download_count > 0)
+                            @if(count($clientUsage) > 0)
                                 @foreach($clientsList as $c)
                                     @if($c[1] > 0)
                                         <div class="client-row">

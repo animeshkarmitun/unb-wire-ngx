@@ -601,17 +601,6 @@ class DeliverySettings extends Component
             ->limit(10)
             ->get();
 
-        if ($records->isEmpty()) {
-            // Return representative demo audit trail matching prototype
-            return [
-                ['asset' => 'Rizvi speaks outside Nayapaltan office (m1)', 'license' => 'UNB', 'lic_class' => 'unb', 'downloaded_by' => 'photo@dailystar.com', 'date' => 'Aug 24, 9:32 AM'],
-                ['asset' => 'Poland storm damage (m4)', 'license' => 'AP', 'lic_class' => 'ap', 'downloaded_by' => 'photo@dailystar.com', 'date' => 'Aug 23, 8:15 PM'],
-                ['asset' => 'Yunnan landslide rescue (m5)', 'license' => 'AP add-on', 'lic_class' => 'addon', 'downloaded_by' => 'newsdesk@dailystar.com', 'date' => 'Aug 23, 6:41 PM'],
-                ['asset' => 'Tigers training, Mirpur (m8)', 'license' => 'UNB · exclusive', 'lic_class' => 'exclusive', 'downloaded_by' => 'sports@dailystar.com', 'date' => 'Aug 22, 5:20 PM'],
-                ['asset' => 'Padma Bridge aerial footage (m10)', 'license' => 'UNB', 'lic_class' => 'unb', 'downloaded_by' => 'video desk (FTP auto-push)', 'date' => 'Aug 22, 11:05 AM'],
-            ];
-        }
-
         return $records->map(function ($d) {
             $assetTitle = $d->mediaAsset?->title ?? 'Media Asset #'.$d->item_id;
             $source = $d->mediaAsset?->source ?? 'unb';
@@ -627,7 +616,7 @@ class DeliverySettings extends Component
                 $licClass = 'unb';
             }
 
-            $userEmail = $d->clientUser?->email ?? 'video desk (FTP auto-push)';
+            $userEmail = $d->clientUser?->email ?? 'N/A';
             $date = $d->created_at ? $d->created_at->format('M j, g:i A') : 'Recently';
 
             return [
