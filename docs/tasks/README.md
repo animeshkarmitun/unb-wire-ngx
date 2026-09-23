@@ -306,6 +306,7 @@
 | `M13-QA-FIX-001` | P0 gap fixes: kill/correction fan-out, client status gate, AI gate audit, session purge | `M13-QA-001` | ✅ | — | 2026-09-23 |
 | `M13-SEC-001` | Security audit (12 areas) + critical fixes: headers, key show-once, key-ops audit, SQLi hardening | `M13-QA-FIX-001` | ✅ | — | 2026-09-23 |
 | `M13-DUP-001` | Duplicate news detection: title fuzzy + body trigram + pre-publish block/override | `M13-AI-002` | ✅ | — | 2026-09-23 |
+| `M13-QA-FIX-002` | Fake-success surfaces cleanup: real ZIP, honest AP sync, real ledger analytics | `M13-SEC-001` | ✅ | — | 2026-09-23 |
 
 ---
 

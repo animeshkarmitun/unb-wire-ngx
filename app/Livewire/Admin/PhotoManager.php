@@ -11,11 +11,15 @@ use App\Repositories\MediaRepository;
 use App\Repositories\StoryRepository;
 use App\Services\NotificationService;
 use App\Services\RbacService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use ZipArchive;
 
 class PhotoManager extends Component
 {
@@ -37,6 +41,8 @@ class PhotoManager extends Component
 
     // Multi-select & Bulk Bar
     public array $selectedIds = [];
+
+    public array $clientUsage = [];
 
     // Burst Series Stack expansion
     public ?int $expandedStackId = null;
@@ -195,6 +201,63 @@ class PhotoManager extends Component
         $pkg = $asset->packages->first();
         $this->inspPackage = $pkg ? ($pkg->code === 'PREMIUM-BUNDLE' ? 'Exclusive' : 'Standard') : '—';
         $this->inspStoryInput = '';
+
+        $this->clientUsage = DB::table('downloads')
+            ->join('clients', 'clients.id', '=', 'downloads.client_id')
+            ->where('downloads.item_type', 'media')
+            ->where('downloads.item_id', $id)
+            ->groupBy('clients.id', 'clients.name')
+            ->orderByDesc('cnt')
+            ->limit(5)
+            ->get(['clients.name', DB::raw('count(*) as cnt')])
+            ->map(fn ($r) => [(string) $r->name, (int) $r->cnt])
+            ->all();
+    }
+
+    public function downloadZip(RbacService $rbac): ?StreamedResponse
+    {
+        $rbac->assertCan(auth()->user(), 'media', 'view');
+
+        $assets = MediaAsset::whereIn('id', $this->selectedIds)->get();
+        if ($assets->isEmpty()) {
+            $this->dispatch('toast', message: 'Select photos to download');
+
+            return null;
+        }
+
+        $zipPath = tempnam(sys_get_temp_dir(), 'unb-admin-zip-');
+        $zip = new ZipArchive;
+        $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        $entries = [];
+        $manifest = [];
+        foreach ($assets as $asset) {
+            $disk = Storage::disk($asset->storage_disk ?: 'local');
+            if ($asset->original_path && $disk->exists($asset->original_path)) {
+                $ext = pathinfo($asset->original_path, PATHINFO_EXTENSION) ?: 'bin';
+                $name = (string) ($asset->public_id ?: 'asset-'.$asset->id).'.'.$ext;
+                $tmp = tempnam(sys_get_temp_dir(), 'unb-zip-entry-');
+                $in = $disk->readStream($asset->original_path);
+                $out = fopen($tmp, 'wb');
+                stream_copy_to_stream($in, $out);
+                fclose($out);
+                fclose($in);
+                $zip->addFile($tmp, $name);
+                $entries[] = $tmp;
+                $manifest[] = $name."\t".$asset->title."\tPhoto: ".($asset->photographer?->name ?: 'UNB').' / UNB';
+            } else {
+                $manifest[] = '(original file not available)'."\t".$asset->title;
+            }
+        }
+        $zip->addFromString('captions.txt', implode("\n", $manifest));
+        $zip->close();
+        foreach ($entries as $tmp) {
+            @unlink($tmp);
+        }
+
+        return response()->streamDownload(function () use ($zipPath) {
+            readfile($zipPath);
+            @unlink($zipPath);
+        }, 'unb-photos-'.$assets->count().'.zip', ['Content-Type' => 'application/zip']);
     }
 
     public function closeInspector(): void
