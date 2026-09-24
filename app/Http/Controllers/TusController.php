@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\TusCreateRequest;
+use App\Services\Media\IntakeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class TusController extends Controller
@@ -56,10 +58,21 @@ class TusController extends Controller
             return response('Conflict', 409)->header('Tus-Resumable', '1.0.0');
         }
         $chunk = $request->getContent();
+        $path = "uploads/{$id}";
+        $fullPath = Storage::disk('local')->path($path);
+        if (! is_dir(dirname($fullPath))) {
+            mkdir(dirname($fullPath), 0755, true);
+        }
+        $fh = fopen($fullPath, 'c+b');
+        fseek($fh, $offset);
+        fwrite($fh, $chunk);
+        fclose($fh);
+
         $newOffset = $offset + strlen($chunk);
         DB::table('upload_sessions')->where('id', $id)->update(['offset_bytes' => $newOffset, 'updated_at' => now()]);
-        if ($newOffset >= (int) $s->size_bytes) {
+        if ($newOffset >= (int) $s->size_bytes && $s->status === 'active') {
             DB::table('upload_sessions')->where('id', $id)->update(['status' => 'completed']);
+            app(IntakeService::class)->ingest($id);
         }
 
         return response('', 204)->header('Upload-Offset', (string) $newOffset)->header('Tus-Resumable', '1.0.0');
