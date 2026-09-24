@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LocalTime from "../../../components/LocalTime";
 import { INITIAL_STORIES } from "../../../lib/mockData";
 
 async function getStory(id: string) {
@@ -55,7 +56,7 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
             {s.category}
           </span>
           <span className="text-xs text-[#b0b2bc]">
-            {s.published_at ? new Date(s.published_at).toLocaleString("en-US", { timeZone: "Asia/Dhaka" }) : "Published"}
+            {s.published_at ? <LocalTime value={s.published_at} /> : "Published"}
           </span>
           {s.is_breaking && (
             <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-red-600 text-white animate-pulse">
