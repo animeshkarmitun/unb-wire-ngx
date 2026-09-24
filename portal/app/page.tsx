@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { searchStories } from "../lib/search";
 import JSZip from "jszip";
 import {
   WireStory,
@@ -56,6 +57,7 @@ export default function ClientPortal() {
 
   // Wire Filters & Search
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [mlStories, setMlStories] = useState<WireStory[]>([]);
   const [omniScope, setOmniScope] = useState<"all" | "headline" | "tags" | "captions">("all");
   const [selectedCat, setSelectedCat] = useState<string>("All");
   const [filterDate, setFilterDate] = useState<string>("all");
@@ -152,19 +154,21 @@ export default function ClientPortal() {
   useEffect(() => {
     function updateClock() {
       const now = new Date();
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      const dhakaT = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Dhaka", hour: "numeric", minute: "2-digit", hour12: true }).format(now);
       const d = new Intl.DateTimeFormat("en-GB", {
-        timeZone: "Asia/Dhaka",
+        timeZone: tz,
         weekday: "short",
         day: "numeric",
         month: "short",
       }).format(now);
       const t = new Intl.DateTimeFormat("en-US", {
-        timeZone: "Asia/Dhaka",
+        timeZone: tz,
         hour: "numeric",
         minute: "2-digit",
         hour12: true,
       }).format(now);
-      setClockText(`Dhaka · ${d} · ${t}`);
+      setClockText(`${d} ${t} | Dhaka ${dhakaT}`);
     }
     updateClock();
     const timer = setInterval(updateClock, 30000);
@@ -204,6 +208,48 @@ export default function ClientPortal() {
     }
     return () => echo?.disconnect();
   }, []);
+
+  // ===== Meilisearch (main + archive) with fallback to local filter =====
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!q) {
+      setMlStories([]);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      searchStories(q).then((hits) => {
+        if (cancelled || !hits) return;
+        setMlStories(
+          hits.map((h, i) => {
+            const pid = String(h.public_id ?? h.objectID ?? h.id ?? `ml_${i}`);
+            return {
+              id: pid,
+              public_id: pid,
+              mins: 5,
+              category: String(h.category ?? "Bangladesh"),
+              language: String(h.language ?? "en"),
+              published_at: String(h.published_at ?? new Date().toISOString()),
+              status: String(h.status ?? "published"),
+              is_breaking: Boolean(h.is_breaking),
+              ex: null,
+              has_video: false,
+              headline: String(h.headline ?? ""),
+              brief: String(h.brief ?? ""),
+              body_html: String(h.body_html ?? ""),
+              tags: [],
+              caps: [],
+              from_archive: Boolean(h.from_archive),
+            };
+          })
+        );
+      });
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [searchQuery]);
 
   // ===== Fetch live stories from Laravel backend (Hydration & Freshness) =====
   useEffect(() => {
@@ -386,6 +432,16 @@ export default function ClientPortal() {
       return true;
     });
 
+    if (searchQuery && mlStories.length) {
+      const seen = new Set(list.map((s) => s.public_id));
+      for (const m of mlStories) {
+        if (!seen.has(m.public_id)) {
+          list.push(m);
+          seen.add(m.public_id);
+        }
+      }
+    }
+
     if (twSort === "cat") {
       list.sort((a, b) => a.category.localeCompare(b.category) || (a.mins || 0) - (b.mins || 0));
     } else {
@@ -399,6 +455,7 @@ export default function ClientPortal() {
     return list;
   }, [
     stories,
+    mlStories,
     selectedCat,
     filterDate,
     filterMedia,
@@ -1281,7 +1338,7 @@ export default function ClientPortal() {
                             }
                           }}
                         >
-                          {s.headline}
+                          {s.headline}{s.from_archive ? <span className="ml-2 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-[#eceaf5] text-[#5b5fc7]">Archive</span> : null}
                         </a>
                         <div className="st-brief">{s.brief}</div>
 
@@ -1646,7 +1703,7 @@ export default function ClientPortal() {
                             }
                           }}
                         >
-                          {s.headline}
+                          {s.headline}{s.from_archive ? <span className="ml-2 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-[#eceaf5] text-[#5b5fc7]">Archive</span> : null}
                         </a>
                         <div className="wg-brief">{s.brief}</div>
 
@@ -1958,7 +2015,7 @@ export default function ClientPortal() {
                                   </span>
                                 </td>
                                 <td className="tw-head-cell">
-                                  {s.headline}
+                                  {s.headline}{s.from_archive ? <span className="ml-2 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-[#eceaf5] text-[#5b5fc7]">Archive</span> : null}
                                   {isLocked && <span className="tw-lock-ic"> 🔒</span>}
                                 </td>
                                 <td>
