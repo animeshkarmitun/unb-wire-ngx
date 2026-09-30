@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Jobs\ProcessIndexOutbox;
+use App\Models\AiGeneration;
 use App\Models\Category;
 use App\Models\MediaAsset;
 use App\Models\StoryNote;
@@ -445,7 +446,7 @@ class AddNews extends Component
         if (! $this->storyId) {
             return;
         }
-        $row = \App\Models\AiGeneration::where('story_id', $this->storyId)->where('kind', 'en_tags')->latest('id')->first();
+        $row = AiGeneration::where('story_id', $this->storyId)->where('kind', 'en_tags')->latest('id')->first();
         $pack = $row?->pack ?? null;
         $pack = is_string($pack) ? json_decode($pack, true) : $pack;
         $tags = is_array($pack) ? ($pack['tags'] ?? []) : [];

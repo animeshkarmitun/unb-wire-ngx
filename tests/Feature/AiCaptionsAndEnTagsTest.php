@@ -12,6 +12,8 @@ use App\Models\MediaAsset;
 use App\Models\Role;
 use App\Models\Story;
 use App\Models\User;
+use App\Services\AiService;
+use App\Services\StoryService;
 use Database\Seeders\CategorySeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\SettingSeeder;
@@ -105,7 +107,7 @@ class AiCaptionsAndEnTagsTest extends TestCase
     {
         Queue::fake();
 
-        app(\App\Services\StoryService::class)->createDraft([
+        app(StoryService::class)->createDraft([
             'language' => 'bn',
             'headline' => 'নতুন সংবাদ',
             'brief' => 'সংক্ষিপ্ত',
@@ -120,7 +122,7 @@ class AiCaptionsAndEnTagsTest extends TestCase
     {
         $story = Story::factory()->create(['language' => 'bn', 'category_id' => $this->cat->id, 'status' => 'draft']);
 
-        (new GenerateEnTags($story->id, $this->user->id))->handle(app(\App\Services\AiService::class));
+        (new GenerateEnTags($story->id, $this->user->id))->handle(app(AiService::class));
 
         $row = AiGeneration::where('story_id', $story->id)->where('kind', 'en_tags')->first();
         $this->assertNotNull($row);
