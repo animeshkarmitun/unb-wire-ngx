@@ -20,8 +20,8 @@
   --blue-bg: #e9f0fd;
   --purple: #7c3aed;
   --purple-bg: #f1eafe;
-  --serif: "Fraunces", Georgia, "Times New Roman", serif;
-  --sans: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --serif: "Fraunces", "Noto Sans Bengali", Georgia, "Times New Roman", serif;
+  --sans: "Inter", "Noto Sans Bengali", -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 body {

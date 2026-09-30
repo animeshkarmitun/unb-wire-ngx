@@ -314,6 +314,7 @@
 | `M13-PORTAL-P1` | Portal search wiring (Meilisearch main+archive) + local-time rendering fix | `M8-PORTAL-001` | ✅ | — | 2026-09-24 |
 | `M13-IMG-001` | WebP derivatives pipeline: real GD processing + dispatch + real thumbnails | `M13-QA-FIX-004` | ✅ | — | 2026-09-24 |
 | `DST-006-007` | Distribution log filters (client/channel/status/date) + auto-pause client alert | `M11-DELIV-004` | ✅ | — | 2026-09-24 |
+| `PRT-008` | Bangla portal typography (Noto Sans Bengali) + BN chrome labels + bn-BD dates | `M13-PORTAL-P1` | ✅ | — | 2026-09-24 |
 
 ---
 

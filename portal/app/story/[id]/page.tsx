@@ -1,5 +1,6 @@
 import Link from "next/link";
 import LocalTime from "../../../components/LocalTime";
+import { storyLabels } from "../../../lib/labels";
 import { INITIAL_STORIES } from "../../../lib/mockData";
 
 async function getStory(id: string) {
@@ -27,12 +28,13 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
         <h1 className="font-serif text-2xl font-bold mb-3">Story not found</h1>
         <p className="text-sm text-[#7c7f8c] mb-6">This dispatch may have been retracted, archived, or is exclusive to another subscriber tier.</p>
         <Link href="/" className="inline-block px-4 py-2 rounded-lg bg-[#16204a] text-white text-xs font-semibold">
-          ← Back to wire feed
+            Back to wire feed
         </Link>
       </div>
     );
   }
 
+  const t = storyLabels(s.language);
   return (
     <div className="min-h-screen bg-[#faf9f6]">
       <header className="sticky top-1 z-20 bg-white/95 backdrop-blur border-b border-[#eceae5] px-6 lg:px-10 py-3 flex items-center gap-4">
@@ -45,7 +47,7 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
         </Link>
         <div className="ml-auto flex items-center gap-3 text-xs">
           <Link href="/" className="text-[#4b4e5c] hover:text-[#16204a] font-semibold">
-            ← Back to wire feed
+            ← {t.back}
           </Link>
         </div>
       </header>
@@ -56,11 +58,11 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
             {s.category}
           </span>
           <span className="text-xs text-[#b0b2bc]">
-            {s.published_at ? <LocalTime value={s.published_at} /> : "Published"}
+            {s.published_at ? <LocalTime value={s.published_at} locale={s.language === "bn" ? "bn-BD" : undefined} /> : t.published}
           </span>
           {s.is_breaking && (
             <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-red-600 text-white animate-pulse">
-              BREAKING
+              {t.breaking}
             </span>
           )}
         </div>
