@@ -315,6 +315,7 @@
 | `M13-IMG-001` | WebP derivatives pipeline: real GD processing + dispatch + real thumbnails | `M13-QA-FIX-004` | ✅ | — | 2026-09-24 |
 | `DST-006-007` | Distribution log filters (client/channel/status/date) + auto-pause client alert | `M11-DELIV-004` | ✅ | — | 2026-09-24 |
 | `PRT-008` | Bangla portal typography (Noto Sans Bengali) + BN chrome labels + bn-BD dates | `M13-PORTAL-P1` | ✅ | — | 2026-09-24 |
+| `FR-AI-005` | New-facts warning: FactGuard extraction + drawer flag + gate count | `M13-AI-003` | ✅ | — | 2026-09-24 |
 
 ---
 
