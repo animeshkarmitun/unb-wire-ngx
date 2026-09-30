@@ -503,6 +503,21 @@ class="relative">
                         </div>
                     </div>
 
+                    <div class="f-group">
+                        <label class="f-label">AI suggestions</label>
+                        <button type="button" wire:click="suggestAiMetadata" class="btn btn-outline btn-sm" id="iAiSuggest" wire:loading.attr="disabled">Suggest with AI</button>
+                        @if(count($aiSuggestions))
+                            <div style="margin-top:8px;font-size:12px">
+                                @if(!empty($aiSuggestions['caption']))
+                                    <div><b>Caption:</b> {{ $aiSuggestions['caption'] }} <button type="button" class="aid-use" wire:click="applyAiSuggestion('caption')">Use</button></div>
+                                @endif
+                                @if(!empty($aiSuggestions['tags']))
+                                    <div style="margin-top:6px"><b>Tags:</b> @foreach($aiSuggestions['tags'] as $t)<span class="tag-chip" style="cursor:default">#{{ $t }}</span> @endforeach <button type="button" class="aid-use" wire:click="applyAiSuggestion('tags')">Use</button></div>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+
                     <div class="insp-actions">
                         @if($selected->status === 'field' || !$selected->approved_at)
                             <button wire:click="approveInspected" class="btn btn-navy" id="iApprove">

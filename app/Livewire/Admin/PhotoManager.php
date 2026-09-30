@@ -10,6 +10,7 @@ use App\Models\Story;
 use App\Models\User;
 use App\Repositories\MediaRepository;
 use App\Repositories\StoryRepository;
+use App\Services\AiService;
 use App\Services\NotificationService;
 use App\Services\RbacService;
 use Carbon\Carbon;
@@ -47,6 +48,53 @@ class PhotoManager extends Component
     public array $clientUsage = [];
 
     public array $uploadDuplicates = [];
+
+    public array $aiSuggestions = [];
+
+    public function suggestAiMetadata(): void
+    {
+        app(RbacService::class)->assertCan(auth()->user(), 'media', 'edit');
+        if (! $this->selectedAssetId) {
+            return;
+        }
+        $cfgRow = DB::table('settings')->where('key', 'ai.desk')->first();
+        $cfg = $cfgRow ? (is_string($cfgRow->value) ? json_decode($cfgRow->value, true) : $cfgRow->value) : [];
+        if (isset($cfg['preeditPhotos']) && ! $cfg['preeditPhotos']) {
+            $this->dispatch('toast', message: 'Photos AI is disabled in AI settings');
+
+            return;
+        }
+        $asset = app(MediaRepository::class)->findById($this->selectedAssetId);
+        if (! $asset) {
+            return;
+        }
+        $pack = app(AiService::class)->call('tags', [
+            'text' => (string) ($asset->caption ?: $asset->title),
+            'headline' => (string) $asset->title,
+        ], auth()->id() ?? User::first()?->id);
+        if (isset($pack['error'])) {
+            $this->dispatch('toast', message: 'AI suggestion failed');
+
+            return;
+        }
+        $this->aiSuggestions = [
+            'caption' => (string) ($pack['caption'] ?? ''),
+            'tags' => array_values(array_filter((array) ($pack['tags'] ?? []), fn ($t) => is_string($t) && $t !== '')),
+        ];
+        $this->dispatch('toast', message: 'AI suggestions ready — confirm with Use');
+    }
+
+    public function applyAiSuggestion(string $field): void
+    {
+        app(RbacService::class)->assertCan(auth()->user(), 'media', 'edit');
+        if ($field === 'caption' && ($this->aiSuggestions['caption'] ?? '') !== '') {
+            $this->inspCaption = $this->aiSuggestions['caption'];
+        }
+        if ($field === 'tags' && ($this->aiSuggestions['tags'] ?? []) !== []) {
+            $this->inspKeywords = implode(', ', $this->aiSuggestions['tags']);
+        }
+        $this->dispatch('toast', message: 'Suggestion applied — review and Save changes');
+    }
 
     public string $inspEmbargo = '';
 

@@ -299,3 +299,17 @@ M13-DUP-001 (COS-20) requires pre-publish duplicate detection against published 
 ### Consequences
 - Exact body duplicates resolve via index lookup; fuzzy runs in-process over a bounded window.
 - Column nullable � pre-existing rows stay valid (null = no exact-match signal); no backfill required.
+
+---
+
+## `DEC-016`: `stories.en_search_tags` (English search-only tags) column
+
+### Context
+FR-AI-010: Bangla stories get AI-generated English search-only tags (NFR layer 3) confirmed by the uploader; they feed search indexes only and never display. No column existed for confirmed tags.
+
+### Decision
+- Add **`stories.en_search_tags`** (jsonb nullable) — outside `v1-database-design.md`, ratified here per the schema-parity gate (workflow 6). Suggestions themselves live in `ai_generations` (kind `en_tags`) — only *confirmed* tags are persisted on the story.
+- Meilisearch documents gain a `search_tags` array field (`ProcessIndexOutbox::buildPayload`); wire formats and portal UI continue to render display `tags` only.
+
+### Consequences
+- Background `GenerateEnTags` job (dispatched on bn draft creation) produces suggestions; `AddNews::confirmEnTags` persists the confirmed set. Nullable — no backfill.

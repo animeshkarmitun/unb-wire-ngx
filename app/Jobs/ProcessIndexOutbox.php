@@ -69,6 +69,7 @@ class ProcessIndexOutbox implements ShouldQueue
             'brief' => $story->brief,
             'body_text' => $story->body_text,
             'language' => $story->language,
+            'search_tags' => (array) ($story->en_search_tags ?? []),
             'category_id' => $story->category_id,
             'published_at' => $story->published_at?->toIso8601String(),
             'is_breaking' => $story->is_breaking,

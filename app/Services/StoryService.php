@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Events\StoryPublished;
 use App\Jobs\FanoutStory;
+use App\Jobs\GenerateEnTags;
 use App\Models\Story;
 use App\Models\StoryNote;
 use App\Models\User;
@@ -45,7 +46,7 @@ class StoryService
         ]);
         $data['body_fingerprint'] = DuplicateDetectionService::fingerprint($data['body_text']);
 
-        return DB::transaction(function () use ($data, $actor) {
+        $story = DB::transaction(function () use ($data, $actor) {
             $story = Story::create($data);
             $this->revisions->snapshot($story, $actor);
             $story->events()->create([
@@ -57,6 +58,12 @@ class StoryService
 
             return $story;
         });
+
+        if (($data['language'] ?? 'en') === 'bn') {
+            GenerateEnTags::dispatch($story->id, $actor->id);
+        }
+
+        return $story;
     }
 
     public function updateDraft(Story $story, array $data, int $expectedVersion, User $actor): Story
