@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Services;
 
+use App\Models\User;
 use App\Services\Ai\FactGuard;
 use App\Services\AiService;
 use Database\Seeders\SettingSeeder;
@@ -86,7 +87,7 @@ class FactGuardTest extends TestCase
     {
         $this->seed(SettingSeeder::class);
         DB::table('ai_token_usage_daily')->delete();
-        $user = \App\Models\User::factory()->create();
+        $user = User::factory()->create();
 
         $pack = app(AiService::class)->call('preedit', ['text' => 'The minister spoke.', 'headline' => 'Minister speaks'], $user->id);
 

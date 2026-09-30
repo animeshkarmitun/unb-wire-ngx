@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Models\AiGeneration;
 use App\Services\Ai\AiProvider;
+use App\Services\Ai\FactGuard;
 use App\Services\Ai\OpenAiProvider;
 use App\Services\Ai\StubAiProvider;
-use App\Services\Ai\FactGuard;
 use App\Services\Ai\WireStyleLinter;
 use Illuminate\Support\Facades\DB;
 
