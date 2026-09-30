@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Jobs\ProcessIndexOutbox;
+use App\Models\AiGeneration;
 use App\Models\Category;
 use App\Models\MediaAsset;
 use App\Models\StoryNote;
@@ -85,6 +86,8 @@ class AddNews extends Component
     public array $aiTouched = [];
 
     public array $dupMatches = [];
+
+    public array $enTagSuggestions = [];
 
     public bool $dupBlocked = false;
 
@@ -427,6 +430,31 @@ class AddNews extends Component
         }
     }
 
+    public function confirmEnTags(): void
+    {
+        app(RbacService::class)->assertCan(auth()->user(), 'stories', 'edit');
+        if (! $this->storyId || $this->enTagSuggestions === []) {
+            return;
+        }
+        app(StoryRepository::class)->findOrFail($this->storyId)->update(['en_search_tags' => $this->enTagSuggestions]);
+        $this->dispatch('toast', message: 'Search tags confirmed — used for search indexing only');
+    }
+
+    private function loadEnTagSuggestions(): void
+    {
+        $this->enTagSuggestions = [];
+        if (! $this->storyId) {
+            return;
+        }
+        $row = AiGeneration::where('story_id', $this->storyId)->where('kind', 'en_tags')->latest('id')->first();
+        $pack = $row?->pack ?? null;
+        $pack = is_string($pack) ? json_decode($pack, true) : $pack;
+        $tags = is_array($pack) ? ($pack['tags'] ?? []) : [];
+        if (is_array($tags)) {
+            $this->enTagSuggestions = array_values(array_filter($tags, fn ($t) => is_string($t) && $t !== ''));
+        }
+    }
+
     public function autosave(?RbacService $rbac = null, ?StoryService $stories = null): void
     {
         $rbac = $rbac ?? app(RbacService::class);
@@ -484,6 +512,8 @@ class AddNews extends Component
             $this->language,
             (int) $this->storyId,
         );
+
+        $this->loadEnTagSuggestions();
 
         $this->dispatch('draft-autosaved', [
             'id' => $this->storyId,

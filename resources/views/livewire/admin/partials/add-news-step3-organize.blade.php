@@ -45,6 +45,14 @@
                   <div class="tag-suggest" id="tagSuggest"></div>
                 </div>
                 <div class="field-hint">Type <strong>#</strong> for saved tags · Space or Enter adds the tag</div>
+
+                @if($language === 'bn' && count($enTagSuggestions))
+                  <div class="field-hint" style="margin-top:8px">
+                    <strong>Suggested search tags (English, search-only):</strong>
+                    @foreach($enTagSuggestions as $t)<span class="tag-chip" style="cursor:default">#{{ $t }}</span> @endforeach
+                    <button type="button" class="db-btn primary" style="margin-left:8px" wire:click="confirmEnTags">Confirm search tags</button>
+                  </div>
+                @endif
               </div>
             </div>
 

@@ -71,3 +71,4 @@ moves search doc mainâ†’archive); `deliveries`/`audit_logs`/`downloads`/
 `ai_generations` are monthly RANGE partitions detached to an archive schema after
 12 months (audit kept 7 years); media originals tier to S3 IA/Glacier, derivatives
 stay hot; `index_outbox` rows purged 7 days after `done`.
+- **Search-only EN tags:** stories.en_search_tags (jsonb, DEC-016) — confirmed AI-suggested English tags for indexing only.

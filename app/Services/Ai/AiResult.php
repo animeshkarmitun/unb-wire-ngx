@@ -7,6 +7,7 @@ class AiResult
     public function __construct(
         public readonly ?string $headline = null,
         public readonly ?string $brief = null,
+        public readonly ?string $caption = null,
         public readonly ?string $body = null,
         public readonly ?string $categoryName = null,
         public readonly array $tags = [],
@@ -34,6 +35,9 @@ class AiResult
         }
         if ($this->brief !== null) {
             $pack['brief'] = $this->brief;
+        }
+        if ($this->caption !== null) {
+            $pack['caption'] = $this->caption;
         }
         if ($this->body !== null) {
             $pack['body'] = $this->body;

@@ -317,6 +317,7 @@
 | `PRT-008` | Bangla portal typography (Noto Sans Bengali) + BN chrome labels + bn-BD dates | `M13-PORTAL-P1` | ✅ | — | 2026-09-24 |
 | `FR-AI-005` | New-facts warning: FactGuard extraction + drawer flag + gate count | `M13-AI-003` | ✅ | — | 2026-09-24 |
 | `FR-MED-010` | Media duplicate detection: checksum lookup + warnings with links | `M13-QA-FIX-004` | ✅ | — | 2026-09-24 |
+| `FR-MED-011/FR-AI-010` | AI photo captions/tags + bn English search-only tags (DEC-016) | `M13-AI-003` | ✅ | — | 2026-09-24 |
 
 ---
 
