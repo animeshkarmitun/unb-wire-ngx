@@ -46,6 +46,8 @@ class PhotoManager extends Component
 
     public array $clientUsage = [];
 
+    public array $uploadDuplicates = [];
+
     public string $inspEmbargo = '';
 
     // Burst Series Stack expansion
@@ -600,6 +602,7 @@ class PhotoManager extends Component
         $this->validate(['uploads.*' => 'image|mimes:jpg,jpeg,png,webp|max:10240']);
         $count = count($this->uploads);
         $uploaderId = auth()->id() ?? User::first()?->id;
+        $this->uploadDuplicates = [];
 
         $gradientIndex = 1;
         foreach ($this->uploads as $file) {
@@ -633,10 +636,22 @@ class PhotoManager extends Component
                 'uploaded_by' => $uploaderId,
             ]);
             GenerateDerivatives::dispatch($asset->id);
+            $dup = app(MediaRepository::class)->findDuplicateOf($asset);
+            if ($dup) {
+                $this->uploadDuplicates[] = [
+                    'id' => $asset->id,
+                    'title' => (string) $asset->title,
+                    'existing_id' => $dup->id,
+                    'existing_title' => (string) $dup->title,
+                ];
+            }
             $gradientIndex++;
         }
 
         $this->uploads = [];
+        if ($this->uploadDuplicates !== []) {
+            $this->dispatch('toast', message: 'Possible duplicates detected - verify before publishing');
+        }
         $this->dispatch('toast', message: '✓ '.$count.' photo'.($count > 1 ? 's' : '').' added to “Needs review”');
     }
 
@@ -655,6 +670,14 @@ class PhotoManager extends Component
 
         // 2. Field Batches (for field intake tab)
         $fieldBatches = $this->tab === 'field' ? $repo->getPendingBatches() : null;
+        $duplicateIds = [];
+        if ($this->tab === 'field' && $fieldBatches) {
+            $duplicateIds = $repo->duplicateFlags($fieldBatches->flatMap(fn ($b) => $b->assets->pluck('id'))->all());
+        }
+        $duplicateIds = [];
+        if ($this->tab === 'field' && $fieldBatches) {
+            $duplicateIds = $repo->duplicateFlags($fieldBatches->flatMap(fn ($b) => $b->assets->pluck('id'))->all());
+        }
 
         // 3. Asset Query (for photo grid)
         $assets = $this->tab === 'field' ? collect([]) : $repo->paginateAssets(
@@ -678,6 +701,7 @@ class PhotoManager extends Component
         return view('livewire.admin.photo-manager', compact(
             'counts',
             'fieldBatches',
+            'duplicateIds',
             'assets',
             'photographersList',
             'categoriesList',

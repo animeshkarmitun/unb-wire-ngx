@@ -24,7 +24,21 @@ class="relative">
         </div>
     </div>
 
-    <!-- Hidden file upload input -->
+            @if(count($uploadDuplicates))
+                <div class="fq-batch" style="border-color:#d97706;background:#fffbeb;margin-bottom:12px">
+                    <b style="color:#92400e">Possible duplicates detected - verify before publishing</b>
+                    <ul style="margin:8px 0 0 16px;font-size:12px">
+                        @foreach($uploadDuplicates as $dup)
+                            <li>
+                                {{ $dup['title'] }} — matches existing
+                                <button type="button" wire:click="selectAsset({{ $dup['existing_id'] }})" style="color:#5b5fc7;background:none;border:none;cursor:pointer;text-decoration:underline">{{ $dup['existing_title'] }} #{{ $dup['existing_id'] }}</button>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <!-- Hidden file upload input -->
     <input type="file" x-ref="uploadInput" wire:model="uploads" multiple accept="image/*" class="hidden">
 
     <!-- Breadcrumb & Topbar -->
@@ -151,6 +165,7 @@ class="relative">
     <div class="dam-layout {{ $selectedAssetId ? 'insp' : '' }}" id="damLayout">
 
         @if($tab === 'field')
+
             <!-- ============ Field Intake Queue View ============ -->
             <div class="w-full">
                 @if(!$fieldBatches || $fieldBatches->isEmpty())
@@ -193,6 +208,9 @@ class="relative">
                                         $grad = $asset->derivatives['grad'] ?? ('g' . (($asset->id % 8) + 1));
                                     @endphp
                                     <div class="fq-ph">
+                                        @if(!empty($duplicateIds[$asset->id]))
+                                            <button type="button" wire:click="selectAsset({{ $asset->id }})" title="Possible duplicate of an existing asset" style="position:absolute;top:4px;left:4px;z-index:2;background:#d97706;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;border:none;cursor:pointer">Possible duplicate</button>
+                                        @endif
                                         <div class="fq-thumb {{ $grad }}" @if($asset->thumbUrl()) style="background-image: url('{{ $asset->thumbUrl() }}'); background-size: cover; background-position: center;" @endif>
                                             <svg class="ph" viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
                                                 <rect x="3" y="3" width="18" height="18" rx="2"/>
