@@ -193,7 +193,7 @@ class="relative">
                                         $grad = $asset->derivatives['grad'] ?? ('g' . (($asset->id % 8) + 1));
                                     @endphp
                                     <div class="fq-ph">
-                                        <div class="fq-thumb {{ $grad }}">
+                                        <div class="fq-thumb {{ $grad }}" @if($asset->thumbUrl()) style="background-image: url('{{ $asset->thumbUrl() }}'); background-size: cover; background-position: center;" @endif>
                                             <svg class="ph" viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
                                                 <rect x="3" y="3" width="18" height="18" rx="2"/>
                                                 <circle cx="8.5" cy="8.5" r="1.5"/>
@@ -286,7 +286,7 @@ class="relative">
                              style="--r: {{ $r }};"
                              title="{{ $asset->caption ?: $asset->title }}">
                             
-                            <div class="dam-thumb {{ $grad }}">
+                            <div class="dam-thumb {{ $grad }}" @if($asset->thumbUrl()) style="background-image: url('{{ $asset->thumbUrl() }}'); background-size: cover; background-position: center;" @endif>
                                 <svg class="ph" viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
                                     <rect x="3" y="3" width="18" height="18" rx="2"/>
                                     <circle cx="8.5" cy="8.5" r="1.5"/>
@@ -334,7 +334,7 @@ class="relative">
                                      class="dam-item in-stack"
                                      style="--r: {{ $childR }};"
                                      title="{{ $asset->caption }} — frame {{ $frame }} (Click to set as cover)">
-                                    <div class="dam-thumb {{ $childGrad }}">
+                                    <div class="dam-thumb {{ $childGrad }}" @if($asset->thumbUrl()) style="background-image: url('{{ $asset->thumbUrl() }}'); background-size: cover; background-position: center;" @endif>
                                         <svg class="ph" viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
                                             <rect x="3" y="3" width="18" height="18" rx="2"/>
                                             <circle cx="8.5" cy="8.5" r="1.5"/>

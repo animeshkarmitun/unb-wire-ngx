@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Jobs\GenerateDerivatives;
 use App\Models\MediaAsset;
 use App\Models\MediaBatch;
 use App\Models\MediaReview;
@@ -611,7 +612,7 @@ class PhotoManager extends Component
             $height = $size[1] ?? 800;
             $ratio = $height > 0 ? round($width / $height, 2) : 1.5;
 
-            MediaAsset::create([
+            $asset = MediaAsset::create([
                 'public_id' => (string) Str::ulid(),
                 'title' => $cleanTitle,
                 'caption' => $cleanTitle,
@@ -631,6 +632,7 @@ class PhotoManager extends Component
                 ],
                 'uploaded_by' => $uploaderId,
             ]);
+            GenerateDerivatives::dispatch($asset->id);
             $gradientIndex++;
         }
 

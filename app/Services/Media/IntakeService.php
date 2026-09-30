@@ -2,6 +2,7 @@
 
 namespace App\Services\Media;
 
+use App\Jobs\GenerateDerivatives;
 use App\Models\MediaAsset;
 use App\Models\MediaBatch;
 use App\Models\UploadSession;
@@ -59,6 +60,7 @@ class IntakeService
         ]);
 
         Storage::disk('local')->delete("uploads/{$sessionId}");
+        GenerateDerivatives::dispatch($asset->id);
 
         return $asset;
     }

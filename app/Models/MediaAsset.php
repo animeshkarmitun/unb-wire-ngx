@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class MediaAsset extends Model
@@ -89,6 +90,19 @@ class MediaAsset extends Model
     public function isEmbargoed(): bool
     {
         return $this->embargo_until !== null && $this->embargo_until->isFuture();
+    }
+
+    public function thumbUrl(): ?string
+    {
+        $path = $this->derivatives['thumb']['path'] ?? null;
+        if (! is_string($path) || $path === '') {
+            return null;
+        }
+        try {
+            return Storage::disk($this->storage_disk ?: 's3')->url($path);
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     public function scopeClientVisible($query)
