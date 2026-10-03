@@ -80,7 +80,7 @@
 </header>
 
 @once
-    <script>
+    <script nonce="{{ $cspNonce }}">
         // Live Dhaka clock (business timezone Asia/Dhaka; storage is UTC)
         (function () {
             function tickClock() {

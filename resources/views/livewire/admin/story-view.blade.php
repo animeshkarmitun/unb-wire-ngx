@@ -1,5 +1,5 @@
 <div class="story-reader-root" x-data="storyReader()" x-init="initReader()">
-    <script>
+    <script nonce="{{ $cspNonce }}">
     window.storyReader = function storyReader() {
         return {
             clockText: 'Dhaka',

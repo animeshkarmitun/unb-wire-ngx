@@ -517,7 +517,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ $cspNonce }}">
     function deliverySettings() {
         return {
             clockTime: '--:--',
