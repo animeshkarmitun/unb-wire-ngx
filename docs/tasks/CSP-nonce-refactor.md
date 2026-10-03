@@ -30,6 +30,8 @@
 
 ## 4. Completion Notes
 - **Shipped:** Per §1. `View::share('cspNonce')` from the middleware keeps all blades able to render the nonce.
-- **Pre-existing e2e reds fixed (surfaced by the full-suite sweep):** `portal-faithful.spec.ts` ×2 — they asserted prototype-mock context literals (`"342/500"`, `"renews 1 Oct 2026"`, `data-q="election"`, `"Daily Star"`) that the **dynamic `/context` endpoint** (M11-PORTAL-001) replaced; they also ran unauthenticated (`#userBtn` only renders for a logged-in client). Now: `loginAsClient('dailyStar')` in `beforeEach`, loose quota/name assertions against real seeded context.
+- **Pre-existing e2e reds (verified against base `67a4471`):** `editorial-flow.spec.ts:26` (wizard `go(3)` step advance) and `editorial-concurrency-locking.spec.ts` fail on **base too** — unrelated to CSP (likely the `wire:model.defer` fill→validate flow in e2e). Left as-is (separate backlog item).
+- **Pre-existing e2e reds fixed:** `portal-faithful.spec.ts` ×2 — they asserted prototype-mock context literals (`"342/500"`, `"renews 1 Oct 2026"`, `data-q="election"`, `"Daily Star"`) that the **dynamic `/context` endpoint** (M11-PORTAL-001) replaced; they also ran unauthenticated (`#userBtn` only renders for a logged-in client). Now: `loginAsClient('dailyStar')` in `beforeEach`, loose quota/name assertions against real seeded context.
+- **CSP nonce verified live:** debug run confirmed the response CSP nonce **exactly matches** all rendered inline-script `nonce=` attributes (`/admin/add-news`: 3/3).
 - **Notes:** Livewire runtime scripts ship through the Vite bundle (`'self'`) — verified live in the e2e sweep. Dev-mode Vite dev-server origins are intentionally NOT allowlisted (e2e runs built assets per the runbook).
 - **Review:** PR.
