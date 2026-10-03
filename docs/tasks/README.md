@@ -318,6 +318,7 @@
 | `FR-AI-005` | New-facts warning: FactGuard extraction + drawer flag + gate count | `M13-AI-003` | ✅ | — | 2026-09-24 |
 | `FR-MED-010` | Media duplicate detection: checksum lookup + warnings with links | `M13-QA-FIX-004` | ✅ | — | 2026-09-24 |
 | `FR-MED-011/FR-AI-010` | AI photo captions/tags + bn English search-only tags (DEC-016) | `M13-AI-003` | ✅ | — | 2026-09-24 |
+| `CSP-nonce-refactor` | Full nonce-based CSP (script-src) + inline-script/onclick cleanup | `M13-SEC-001` | ✅ | — | 2026-09-24 |
 
 ---
 
