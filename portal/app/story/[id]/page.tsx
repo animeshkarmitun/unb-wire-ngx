@@ -12,7 +12,12 @@ async function getStory(id: string) {
       return j.data ?? j;
     }
   } catch {
-    // Fall back to prototype data
+    // Network error handled below.
+  }
+
+  // Mock fallback is disabled when NEXT_PUBLIC_DISABLE_MOCK_FALLBACK=1 (used by M14-COV-021 e2e).
+  if (process.env.NEXT_PUBLIC_DISABLE_MOCK_FALLBACK === "1") {
+    return null;
   }
 
   const mock = INITIAL_STORIES.find((s) => String(s.id) === id || s.public_id === id);

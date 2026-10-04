@@ -13,6 +13,7 @@ use App\Services\Search\TenantTokenIssuer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -63,7 +64,8 @@ class PortalController extends Controller
             }
             if ($request->filled('search')) {
                 $term = '%'.$request->query('search').'%';
-                $q->where(fn ($sub) => $sub->where('headline', 'ilike', $term)->orWhere('brief', 'ilike', $term));
+                $operator = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+                $q->where(fn ($sub) => $sub->where('headline', $operator, $term)->orWhere('brief', $operator, $term));
             }
             $limit = min(100, max(1, (int) $request->query('limit', 50)));
 

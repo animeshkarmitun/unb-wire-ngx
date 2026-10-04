@@ -10,6 +10,7 @@ use App\Repositories\DeliveryRepository;
 use App\Services\Delivery\TriggerMatcher;
 use App\Services\Delivery\WebhookPayloadBuilder;
 use App\Services\Delivery\WebhookSigner;
+use App\Services\Search\EntitlementResolver;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
@@ -47,39 +48,12 @@ class FanoutStory implements ShouldQueue
             return;
         }
 
-        $raw = DB::table('client_packages')
-            ->join('packages', 'packages.id', '=', 'client_packages.package_id')
-            ->join('clients', 'clients.id', '=', 'client_packages.client_id')
-            ->where('client_packages.status', 'active')
-            ->where('clients.status', 'active')
-            ->select('client_packages.client_id', 'packages.entitlement_filter')->get();
+        $resolver = app(EntitlementResolver::class);
 
-        $matchedClients = $raw->filter(function ($r) use ($story) {
-            $f = is_string($r->entitlement_filter) ? json_decode($r->entitlement_filter, true) : $r->entitlement_filter;
-            if (! is_array($f)) {
-                return false;
-            }
-
-            $langs = (array) ($f['languages'] ?? []);
-            if (! empty($langs) && ! in_array($story->language, $langs, true)) {
-                return false;
-            }
-
-            $cats = (array) ($f['category_ids'] ?? []);
-            if (! empty($cats) && ! in_array($story->category_id, $cats, true)) {
-                return false;
-            }
-
-            $kinds = (array) ($f['media_kinds'] ?? []);
-            if (! empty($kinds)) {
-                $storyKinds = $story->media->pluck('kind')->unique()->all();
-                if (empty(array_intersect($kinds, $storyKinds))) {
-                    return false;
-                }
-            }
-
-            return true;
-        })->values();
+        $activeClients = Client::query()->where('status', 'active')->get();
+        $matchedClients = $activeClients->filter(function (Client $client) use ($story, $resolver) {
+            return $resolver->clientAllowed($client, $story);
+        })->map(fn (Client $c) => (object) ['client_id' => $c->id])->values();
 
         foreach ($matchedClients as $row) {
             $channels = $clients->activeChannelsFor($row->client_id);
@@ -187,12 +161,37 @@ class FanoutStory implements ShouldQueue
         $secret = $config['signing_secret'] ?? '';
         $headers = app(WebhookSigner::class)->headers($jsonPayload, $secret, $event);
 
-        $response = Http::withHeaders($headers)->timeout(5)->post($config['url'], $payload);
-        if ($response->successful()) {
-            DB::table('deliveries')->where('idempotency_key', $idempotencyKey)->update(['status' => 'sent', 'sent_at' => now()]);
-            $clients->recordChannelSuccess($ch->id);
-        } else {
+        try {
+            $response = Http::withHeaders($headers)->timeout(5)->post($config['url'], $payload);
+            if ($response->successful()) {
+                DB::table('deliveries')->where('idempotency_key', $idempotencyKey)->update([
+                    'status' => 'sent',
+                    'sent_at' => now(),
+                    'response_code' => $response->status(),
+                    'error' => null,
+                ]);
+                $clients->recordChannelSuccess($ch->id);
+            } else {
+                $this->markDeliveryFailed($idempotencyKey, $response->status(), $response->body());
+                $clients->recordChannelFailure($ch->id);
+            }
+        } catch (\Throwable $e) {
+            $this->markDeliveryFailed($idempotencyKey, null, $e->getMessage());
             $clients->recordChannelFailure($ch->id);
         }
+    }
+
+    private function markDeliveryFailed(string $idempotencyKey, ?int $code, string $error): void
+    {
+        $row = DB::table('deliveries')->where('idempotency_key', $idempotencyKey)->first();
+        if (! $row) {
+            return;
+        }
+        DB::table('deliveries')->where('idempotency_key', $idempotencyKey)->update([
+            'status' => 'failed',
+            'attempt_count' => $row->attempt_count + 1,
+            'response_code' => $code,
+            'error' => substr($error, 0, 1000),
+        ]);
     }
 }

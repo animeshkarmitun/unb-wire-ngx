@@ -81,6 +81,18 @@ class ProcessIndexOutbox implements ShouldQueue
     {
         $oldest = DB::table('index_outbox')->where('status', 'pending')->min('created_at');
 
-        return $oldest ? now()->diffInSeconds($oldest) : 0;
+        if (! $oldest) {
+            return 0;
+        }
+
+        try {
+            $oldestDt = \Illuminate\Support\Carbon::parse($oldest)->setTimezone('UTC');
+        } catch (\Throwable) {
+            return 0;
+        }
+
+        $delta = now('UTC')->getTimestamp() - $oldestDt->getTimestamp();
+
+        return max(0, $delta);
     }
 }

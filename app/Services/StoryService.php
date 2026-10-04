@@ -90,6 +90,14 @@ class StoryService
         });
 
         if ($story->status === 'published') {
+            DB::table('index_outbox')->insert([
+                'index_name' => 'main',
+                'op' => 'upsert',
+                'document_id' => $story->public_id,
+                'status' => 'pending',
+                'attempts' => 0,
+                'created_at' => now(),
+            ]);
             dispatch(new FanoutStory($story->id))->afterResponse();
         }
 
@@ -193,8 +201,7 @@ class StoryService
                 $story->id,
                 ['from' => $from, 'to' => $to],
             );
-            Cache::forget('portal:feed:*');
-            Cache::forget('feed:v1:*');
+            app(\App\Console\Scheduling\LiftEmbargoedStories::class)->invalidatePortalFeedCache();
             if ($to === 'published') {
                 event(new StoryPublished($story));
 
@@ -209,6 +216,14 @@ class StoryService
                 dispatch(new FanoutStory($story->id))->afterResponse();
             }
             if ($to === 'killed') {
+                DB::table('index_outbox')->insert([
+                    'index_name' => 'main',
+                    'op' => 'delete',
+                    'document_id' => $story->public_id,
+                    'status' => 'pending',
+                    'attempts' => 0,
+                    'created_at' => now(),
+                ]);
                 dispatch(new FanoutStory($story->id))->afterResponse();
             }
 
