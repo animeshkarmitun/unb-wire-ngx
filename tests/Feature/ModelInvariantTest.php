@@ -48,7 +48,7 @@ class ModelInvariantTest extends TestCase
 
     public function test_user_is_super_admin_follows_flag_not_role_name(): void
     {
-        $adminRole = Role::create(['name' => 'Admin', 'code' => 'admin', 'type' => 'staff']);
+        $adminRole = Role::create(['name' => 'Admin', 'code' => 'admin', 'type' => 'system']);
         $userFlag = User::factory()->create(['is_superadmin' => true, 'role_id' => $adminRole->id]);
         $userNoFlag = User::factory()->create(['is_superadmin' => false, 'role_id' => $adminRole->id]);
 
