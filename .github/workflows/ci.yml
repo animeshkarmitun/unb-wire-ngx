@@ -38,8 +38,8 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: mbstring, dom, fileinfo, pdo_pgsql, pgsql, gd, exif, intl, redis
-          coverage: none
+          extensions: mbstring, dom, fileinfo, pdo_pgsql, pgsql, gd, exif, intl, redis, pcov
+          coverage: pcov
 
       - name: Create directories
         run: mkdir -p bootstrap/cache storage/framework/cache storage/framework/sessions storage/framework/testing storage/framework/views storage/logs
@@ -72,4 +72,11 @@ jobs:
         continue-on-error: true
 
       - name: Test
-        run: php artisan test
+        run: php artisan test --coverage-clover=coverage.xml
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml

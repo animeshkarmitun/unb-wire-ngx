@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { execSync } from 'child_process';
 
 test.describe('News List Faithful (M8-NEWS-001 & M8-NEWS-002)', () => {
   test.beforeEach(async ({ page }) => {
@@ -182,8 +183,15 @@ test.describe('News List Faithful (M8-NEWS-001 & M8-NEWS-002)', () => {
     }
   });
 
-  test('Row navigation links and live toggle switches function properly', async ({ page }) => {
+  test('Row navigation links and live toggle switches function properly', async ({ page, request }) => {
     test.setTimeout(60000);
+    // Seed a unique published story so the row is guaranteed present.
+    const seedId = `e2e-row-${Date.now()}`;
+    execSync(
+      `php artisan tinker --execute="\\$u = \\App\\Models\\User::first(); \\$c = \\App\\Models\\Category::first(); \\$s = app(\\App\\Services\\StoryService::class)->createDraft(['language' => 'en', 'headline' => '${seedId}', 'brief' => 'b', 'body_html' => '<p>x</p>', 'category_id' => \\$c->id], \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'in_review', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'approved', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'published', \\$u); echo \\$s->public_id;"`,
+      { stdio: 'pipe' }
+    );
+
     await page.goto('/admin/news/en');
     await expect(page.getByRole('heading', { name: 'English News' })).toBeVisible({ timeout: 5000 });
 
@@ -191,28 +199,30 @@ test.describe('News List Faithful (M8-NEWS-001 & M8-NEWS-002)', () => {
     const addBtn = page.getByRole('link', { name: '+ Add News' });
     await expect(addBtn).toHaveAttribute('href', /.*add-news.*/);
 
-    const rows = page.locator('.news-table tbody tr');
-    if (await rows.count() > 0 && !await rows.first().locator('td[colspan]').isVisible().catch(() => false)) {
-      // Story view reader link
-      const readerLink = rows.first().locator('.actions a.story-view-link');
-      if (await readerLink.isVisible().catch(() => false)) {
-        await expect(readerLink).toHaveAttribute('href', /.*admin\/story\/.*/);
-      }
+    const row = page.locator(`.news-table tbody tr:has-text("${seedId}")`).first();
+    await expect(row).toBeVisible({ timeout: 10000 });
 
-      // Edit story link
-      const editLink = rows.first().locator('.actions a[title="Edit story"]');
-      if (await editLink.isVisible().catch(() => false)) {
-        await expect(editLink).toHaveAttribute('href', /.*add-news\?id=.*/);
-      }
+    const readerLink = row.locator('.actions a.story-view-link');
+    await expect(readerLink).toHaveAttribute('href', /.*admin\/story\/.*/);
 
-      // Live switch toggle
-      const switchLabel = rows.first().locator('label.switch');
-      if (await switchLabel.isVisible().catch(() => false)) {
-        await switchLabel.click();
-        // Allow Livewire roundtrip
-        await page.waitForTimeout(1000);
-      }
-    }
+    const editLink = row.locator('.actions a[title="Edit story"]');
+    await expect(editLink).toHaveAttribute('href', /.*add-news\?id=.*/);
+
+    // Live switch toggle — assert DB membership change, not just a click.
+    const switchLabel = row.locator('label.switch');
+    await expect(switchLabel).toBeVisible();
+    const beforeFeed = await request.get('http://localhost:8000/api/v1/portal/feed?language=en');
+    const beforeText = await beforeFeed.text();
+    const beforeHas = beforeText.includes(seedId);
+
+    await switchLabel.click();
+    await page.waitForResponse((r) => r.url().includes('/livewire/update') && r.status() === 200);
+    await page.waitForTimeout(500);
+
+    const afterFeed = await request.get('http://localhost:8000/api/v1/portal/feed?language=en');
+    const afterText = await afterFeed.text();
+    const afterHas = afterText.includes(seedId);
+    expect(afterHas).not.toBe(beforeHas);
   });
 });
 

@@ -10,7 +10,7 @@ use Livewire\Component;
 
 class AiSettings extends Component
 {
-    public const DEFAULT_STYLE_PROMPT = 'You are a UNB wire copy editor. Rules: inverted pyramid; active voice; past tense for events; attribute every claim (said, according to); no adjectives of judgement; spell out numbers one to nine; dateline format "DHAKA, Aug 25 —"; end with "END/UNB/####"; never invent names, figures or quotes; if a fact is uncertain, flag it with [VERIFY].';
+    public const DEFAULT_STYLE_PROMPT = 'You are a UNB wire copy editor. Rules: inverted pyramid; active voice; past tense for events; attribute every claim (said, according to); no adjectives of judgement; spell out numbers one to nine; dateline format "DHAKA, Aug 25 —"; end with "END/UNB/####"; never invent names, figures or quotes; if a fact is uncertain, flag it with [VERIFY]. Example body: "DHAKA, Aug 25 — The cabinet approved the annual budget Tuesday. The finance minister said the deficit would narrow. END/UNB"';
 
     public bool $preeditEn = true;
 
@@ -204,17 +204,17 @@ class AiSettings extends Component
         $tokensPhotos = (int) $rollups->where('scope', 'photos')->sum('tokens');
         $totalTokens = $tokensEn + $tokensBn + $tokensPhotos;
 
-        // Use prototype defaults if no tokens recorded yet
-        if ($totalTokens === 0) {
-            $tokensEn = 188200;
-            $tokensBn = 97600;
-            $tokensPhotos = 26600;
-            $totalTokens = 312400;
-        }
-
-        $callsEn = 418;
-        $callsBn = 261;
-        $callsPhotos = 89;
+        $callsEn = (int) DB::table('ai_generations')
+            ->join('stories', 'stories.id', '=', 'ai_generations.story_id')
+            ->where('ai_generations.created_at', '>=', $monthStart)
+            ->where('stories.language', 'en')
+            ->count();
+        $callsBn = (int) DB::table('ai_generations')
+            ->join('stories', 'stories.id', '=', 'ai_generations.story_id')
+            ->where('ai_generations.created_at', '>=', $monthStart)
+            ->where('stories.language', 'bn')
+            ->count();
+        $callsPhotos = 0;
 
         $costEst = round($totalTokens / 1000 * 13.4);
         $pct = $this->monthlyCap > 0 ? min(100, (int) round(($totalTokens / $this->monthlyCap) * 100)) : 0;

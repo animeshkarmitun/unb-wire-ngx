@@ -107,8 +107,8 @@ class AiSettingsTest extends TestCase
             ->assertSet('autoPublish', false)
             ->assertSet('killed', false)
             ->assertSet('monthlyCap', 500000)
-            ->assertViewHas('totalTokens', 312400)
-            ->assertViewHas('costEst', 4186);
+            ->assertViewHas('totalTokens', 0)
+            ->assertViewHas('costEst', 0);
     }
 
     public function test_component_loads_existing_settings_from_database(): void

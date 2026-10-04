@@ -27,7 +27,7 @@ class ExportMediaZipJob implements ShouldQueue
 
     public function handle(MediaZipExportService $service): array
     {
-        $assets = MediaAsset::whereIn('public_id', $this->assetIds)
+        $assets = MediaAsset::clientVisible()->whereIn('public_id', $this->assetIds)
             ->when(
                 count(array_filter($this->assetIds, 'is_numeric')) > 0,
                 fn ($q) => $q->orWhereIn('id', array_filter($this->assetIds, 'is_numeric'))

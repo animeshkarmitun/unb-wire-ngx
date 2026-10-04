@@ -58,7 +58,7 @@ class ApPhotoManager extends Component
 
     public string $lastSyncTime = '9:14 PM';
 
-    public int $todaySyncCount = 214;
+    public int $todaySyncCount = 0;
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -156,8 +156,7 @@ class ApPhotoManager extends Component
     public function syncNow(): void
     {
         $this->lastSyncTime = now()->setTimezone('Asia/Dhaka')->format('g:i A');
-        $this->todaySyncCount += 12;
-        $this->dispatch('toast', message: 'AP wire synced successfully. '.$this->todaySyncCount.' new photos today.');
+        $this->dispatch('toast', message: 'AP feed not configured — add partner credentials to enable sync');
     }
 
     public function toggleSyncLog(): void
@@ -219,42 +218,13 @@ class ApPhotoManager extends Component
 
         $selected = $this->selectedId ? app(MediaRepository::class)->findById($this->selectedId) : null;
 
-        $syncLogs = [
-            [
-                'time' => 'Today 9:14 PM',
-                'status' => 'Success',
-                'photos' => '214 new photos',
-                'channel' => 'AP Associated Press Media API v1',
-                'duration' => '1.2s',
-            ],
-            [
-                'time' => 'Today 8:59 PM',
-                'status' => 'Success',
-                'photos' => '189 new photos',
-                'channel' => 'AP Associated Press Media API v1',
-                'duration' => '1.4s',
-            ],
-            [
-                'time' => 'Today 8:44 PM',
-                'status' => 'Success',
-                'photos' => '142 new photos',
-                'channel' => 'AP Associated Press Media API v1',
-                'duration' => '1.1s',
-            ],
-            [
-                'time' => 'Today 8:29 PM',
-                'status' => 'Success',
-                'photos' => '165 new photos',
-                'channel' => 'AP Associated Press Media API v1',
-                'duration' => '1.3s',
-            ],
-        ];
+        $syncLogs = [];
 
         return view('livewire.admin.ap-photo-manager', [
             'assets' => $assets,
             'selected' => $selected,
             'visibleCount' => $visibleCount,
-            'totalApCount' => max(1248, $totalApCount),
+            'totalApCount' => $totalApCount,
             'remainingCount' => $remainingCount,
             'syncLogs' => $syncLogs,
             'categories' => self::CATEGORIES,

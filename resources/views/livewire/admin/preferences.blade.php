@@ -7,7 +7,10 @@
 <div><label class="text-xs font-semibold">Density</label><select wire:model="density" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div>
 @error('dateFormat') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
 @error('density') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-<x-btn variant="primary" wire:click="save">Save</x-btn>
+<x-btn variant="primary" wire:click="save" wire:loading.attr="disabled">
+  <span wire:loading.remove wire:target="save">Save</span>
+  <span wire:loading wire:target="save">Saving…</span>
+</x-btn>
 </div>
 <x-toast />
 </div>

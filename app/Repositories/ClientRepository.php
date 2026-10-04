@@ -2,14 +2,17 @@
 
 namespace App\Repositories;
 
+use App\Mail\ChannelPaused;
 use App\Models\Client;
 use App\Models\ClientApiKey;
 use App\Models\ClientChannel;
 use App\Models\ClientPackage;
+use App\Models\ClientUser;
 use App\Models\Download;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class ClientRepository
 {
@@ -184,9 +187,15 @@ class ClientRepository
     public function recordChannelFailure(int $channelId, int $autoPauseAfter = 5): void
     {
         DB::table('client_channels')->where('id', $channelId)->increment('failure_count');
-        $failures = DB::table('client_channels')->where('id', $channelId)->value('failure_count');
-        if ($failures >= $autoPauseAfter) {
+        $channel = DB::table('client_channels')->where('id', $channelId)->first();
+        $failures = (int) ($channel->failure_count ?? 0);
+        if ($failures >= $autoPauseAfter && ($channel->status ?? 'active') === 'active') {
             DB::table('client_channels')->where('id', $channelId)->update(['status' => 'paused']);
+            $client = Client::find($channel->client_id);
+            $contact = $client?->billing_email ?: ClientUser::where('client_id', $channel->client_id)->orderBy('id')->value('email');
+            if ($client && $contact) {
+                Mail::to($contact)->queue(new ChannelPaused($client->name, (string) $channel->type));
+            }
         }
     }
 

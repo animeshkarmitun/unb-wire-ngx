@@ -7,8 +7,10 @@ use App\Models\Client;
 use App\Models\ClientChannel;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\ApiKeyService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -103,24 +105,50 @@ class DeliverySettingsTest extends TestCase
         $this->assertEquals('daily-wire', $channel->config['username']);
     }
 
-    public function test_api_key_reveal_and_two_step_rotation(): void
+    public function test_api_key_reveal_is_one_time_only(): void
     {
+        $client = Client::factory()->create();
+
         $component = Livewire::actingAs($this->adminUser)
             ->test(DeliverySettings::class)
             ->assertSet('isKeyRevealed', false)
-            ->call('toggleRevealKey')
-            ->assertSet('isKeyRevealed', true)
-            ->call('toggleRevealKey')
-            ->assertSet('isKeyRevealed', false);
+            ->assertSet('rawApiKey', '');
 
-        // Step 1: Request rotation
-        $component->call('requestRegenerateKey')
-            ->assertSet('regenStep', 1);
+        // Nothing to reveal before a key is generated
+        $component->call('toggleRevealKey')->assertSet('isKeyRevealed', false);
 
-        // Step 2: Confirm rotation
-        $component->call('confirmRegenerateKey')
+        // Two-step rotation generates a fresh raw key, shown once
+        $component->set('selectedClientId', $client->id)
+            ->call('requestRegenerateKey')
+            ->assertSet('regenStep', 1)
+            ->call('confirmRegenerateKey')
             ->assertSet('regenStep', 0)
+            ->assertSet('isKeyRevealed', true)
             ->assertDispatched('toast', message: '✓ Old key revoked — update your CMS plugin with the new key');
+
+        $raw = $component->get('rawApiKey');
+        $this->assertNotSame('', $raw);
+
+        // Hide consumes the raw key — never revealable again (FR-CLT-003: shown once)
+        $component->call('toggleRevealKey')
+            ->assertSet('isKeyRevealed', false)
+            ->assertSet('rawApiKey', '');
+        $component->call('toggleRevealKey')->assertSet('isKeyRevealed', false);
+    }
+
+    public function test_api_key_lifecycle_is_audited(): void
+    {
+        $client = Client::factory()->create();
+        $svc = app(ApiKeyService::class);
+
+        [$key] = $svc->issue($client, 'Audit test');
+        $this->assertDatabaseHas('audit_logs', ['action' => 'api_key.issued', 'entity_id' => $key->id]);
+
+        [$new] = $svc->rotate($key);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'api_key.rotated', 'entity_id' => $new->id]);
+
+        $svc->revoke($new);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'api_key.revoked', 'entity_id' => $new->id]);
     }
 
     public function test_save_api_settings_updates_webhook_and_triggers(): void
@@ -187,11 +215,33 @@ class DeliverySettingsTest extends TestCase
         $component = Livewire::actingAs($this->adminUser)
             ->test(DeliverySettings::class);
 
+        $clientId = $component->get('selectedClientId');
+        $this->assertNotNull($clientId);
+        DB::table('downloads')->insert([
+            'client_id' => $clientId,
+            'item_type' => 'media',
+            'item_id' => 1,
+            'created_at' => now(),
+        ]);
+
+        $component = Livewire::actingAs($this->adminUser)
+            ->test(DeliverySettings::class);
+
         $downloads = $component->get('downloads');
         $this->assertNotEmpty($downloads);
 
         $component->call('exportCsv')
             ->assertFileDownloaded('unb-license-history.csv');
+    }
+
+    public function test_download_history_is_empty_without_ledger_rows(): void
+    {
+        DB::table('downloads')->delete();
+
+        $component = Livewire::actingAs($this->adminUser)
+            ->test(DeliverySettings::class);
+
+        $this->assertSame([], $component->get('downloads'));
     }
 
     public function test_save_engine_rules_updates_delivery_setting(): void

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Models\Device;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\RbacService;
@@ -537,6 +538,9 @@ class RolesManager extends Component
         }
 
         $target->update(['status' => 'deactivated']);
+
+        DB::table('sessions')->where('user_id', $target->id)->delete();
+        Device::where('user_id', $target->id)->whereNull('revoked_at')->update(['revoked_at' => now()]);
 
         DB::table('audit_logs')->insert([
             'actor_type' => 'user',

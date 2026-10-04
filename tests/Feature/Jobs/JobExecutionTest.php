@@ -10,6 +10,7 @@ use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -25,6 +26,14 @@ class JobExecutionTest extends TestCase
 
     public function test_generate_derivatives_populates_asset(): void
     {
+        Storage::fake('s3');
+        $im = imagecreatetruecolor(600, 400);
+        imagefilledrectangle($im, 0, 0, 600, 400, imagecolorallocate($im, 10, 10, 10));
+        ob_start();
+        imagejpeg($im, null, 90);
+        $bytes = ob_get_clean();
+        Storage::disk('s3')->put('originals/deriv-test.jpg', $bytes);
+
         $user = User::factory()->create();
         $asset = MediaAsset::create([
             'public_id' => (string) Str::ulid(),
@@ -46,7 +55,7 @@ class JobExecutionTest extends TestCase
 
         $asset->refresh();
         $this->assertArrayHasKey('thumb', $asset->derivatives);
-        $this->assertArrayHasKey('preview', $asset->derivatives);
+        $this->assertArrayHasKey('small', $asset->derivatives);
         $this->assertArrayHasKey('large', $asset->derivatives);
         $this->assertStringContainsString('thumb.webp', $asset->derivatives['thumb']['path']);
     }

@@ -2,13 +2,14 @@
 
 namespace App\Services;
 
+use App\Console\Scheduling\LiftEmbargoedStories;
 use App\Events\StoryPublished;
 use App\Jobs\FanoutStory;
+use App\Jobs\GenerateEnTags;
 use App\Models\Story;
 use App\Models\StoryNote;
 use App\Models\User;
 use App\Repositories\AuditLogRepository;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -43,8 +44,9 @@ class StoryService
             'version' => 1,
             'body_text' => HtmlSanitizer::text($data['body_html'] ?? ''),
         ]);
+        $data['body_fingerprint'] = DuplicateDetectionService::fingerprint($data['body_text']);
 
-        return DB::transaction(function () use ($data, $actor) {
+        $story = DB::transaction(function () use ($data, $actor) {
             $story = Story::create($data);
             $this->revisions->snapshot($story, $actor);
             $story->events()->create([
@@ -56,6 +58,12 @@ class StoryService
 
             return $story;
         });
+
+        if (($data['language'] ?? 'en') === 'bn') {
+            GenerateEnTags::dispatch($story->id, $actor->id);
+        }
+
+        return $story;
     }
 
     public function updateDraft(Story $story, array $data, int $expectedVersion, User $actor): Story
@@ -66,6 +74,7 @@ class StoryService
         if (isset($data['body_html'])) {
             $data['body_html'] = HtmlSanitizer::clean($data['body_html']);
             $data['body_text'] = HtmlSanitizer::text($data['body_html']);
+            $data['body_fingerprint'] = DuplicateDetectionService::fingerprint($data['body_text']);
             if (! empty($story->ai_touched['body']) && $data['body_html'] !== $story->body_html) {
                 $ai = $story->ai_touched;
                 unset($ai['body']);
@@ -73,12 +82,26 @@ class StoryService
             }
         }
 
-        return DB::transaction(function () use ($story, $data, $actor) {
+        $story = DB::transaction(function () use ($story, $data, $actor) {
             $story->update(array_merge($data, ['version' => $story->version + 1]));
             $this->revisions->snapshot($story->refresh(), $actor);
 
             return $story;
         });
+
+        if ($story->status === 'published') {
+            DB::table('index_outbox')->insert([
+                'index_name' => 'main',
+                'op' => 'upsert',
+                'document_id' => $story->public_id,
+                'status' => 'pending',
+                'attempts' => 0,
+                'created_at' => now(),
+            ]);
+            dispatch(new FanoutStory($story->id))->afterResponse();
+        }
+
+        return $story;
     }
 
     public function acquireLock(Story $story, User $actor): void
@@ -133,21 +156,26 @@ class StoryService
         if (! in_array($to, $allowed, true)) {
             throw new UnprocessableEntityHttpException("Invalid transition {$from} → {$to}");
         }
+        $aiGate = null;
         if ($to === 'published') {
             if (! empty($story->ai_touched) && ! $story->is_breaking) {
                 $cfg = DB::table('settings')->where('key', 'ai.desk')->value('value');
                 $cfg = is_string($cfg) ? json_decode($cfg, true) : $cfg;
-                $allowAuto = ! empty($cfg['autoPublish']) && in_array($story->category_id, (array) ($cfg['autoCats'] ?? []), true);
+                $allowAuto = ! empty($cfg['autoPublish']) && in_array($story->loadMissing('category')->category?->name_en, (array) ($cfg['autoCats'] ?? []), true);
                 if (! $allowAuto) {
                     throw new UnprocessableEntityHttpException('AI-touched fields require review before publish');
                 }
+                $gate = 'auto';
+                $aiGate = 'skipped_auto_allowlist';
+            } elseif (! empty($story->ai_touched)) {
+                $aiGate = 'skipped_breaking';
             }
             if ($story->embargo_until && $story->embargo_until->isFuture()) {
                 throw new UnprocessableEntityHttpException('Embargo still active');
             }
         }
 
-        return DB::transaction(function () use ($story, $from, $to, $actor, $gate) {
+        return DB::transaction(function () use ($story, $from, $to, $actor, $gate, $aiGate) {
             $extra = [];
             if ($to === 'published' && ! $story->published_at) {
                 $extra['published_at'] = now();
@@ -165,7 +193,7 @@ class StoryService
                 'action' => $action,
                 'from_status' => $from,
                 'to_status' => $to,
-                'payload' => $to === 'published' ? ['gate' => $gate] : null,
+                'payload' => $to === 'published' ? array_filter(['gate' => $gate, 'ai_gate' => $aiGate]) : null,
             ]);
             $this->audit->log(
                 $action,
@@ -173,8 +201,7 @@ class StoryService
                 $story->id,
                 ['from' => $from, 'to' => $to],
             );
-            Cache::forget('portal:feed:*');
-            Cache::forget('feed:v1:*');
+            app(LiftEmbargoedStories::class)->invalidatePortalFeedCache();
             if ($to === 'published') {
                 event(new StoryPublished($story));
 
@@ -189,6 +216,14 @@ class StoryService
                 dispatch(new FanoutStory($story->id))->afterResponse();
             }
             if ($to === 'killed') {
+                DB::table('index_outbox')->insert([
+                    'index_name' => 'main',
+                    'op' => 'delete',
+                    'document_id' => $story->public_id,
+                    'status' => 'pending',
+                    'attempts' => 0,
+                    'created_at' => now(),
+                ]);
                 dispatch(new FanoutStory($story->id))->afterResponse();
             }
 

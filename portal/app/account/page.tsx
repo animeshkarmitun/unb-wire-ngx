@@ -230,7 +230,7 @@ export default function AccountPage() {
                   <span className="text-[#7c7f8c]">Last login</span>
                   <span className="font-medium">
                     {profile.last_login_at
-                      ? new Date(profile.last_login_at).toLocaleString()
+                      ? `${new Date(profile.last_login_at).toLocaleString()} · Dhaka ${new Date(profile.last_login_at).toLocaleTimeString("en-US", { timeZone: "Asia/Dhaka", hour: "numeric", minute: "2-digit", hour12: true })}`
                       : "—"}
                   </span>
                 </div>

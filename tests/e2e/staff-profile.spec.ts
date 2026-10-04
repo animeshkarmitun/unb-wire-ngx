@@ -1,11 +1,26 @@
 import { test, expect } from '@playwright/test';
 import { loginAs, waitForToast } from './helpers/auth';
+import { execSync } from 'child_process';
+
+const ORIGINAL_NAME = 'Test Admin';
+
+function restoreAdminName(): void {
+  execSync(
+    `php artisan tinker --execute="\\App\\Models\\User::where('email','test@example.com')->update(['name' => '${ORIGINAL_NAME}']);"`,
+    { stdio: 'ignore' }
+  );
+}
 
 test.describe('Staff Profile Page (M12-PROFILE-001)', () => {
   test.setTimeout(45000);
 
   test.beforeEach(async ({ page }) => {
+    restoreAdminName();
     await loginAs(page, 'admin');
+  });
+
+  test.afterEach(() => {
+    restoreAdminName();
   });
 
   test('profile page renders with admin chrome (sidebar + topnav, no Breeze layout)', async ({ page }) => {

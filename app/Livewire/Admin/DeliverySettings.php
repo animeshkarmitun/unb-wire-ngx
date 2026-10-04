@@ -62,7 +62,7 @@ class DeliverySettings extends Component
     // ---- Card 2: API Access ----
     public string $apiEndpoint = 'https://api.unbnews.org/v1';
 
-    public string $rawApiKey = 'unb_live_9d4f21ab77c03f9a';
+    public string $rawApiKey = '';
 
     public string $maskedApiKey = 'unb_live_••••••••••••3f9a';
 
@@ -209,10 +209,10 @@ class DeliverySettings extends Component
         if ($apiKey) {
             $maskedSuffix = substr($apiKey->key_hash, -4);
             $this->maskedApiKey = 'unb_live_••••••••••••'.$maskedSuffix;
-            $this->rawApiKey = 'unb_live_'.substr($apiKey->key_hash, 0, 16);
+            $this->rawApiKey = '';
         } else {
             $this->maskedApiKey = 'unb_live_••••••••••••3f9a';
-            $this->rawApiKey = 'unb_live_9d4f21ab77c03f9a';
+            $this->rawApiKey = '';
         }
         $this->isKeyRevealed = false;
         $this->regenStep = 0;
@@ -274,15 +274,19 @@ class DeliverySettings extends Component
             return;
         }
 
-        $channel = ClientChannel::where('client_id', $this->selectedClientId)
-            ->where('type', 'ftp')
-            ->first();
-
-        if (! $channel) {
-            $this->dispatch('toast', message: 'No FTP channel found for this client');
-
-            return;
-        }
+        $channel = ClientChannel::firstOrCreate(
+            ['client_id' => $this->selectedClientId, 'type' => 'ftp'],
+            [
+                'status' => 'active',
+                'config' => [
+                    'host' => $this->sftpHost ?: 'ftp.dailystar.com',
+                    'port' => (int) ($this->sftpPort ?: 22),
+                    'username' => $this->sftpUser ?: 'unb-delivery',
+                    'auth_type' => 'sftp',
+                    'password' => 'secret',
+                ],
+            ]
+        );
 
         $startTime = microtime(true);
 
@@ -315,7 +319,7 @@ class DeliverySettings extends Component
             $this->testBtnText = '✓ Connection OK';
             $this->dispatch('toast', message: "SFTP connection successful ({$latency}ms)");
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $channel->config = $originalConfig ?? [];
             $cfg = $channel->config ?? [];
             $cfg['health'] = 'fail';
@@ -397,7 +401,14 @@ class DeliverySettings extends Component
     // ---- API Access Actions ----
     public function toggleRevealKey(): void
     {
-        $this->isKeyRevealed = ! $this->isKeyRevealed;
+        if ($this->isKeyRevealed) {
+            // Hide consumes the raw key — it can never be revealed again (FR-CLT-003: shown once)
+            $this->isKeyRevealed = false;
+            $this->rawApiKey = '';
+
+            return;
+        }
+        $this->isKeyRevealed = $this->rawApiKey !== '';
     }
 
     public function toggleRevealSecret(): void
@@ -432,14 +443,14 @@ class DeliverySettings extends Component
                 $suffix = substr($raw, -4);
                 $this->maskedApiKey = 'unb_live_••••••••••••'.$suffix;
                 $this->rawApiKey = $raw;
+                $this->isKeyRevealed = true;
             }
         } else {
             $this->maskedApiKey = 'unb_live_••••••••••••b71c';
-            $this->rawApiKey = 'unb_live_9d4f21ab77c0b71c';
+            $this->rawApiKey = '';
         }
 
         $this->regenStep = 0;
-        $this->isKeyRevealed = false;
         $this->dispatch('toast', message: '✓ Old key revoked — update your CMS plugin with the new key');
     }
 
@@ -590,17 +601,6 @@ class DeliverySettings extends Component
             ->limit(10)
             ->get();
 
-        if ($records->isEmpty()) {
-            // Return representative demo audit trail matching prototype
-            return [
-                ['asset' => 'Rizvi speaks outside Nayapaltan office (m1)', 'license' => 'UNB', 'lic_class' => 'unb', 'downloaded_by' => 'photo@dailystar.com', 'date' => 'Aug 24, 9:32 AM'],
-                ['asset' => 'Poland storm damage (m4)', 'license' => 'AP', 'lic_class' => 'ap', 'downloaded_by' => 'photo@dailystar.com', 'date' => 'Aug 23, 8:15 PM'],
-                ['asset' => 'Yunnan landslide rescue (m5)', 'license' => 'AP add-on', 'lic_class' => 'addon', 'downloaded_by' => 'newsdesk@dailystar.com', 'date' => 'Aug 23, 6:41 PM'],
-                ['asset' => 'Tigers training, Mirpur (m8)', 'license' => 'UNB · exclusive', 'lic_class' => 'exclusive', 'downloaded_by' => 'sports@dailystar.com', 'date' => 'Aug 22, 5:20 PM'],
-                ['asset' => 'Padma Bridge aerial footage (m10)', 'license' => 'UNB', 'lic_class' => 'unb', 'downloaded_by' => 'video desk (FTP auto-push)', 'date' => 'Aug 22, 11:05 AM'],
-            ];
-        }
-
         return $records->map(function ($d) {
             $assetTitle = $d->mediaAsset?->title ?? 'Media Asset #'.$d->item_id;
             $source = $d->mediaAsset?->source ?? 'unb';
@@ -616,7 +616,7 @@ class DeliverySettings extends Component
                 $licClass = 'unb';
             }
 
-            $userEmail = $d->clientUser?->email ?? 'video desk (FTP auto-push)';
+            $userEmail = $d->clientUser?->email ?? 'N/A';
             $date = $d->created_at ? $d->created_at->format('M j, g:i A') : 'Recently';
 
             return [

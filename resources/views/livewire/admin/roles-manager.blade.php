@@ -236,7 +236,7 @@
                             @elseif($p->status === 'deactivated')
                                 <button type="button" class="pp-act" wire:click="activateUser({{ $p->id }})">Reactivate</button>
                             @else
-                                <button type="button" class="pp-act danger" wire:click="deactivateUser({{ $p->id }})">Deactivate</button>
+                                <button type="button" class="pp-act danger" wire:click="deactivateUser({{ $p->id }})" wire:confirm="Deactivate {{ $p->name }}? Their access will be revoked immediately.">Deactivate</button>
                             @endif
                         @endif
                     </div>
@@ -393,7 +393,10 @@
                 <span class="spacer"></span>
                 <button type="button" class="btn btn-outline btn-sm" wire:click="closeDrawer">Discard</button>
                 @if(! $editLocked || auth()->user()->isSuperAdmin())
-                    <button type="button" class="btn btn-primary btn-sm" wire:click="saveRole">Save role</button>
+                    <button type="button" class="btn btn-primary btn-sm" wire:click="saveRole" wire:loading.attr="disabled">
+                      <span wire:loading.remove wire:target="saveRole">Save role</span>
+                      <span wire:loading wire:target="saveRole">Saving…</span>
+                    </button>
                 @endif
             </div>
         @endif
@@ -439,7 +442,10 @@
             </div>
             <div class="mo-actions">
                 <button type="button" class="btn btn-outline" wire:click="closeNewModal">Cancel</button>
-                <button type="button" class="btn btn-primary" wire:click="createRole">Create role</button>
+                <button type="button" class="btn btn-primary" wire:click="createRole" wire:loading.attr="disabled">
+                  <span wire:loading.remove wire:target="createRole">Create role</span>
+                  <span wire:loading wire:target="createRole">Creating…</span>
+                </button>
             </div>
         </div>
     </div>
@@ -521,7 +527,10 @@
             </div>
             <div class="mo-actions">
                 <button type="button" class="btn btn-outline" wire:click="closeInviteModal">Cancel</button>
-                <button type="button" class="btn btn-primary" wire:click="inviteMember">Send invite</button>
+                <button type="button" class="btn btn-primary" wire:click="inviteMember" wire:loading.attr="disabled">
+                  <span wire:loading.remove wire:target="inviteMember">Send invite</span>
+                  <span wire:loading wire:target="inviteMember">Sending…</span>
+                </button>
             </div>
         </div>
     </div>

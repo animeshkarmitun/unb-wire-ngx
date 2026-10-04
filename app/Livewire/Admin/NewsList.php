@@ -134,39 +134,47 @@ class NewsList extends Component
 
     public function togglePublish(int $id): void
     {
-        $story = app(StoryRepository::class)->findOrFail($id);
-        $user = auth()->user();
-        $svc = app(StoryService::class);
+        try {
+            $story = app(StoryRepository::class)->findOrFail($id);
+            $user = auth()->user();
+            $svc = app(StoryService::class);
 
-        if ($story->status === 'published') {
-            app(RbacService::class)->assertCan($user, 'stories', 'edit');
-            $svc->transition($story, 'archived', $user);
-            $this->dispatch('toast', message: 'Story archived.');
-        } else {
-            app(RbacService::class)->assertCan($user, 'stories', 'publish');
-            if ($story->status === 'draft') {
-                $svc->transition($story, 'in_review', $user);
-                $story->refresh();
+            if ($story->status === 'published') {
+                app(RbacService::class)->assertCan($user, 'stories', 'edit');
+                $svc->transition($story, 'archived', $user);
+                $this->dispatch('toast', message: 'Story archived.');
+            } else {
+                app(RbacService::class)->assertCan($user, 'stories', 'publish');
+                if ($story->status === 'draft') {
+                    $svc->transition($story, 'in_review', $user);
+                    $story->refresh();
+                }
+                if ($story->status === 'in_review') {
+                    $svc->transition($story, 'approved', $user);
+                    $story->refresh();
+                }
+                if ($story->status === 'approved') {
+                    $svc->transition($story, 'published', $user);
+                    dispatch(new FanoutStory($story->id));
+                    dispatch(new ProcessIndexOutbox);
+                }
+                $this->dispatch('toast', message: 'Story published to wire feed.');
             }
-            if ($story->status === 'in_review') {
-                $svc->transition($story, 'approved', $user);
-                $story->refresh();
-            }
-            if ($story->status === 'approved') {
-                $svc->transition($story, 'published', $user);
-                dispatch(new FanoutStory($story->id));
-                dispatch(new ProcessIndexOutbox);
-            }
-            $this->dispatch('toast', message: 'Story published to wire feed.');
+        } catch (\Throwable $e) {
+            $this->dispatch('toast', message: 'Failed to update story: '.$e->getMessage());
         }
     }
 
     public function deleteStory(int $id): void
     {
-        $story = app(StoryRepository::class)->findOrFail($id);
-        app(RbacService::class)->assertCan(auth()->user(), 'stories', 'delete');
-        $story->delete();
-        $this->dispatch('toast', message: 'Story moved to trash.');
+        try {
+            $story = app(StoryRepository::class)->findOrFail($id);
+            app(RbacService::class)->assertCan(auth()->user(), 'stories', 'delete');
+            $story->delete();
+            $this->dispatch('toast', message: 'Story moved to trash.');
+        } catch (\Throwable $e) {
+            $this->dispatch('toast', message: 'Failed to delete story: '.$e->getMessage());
+        }
     }
 
     public function bulkPublish(): void
@@ -181,25 +189,37 @@ class NewsList extends Component
         $repo = app(StoryRepository::class);
 
         $stories = $repo->findMany($this->selectedStories);
+        $published = 0;
+        $failed = 0;
+
         foreach ($stories as $story) {
-            if ($story->status === 'draft') {
-                $svc->transition($story, 'in_review', $user);
-                $story->refresh();
-            }
-            if ($story->status === 'in_review') {
-                $svc->transition($story, 'approved', $user);
-                $story->refresh();
-            }
-            if ($story->status === 'approved') {
-                $svc->transition($story, 'published', $user);
-                dispatch(new FanoutStory($story->id));
-                dispatch(new ProcessIndexOutbox);
+            try {
+                if ($story->status === 'draft') {
+                    $svc->transition($story, 'in_review', $user);
+                    $story->refresh();
+                }
+                if ($story->status === 'in_review') {
+                    $svc->transition($story, 'approved', $user);
+                    $story->refresh();
+                }
+                if ($story->status === 'approved') {
+                    $svc->transition($story, 'published', $user);
+                    dispatch(new FanoutStory($story->id));
+                    dispatch(new ProcessIndexOutbox);
+                }
+                $published++;
+            } catch (\Throwable $e) {
+                $failed++;
             }
         }
 
         $this->selectedStories = [];
         $this->selectAll = false;
-        $this->dispatch('toast', message: 'Selected stories published.');
+        $msg = $published.' story(s) published.';
+        if ($failed > 0) {
+            $msg .= ' '.$failed.' failed.';
+        }
+        $this->dispatch('toast', message: $msg);
     }
 
     public function bulkDelete(): void
@@ -208,12 +228,16 @@ class NewsList extends Component
             return;
         }
 
-        app(RbacService::class)->assertCan(auth()->user(), 'stories', 'delete');
-        app(StoryRepository::class)->deleteMany($this->selectedStories);
+        try {
+            app(RbacService::class)->assertCan(auth()->user(), 'stories', 'delete');
+            app(StoryRepository::class)->deleteMany($this->selectedStories);
 
-        $this->selectedStories = [];
-        $this->selectAll = false;
-        $this->dispatch('toast', message: 'Selected stories deleted.');
+            $this->selectedStories = [];
+            $this->selectAll = false;
+            $this->dispatch('toast', message: 'Selected stories deleted.');
+        } catch (\Throwable $e) {
+            $this->dispatch('toast', message: 'Failed to delete stories: '.$e->getMessage());
+        }
     }
 
     public function export(): StreamedResponse

@@ -1,34 +1,43 @@
 import { test, expect } from '@playwright/test';
+import { execSync } from 'child_process';
 
 const LARAVEL = process.env.LARAVEL_URL ?? 'http://localhost:8000';
-let pubId = '01M13B4ZA0YSJHG5RZ3T3Y559C';
 
 test.describe('Portal story detail + pagination + Meili keydown', () => {
   test('GET /api/v1/portal/story/{publicId} 200 with headline', async ({ request }) => {
-    const r = await request.get(`${LARAVEL}/api/v1/portal/story/${pubId}`);
-    if (r.status() === 404) {
-      test.skip();
-      return;
-    }
+    const seedHeadline = `E2E Story Detail ${Date.now()}`;
+    const publicId = execSync(
+      `php artisan tinker --execute="\\$u = \\App\\Models\\User::first(); \\$c = \\App\\Models\\Category::first(); \\$s = app(\\App\\Services\\StoryService::class)->createDraft(['language' => 'en', 'headline' => '${seedHeadline}', 'brief' => 'b', 'body_html' => '<p>x</p>', 'category_id' => \\$c->id], \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'in_review', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'approved', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'published', \\$u); echo \\$s->public_id;"`,
+      { encoding: 'utf-8' }
+    ).toString().trim();
+
+    const r = await request.get(`${LARAVEL}/api/v1/portal/story/${publicId}`);
     expect(r.ok()).toBeTruthy();
     const j = await r.json();
-    expect(j.data.headline).toContain('E2E Story Detail');
+    expect(j.data.headline).toBe(seedHeadline);
     expect(j.data.published_at).toContain('T');
-    pubId = j.data.public_id;
   });
 
-  test('GET /api/v1/feed cursor pagination ?since', async ({ request }) => {
-    // use unauthenticated portal feed for cursor
-    const r1 = await request.get(`${LARAVEL}/api/v1/portal/feed`);
-    expect(r1.ok()).toBeTruthy();
-    const j1 = await r1.json();
-    expect(Array.isArray(j1.data)).toBeTruthy();
-    // try client feed with real key if exists via helper create via php
-    // fallback: just check portal feed limit param still 200
-    const r2 = await request.get(`${LARAVEL}/api/v1/portal/feed?limit=1`);
-    expect(r2.ok()).toBeTruthy();
-    const j2 = await r2.json();
-    expect(j2.data.length).toBeLessThanOrEqual(1);
+  test('GET /api/v1/portal/feed cursor pagination ?since', async ({ request }) => {
+    // Seed two stories with controlled timestamps.
+    const older = `E2E Cursor Older ${Date.now()}`;
+    const newer = `E2E Cursor Newer ${Date.now()}`;
+    const publish = (slug: string, msAgo: number) => `php artisan tinker --execute="\\$u = \\App\\Models\\User::first(); \\$c = \\App\\Models\\Category::first(); \\$s = app(\\App\\Services\\StoryService::class)->createDraft(['language' => 'en', 'headline' => '${slug}', 'brief' => 'b', 'body_html' => '<p>x</p>', 'category_id' => \\$c->id], \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'in_review', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'approved', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'published', \\$u); \\$s->update(['published_at' => now()->subMs(${msAgo})]); echo \\$s->public_id;"`;
+    execSync(publish(older, 600_000), { stdio: 'pipe' });
+    execSync(publish(newer, 60_000), { stdio: 'pipe' });
+
+    const all = await request.get(`${LARAVEL}/api/v1/portal/feed?language=en&limit=100`);
+    const jAll = await all.json();
+    const olderStory = (jAll.data ?? []).find((s: any) => s.headline === older);
+    expect(olderStory).toBeTruthy();
+    const since = new Date(new Date(olderStory.published_at).getTime() + 1000).toISOString();
+
+    const filtered = await request.get(`${LARAVEL}/api/v1/portal/feed?language=en&since=${encodeURIComponent(since)}`);
+    expect(filtered.ok()).toBeTruthy();
+    const jFiltered = await filtered.json();
+    const filteredHeadlines = (jFiltered.data ?? []).map((s: any) => s.headline);
+    expect(filteredHeadlines).toContain(newer);
+    expect(filteredHeadlines).not.toContain(older);
   });
 
   test('Portal Meili search keydown does not crash (Enter)', async ({ page }) => {
@@ -42,14 +51,17 @@ test.describe('Portal story detail + pagination + Meili keydown', () => {
     expect(page.url()).toContain('localhost:3000');
   });
 
-  test('Portal story page /story/[id] renders (if exists)', async ({ page, request }) => {
-    const r = await request.get(`${LARAVEL}/api/v1/portal/story/${pubId}`);
-    if (!r.ok()) {
-      await page.goto(`http://localhost:3000/story/${pubId}`);
-      await expect(page.locator('body')).toContainText(/not found|404|Wire feed/i, { timeout: 10000 });
-      return;
-    }
-    await page.goto(`http://localhost:3000/story/${pubId}`);
-    await expect(page.locator('body')).toContainText(/E2E Story Detail|not found|Wire/i, { timeout: 15000 });
+  test('Portal story page /story/{publicId} renders the API story', async ({ page, request }) => {
+    const seedHeadline = `E2E Story Detail Render ${Date.now()}`;
+    const publicId = execSync(
+      `php artisan tinker --execute="\\$u = \\App\\Models\\User::first(); \\$c = \\App\\Models\\Category::first(); \\$s = app(\\App\\Services\\StoryService::class)->createDraft(['language' => 'en', 'headline' => '${seedHeadline}', 'brief' => 'b', 'body_html' => '<p>x</p>', 'category_id' => \\$c->id], \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'in_review', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'approved', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'published', \\$u); echo \\$s->public_id;"`,
+      { encoding: 'utf-8' }
+    ).toString().trim();
+
+    const api = await request.get(`${LARAVEL}/api/v1/portal/story/${publicId}`);
+    expect(api.ok()).toBeTruthy();
+
+    await page.goto(`http://localhost:3000/story/${publicId}`);
+    await expect(page.locator('body')).toContainText(seedHeadline, { timeout: 15000 });
   });
 });

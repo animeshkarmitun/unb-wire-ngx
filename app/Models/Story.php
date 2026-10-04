@@ -25,6 +25,7 @@ class Story extends Model
         'brief',
         'body_html',
         'body_text',
+        'body_fingerprint',
         'category_id',
         'sub_category_id',
         'dateline_city',
@@ -40,6 +41,7 @@ class Story extends Model
         'locked_at',
         'version',
         'ai_touched',
+        'en_search_tags',
         'word_count',
         'created_by',
     ];
@@ -52,6 +54,7 @@ class Story extends Model
         'deleted_at' => 'datetime',
         'is_breaking' => 'boolean',
         'ai_touched' => 'array',
+        'en_search_tags' => 'array',
         'version' => 'integer',
         'word_count' => 'integer',
     ];

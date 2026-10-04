@@ -236,7 +236,7 @@
 
 | Task ID | Title | Dependencies | Status | Review | Completed |
 |---------|-------|--------------|--------|--------|-----------|
-| `M13-RATE-001` | Environment-aware rate limiting (config + helper + named limiters + dev multiplier) | — | ⏳ | — | — |
+| `M13-RATE-001` | Environment-aware rate limiting (config + helper + named limiters + dev multiplier) | — | ✅ | — | 2026-09-20 |
 
 ---
 
@@ -262,11 +262,106 @@
 
 | Task ID | Title | Dependencies | Status | Review | Completed |
 |---------|-------|--------------|--------|--------|-----------|
-| `M13-RBAC-001` | Superadmin + RBAC hardening (is_superadmin flag, component rbac, system role protection, endpoint tests) | — | ⏳ | — | — |
+| `M13-RBAC-001` | Superadmin + RBAC hardening (is_superadmin flag, component rbac, system role protection, endpoint tests) | — | ✅ | — | 2026-09-13 |
 
 ---
 
-## 16. How to Add a Task
+## 16. AI Publish Gate (`M13-AI`) — 2026-09-22
+
+> COS-9 audit flagged the untested auto-publish happy path. The new test exposed a gate bug: `StoryService` compared `category_id` (bigint) against `autoCats` (category names) so the allowlist never matched.
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M13-AI-002` | AI auto-publish happy path: allowlisted category test + gate fix (category name match) | `M13-RBAC-001` | ✅ | — | 2026-09-22 |
+
+---
+
+## 17. Ops (`M13-OPS`) — 2026-09-22
+
+> Automated ops hygiene (COS-23/M13-OPS-001: pg_dump backups with 7 daily / 4 weekly / 3 monthly rotation, listing, failure alerts).
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M13-OPS-001` | Automated database backup cron (pg_dump + gzip + retention + list + alert) | `M1-BOOT-001` | ✅ | — | 2026-09-22 |
+
+---
+
+## 18. Performance (`M13-PERF`) — 2026-09-22
+
+> Query optimization sweep (COS-26/M13-PERF-001): FK/pivot indexes, N+1 batch fixes, aggregation cache. Audit findings recorded in the task file.
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M13-PERF-001` | Query optimization: indexes, statusCounts 5→1, date-range counts, outbox batching, dashboard KPI cache | `M6-PERF-001` | ✅ | — | 2026-09-22 |
+
+---
+
+## 19. QA Audit (`M13-QA`) — 2026-09-23
+
+> Spec-vs-implementation cross-check (COS-28/M13-QA-001). Deliverable: `docs/fr-cross-check-report.md` (84 FR matrix + P0–P2 gap backlog).
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M13-QA-001` | FR cross-check: app-data/v1 spec vs implementation (75 in-scope FRs + 10 deferred) | `M13-PERF-001` | ✅ | — | 2026-09-23 |
+| `M13-QA-FIX-001` | P0 gap fixes: kill/correction fan-out, client status gate, AI gate audit, session purge | `M13-QA-001` | ✅ | — | 2026-09-23 |
+| `M13-SEC-001` | Security audit (12 areas) + critical fixes: headers, key show-once, key-ops audit, SQLi hardening | `M13-QA-FIX-001` | ✅ | — | 2026-09-23 |
+| `M13-DUP-001` | Duplicate news detection: title fuzzy + body trigram + pre-publish block/override | `M13-AI-002` | ✅ | — | 2026-09-23 |
+| `M13-QA-FIX-002` | Fake-success surfaces cleanup: real ZIP, honest AP sync, real ledger analytics | `M13-SEC-001` | ✅ | — | 2026-09-23 |
+| `M13-GA-001` | GA4 analytics on public portal pages (page_view + story_view, admin excluded) | `M8-PORTAL-001` | ✅ | — | 2026-09-23 |
+| `M13-AI-003` | AI pre-edit quality gate: UNB wire style lint + few-shot prompts | `M5-AI-001` | ✅ | — | 2026-09-23 |
+| `M13-QA-FIX-003` | Media embargo enforcement at delivery edges (FR-MED-016 P0 leak) | `M13-QA-001` | ✅ | — | 2026-09-23 |
+| `M13-QA-FIX-004` | Media ingest pipeline: TUS byte storage + intake batch hand-off (P0 #2) | `M13-QA-001` | ✅ | — | 2026-09-23 |
+| `M13-PORTAL-P1` | Portal search wiring (Meilisearch main+archive) + local-time rendering fix | `M8-PORTAL-001` | ✅ | — | 2026-09-24 |
+| `M13-IMG-001` | WebP derivatives pipeline: real GD processing + dispatch + real thumbnails | `M13-QA-FIX-004` | ✅ | — | 2026-09-24 |
+| `DST-006-007` | Distribution log filters (client/channel/status/date) + auto-pause client alert | `M11-DELIV-004` | ✅ | — | 2026-09-24 |
+| `PRT-008` | Bangla portal typography (Noto Sans Bengali) + BN chrome labels + bn-BD dates | `M13-PORTAL-P1` | ✅ | — | 2026-09-24 |
+| `FR-AI-005` | New-facts warning: FactGuard extraction + drawer flag + gate count | `M13-AI-003` | ✅ | — | 2026-09-24 |
+| `FR-MED-010` | Media duplicate detection: checksum lookup + warnings with links | `M13-QA-FIX-004` | ✅ | — | 2026-09-24 |
+| `FR-MED-011/FR-AI-010` | AI photo captions/tags + bn English search-only tags (DEC-016) | `M13-AI-003` | ✅ | — | 2026-09-24 |
+| `CSP-nonce-refactor` | Full nonce-based CSP (script-src) + inline-script/onclick cleanup | `M13-SEC-001` | ✅ | — | 2026-09-24 |
+
+---
+
+## 21. Coverage closure (`M14-COV`) — 2026-10-04
+
+> Closes `docs/testing-coverage-gaps.md`. Tests assert the domain contract (`docs/knowledge-inventory/domain.md`, DEC-007). If code fails the assertion, fix the code in that task — do not weaken the test. Out of scope: `FR-BIL` (not in the FRD), field PWAs (`DEC-008`), a global 85% coverage fail-gate.
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M14-COV-001` | E2E isolation harness (no shared-user clobber, seed failures fail, workers=2 safe) | — | ✅ | — | 2026-10-04 |
+| `M14-COV-002` | Run embargo-lift, archive-sweep, upload-janitor for real | — | ✅ | — | 2026-10-04 |
+| `M14-COV-003` | `delivery:process` + webhook non-2xx marks failed | — | ✅ | — | 2026-10-04 |
+| `M14-COV-004` | One entitlement compiler for fan-out, email, portal | — | ✅ | — | 2026-10-04 |
+| `M14-COV-005` | Kill/correction pipeline writes index delete + notices | — | ✅ | — | 2026-10-04 |
+| `M14-COV-006` | `ProcessIndexOutbox` delete + `monitor:outbox-lag` | `M14-COV-005` | ✅ | — | 2026-10-04 |
+| `M14-COV-007` | API key overlap expiry via time travel | — | ✅ | — | 2026-10-04 |
+| `M14-COV-008` | `OpenAiProvider` unit tests (`Http::fake`) | — | ✅ | — | 2026-10-04 |
+| `M14-COV-009` | Unit suite for pure rules + sanitizer bypasses | — | ✅ | — | 2026-10-04 |
+| `M14-COV-010` | Publish chain + stale-save 409 in one Feature test | — | ✅ | — | 2026-10-04 |
+| `M14-COV-011` | Download gate denial/ledger + presign TTL | — | ✅ | — | 2026-10-04 |
+| `M14-COV-012` | Thin service/repo surfaces | — | ✅ | — | 2026-10-04 |
+| `M14-COV-013` | Model invariant tests | — | ✅ | — | 2026-10-04 |
+| `M14-COV-014` | Form request + portal middleware negatives | — | ✅ | — | 2026-10-04 |
+| `M14-COV-015` | Honest Feature tests (no self-fulfilling asserts) | `M14-COV-002` | ✅ | — | 2026-10-04 |
+| `M14-COV-016` | CI coverage artifact (no global % fail-gate) | `M14-COV-009` | ✅ | — | 2026-10-04 |
+| `M14-COV-017` | E2E real editorial state machine | `M14-COV-001` | ✅ | — | 2026-10-04 |
+| `M14-COV-018` | E2E embargo then lift | `M14-COV-001`, `M14-COV-002` | ✅ | — | 2026-10-04 |
+| `M14-COV-019` | E2E kill, correction, unpublish | `M14-COV-001`, `M14-COV-005` | ⏳ | — | — |
+| `M14-COV-020` | E2E subscription expiry and overlap | `M14-COV-001`, `M14-COV-004` | ✅ | — | 2026-10-04 |
+| `M14-COV-021` | Portal e2e fail-closed (no mock pass, real `since`) | `M14-COV-001` | ⏳ | — | — |
+| `M14-COV-022` | E2E key rotation + delivery retry DB asserts | `M14-COV-001`, `M14-COV-003`, `M14-COV-007` | ⏳ | — | — |
+| `M14-COV-023` | E2E two-browser stale save 409 | `M14-COV-001` | ✅ | — | 2026-10-04 |
+| `M14-COV-024` | E2E Bangla publish; notes absent from client API | `M14-COV-001` | ✅ | — | 2026-10-04 |
+| `M14-COV-025` | E2E mutation asserts (clients, AP, bulk, roles) | `M14-COV-001` | ✅ | — | 2026-10-04 |
+| `M14-COV-026` | E2E auth edges, role matrix, portal reset, Tus | `M14-COV-001` | ⏳ | — | — |
+| `M14-COV-027` | E2E qualitative cleanup (waits, skips, brittle asserts) | `M14-COV-017` | ✅ | commit `65780c0` | 2026-10-04 |
+| `M14-COV-028` | Mark gap report closed | `M14-COV-001`…`027` | ✅ | — | 2026-10-04 |
+
+Build order: `002`–`015` can run in parallel with `001`. E2E tasks start after `001`. `028` last.
+
+---
+
+## 22. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.

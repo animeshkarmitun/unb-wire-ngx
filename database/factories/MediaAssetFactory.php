@@ -37,7 +37,7 @@ class MediaAssetFactory extends Factory
             'checksum' => hash('sha256', Str::random()),
             'storage_disk' => 's3',
             'original_path' => 'photos/'.Str::random(8).'.jpg',
-            'derivatives' => null,
+            'derivatives' => [],
             'exif' => null,
             'embargo_until' => null,
             'uploaded_by' => User::factory(),

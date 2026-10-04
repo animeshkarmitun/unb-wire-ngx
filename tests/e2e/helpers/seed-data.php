@@ -29,15 +29,24 @@ $app = require_once __DIR__.'/../../../bootstrap/app.php';
 $kernel = $app->make(Kernel::class);
 $kernel->bootstrap();
 
+if (! function_exists('e2e_seed_fail')) {
+    function e2e_seed_fail(string $msg, int $code = 1): void
+    {
+        fwrite(STDERR, "[seed-data] {$msg}\n");
+        exit($code);
+    }
+}
+
 $action = $argv[1] ?? 'notifications';
 
 if ($action === 'notifications') {
     $u = User::where('email', 'test@example.com')->first();
-    if ($u) {
-        $u->notifications()->delete();
-        $u->notifyNow(new StoryNotification('review_requested', ['story_id' => 1, 'headline' => 'Metro rail expansion phase 2 approved', 'actor_id' => 1]));
-        $u->notifyNow(new StoryNotification('approved', ['story_id' => 2, 'headline' => 'Central Bank announces export incentives', 'actor_id' => 1]));
+    if (! $u) {
+        e2e_seed_fail('seed user missing (test@example.com) — run global setup first');
     }
+    $u->notifications()->delete();
+    $u->notifyNow(new StoryNotification('review_requested', ['story_id' => 1, 'headline' => 'Metro rail expansion phase 2 approved', 'actor_id' => 1]));
+    $u->notifyNow(new StoryNotification('approved', ['story_id' => 2, 'headline' => 'Central Bank announces export incentives', 'actor_id' => 1]));
     echo 'notifications seeded count: '.$u->unreadNotifications()->count()."\n";
 }
 
@@ -71,7 +80,13 @@ if ($action === 'audit') {
 
 if ($action === 'story_versions') {
     $u = User::where('email', 'test@example.com')->first();
+    if (! $u) {
+        e2e_seed_fail('seed user missing');
+    }
     $cat = Category::first();
+    if (! $cat) {
+        e2e_seed_fail('seed category missing');
+    }
     $s = Story::where('headline', 'E2E Diff Test v2')->first();
     if (! $s && $u && $cat) {
         $s = app(StoryService::class)->createDraft([
@@ -92,12 +107,15 @@ if ($action === 'story_versions') {
 
 if ($action === 'deliveries') {
     $client = Client::first();
-    $channel = ClientChannel::first() ?? ($client ? ClientChannel::create([
+    if (! $client) {
+        e2e_seed_fail('seed client missing');
+    }
+    $channel = ClientChannel::first() ?? ClientChannel::create([
         'client_id' => $client->id,
         'type' => 'email',
         'config' => ['email' => 'test@example.com'],
         'status' => 'active',
-    ]) : null);
+    ]);
     if ($client && $channel) {
         Delivery::firstOrCreate(
             ['idempotency_key' => 'e2e-failed-delivery-1'],
@@ -170,55 +188,60 @@ if ($action === 'ai') {
 if ($action === 'concurrency') {
     $shohel = User::where('email', 'shohel@unbnews.org')->first();
     $cat = Category::first();
-    if ($shohel && $cat) {
-        $story = Story::updateOrCreate(
-            ['public_id' => '01JCONCURRENCYTEST00000001'],
-            [
-                'language' => 'en',
-                'headline' => 'Sylhet flood relief dispatch operation underway',
-                'sub_head' => 'Emergency response unit mobilised',
-                'brief' => 'District administration launches emergency relief distribution in flood-affected upazilas.',
-                'body_html' => '<p>District administration launches emergency relief distribution in flood-affected upazilas.</p>',
-                'body_text' => 'District administration launches emergency relief distribution in flood-affected upazilas.',
-                'status' => 'draft',
-                'category_id' => $cat->id,
-                'created_by' => $shohel->id,
-                'owner_id' => $shohel->id,
-                'locked_by' => $shohel->id,
-                'locked_at' => now(),
-                'version' => 1,
-                'priority' => 'routine',
-                'source' => 'desk',
-            ]
-        );
-
-        $story->notes()->delete();
-        $story->events()->delete();
-
-        $story->events()->create([
-            'actor_id' => $shohel->id,
-            'action' => 'created',
-            'from_status' => 'draft',
-            'to_status' => 'draft',
-            'payload' => ['initial' => true],
-        ]);
-        $story->notes()->create([
-            'user_id' => $shohel->id,
-            'kind' => 'note',
-            'is_internal' => true,
-            'body' => 'Initial field notes received from Sylhet bureau.',
-        ]);
-
-        echo "concurrency story seeded id: {$story->id}\n";
+    if (! $shohel) {
+        e2e_seed_fail('concurrency user missing');
     }
+    if (! $cat) {
+        e2e_seed_fail('concurrency category missing');
+    }
+    $story = Story::updateOrCreate(
+        ['public_id' => '01JCONCURRENCYTEST00000001'],
+        [
+            'language' => 'en',
+            'headline' => 'Sylhet flood relief dispatch operation underway',
+            'sub_head' => 'Emergency response unit mobilised',
+            'brief' => 'District administration launches emergency relief distribution in flood-affected upazilas.',
+            'body_html' => '<p>District administration launches emergency relief distribution in flood-affected upazilas.</p>',
+            'body_text' => 'District administration launches emergency relief distribution in flood-affected upazilas.',
+            'status' => 'draft',
+            'category_id' => $cat->id,
+            'created_by' => $shohel->id,
+            'owner_id' => $shohel->id,
+            'locked_by' => $shohel->id,
+            'locked_at' => now(),
+            'version' => 1,
+            'priority' => 'routine',
+            'source' => 'desk',
+        ]
+    );
+
+    $story->notes()->delete();
+    $story->events()->delete();
+
+    $story->events()->create([
+        'actor_id' => $shohel->id,
+        'action' => 'created',
+        'from_status' => 'draft',
+        'to_status' => 'draft',
+        'payload' => ['initial' => true],
+    ]);
+    $story->notes()->create([
+        'user_id' => $shohel->id,
+        'kind' => 'note',
+        'is_internal' => true,
+        'body' => 'Initial field notes received from Sylhet bureau.',
+    ]);
+
+    echo "concurrency story seeded id: {$story->id}\n";
 }
 
 if ($action === 'concurrency-stale') {
     $story = Story::where('public_id', '01JCONCURRENCYTEST00000001')->first();
-    if ($story) {
-        $story->increment('version');
-        echo "concurrency story version bumped to {$story->version}\n";
+    if (! $story) {
+        e2e_seed_fail('concurrency story missing');
     }
+    $story->increment('version');
+    echo "concurrency story version bumped to {$story->version}\n";
 }
 
 if ($action === 'media') {
@@ -237,12 +260,10 @@ if ($action === 'media') {
         ]);
     }
 
-    // Clear specific media burst keys
     Cache::forget('notify_burst:media:01JMEDIABATCH0000000001:media_approved');
     Cache::forget('notify_burst:media:01JMEDIABATCH0000000001:media_rejected');
     Cache::forget('notify_burst:media:01JMEDIABATCH0000000001:media_reedit');
 
-    // Clean previous test batches/assets
     $prevBatches = MediaBatch::where('event_label', 'like', '%Sylhet flood relief%')->get();
     foreach ($prevBatches as $pb) {
         MediaReview::whereIn('asset_id', $pb->assets()->pluck('id'))->delete();
@@ -336,12 +357,10 @@ if ($action === 'media') {
 }
 
 if ($action === 'wire_api') {
-    // 1. Categories
     $catPolitics = Category::firstOrCreate(['slug' => 'national-politics'], ['name_en' => 'National Politics', 'name_bn' => 'জাতীয় রাজনীতি', 'is_active' => true]);
     $catBusiness = Category::firstOrCreate(['slug' => 'economy-business'], ['name_en' => 'Economy & Business', 'name_bn' => 'অর্থনীতি ও বাণিজ্য', 'is_active' => true]);
     $catSports = Category::firstOrCreate(['slug' => 'sports-cricket'], ['name_en' => 'Sports', 'name_bn' => 'খেলাধুলা', 'is_active' => true]);
 
-    // 2. Packages
     $pkgEnPol = Package::updateOrCreate(
         ['code' => 'PKG-E2E-EN-POL'],
         [
@@ -374,7 +393,6 @@ if ($action === 'wire_api') {
         ]
     );
 
-    // 3. Clients
     $clientDailyStar = Client::updateOrCreate(
         ['code' => 'DST-E2E'],
         [
@@ -411,7 +429,6 @@ if ($action === 'wire_api') {
         ]
     );
 
-    // 4. Subscriptions
     ClientPackage::updateOrCreate(
         ['client_id' => $clientDailyStar->id, 'package_id' => $pkgEnPol->id],
         [
@@ -432,8 +449,7 @@ if ($action === 'wire_api') {
         ]
     );
 
-    // 5. API Keys
-    $keyA = ClientApiKey::updateOrCreate(
+    ClientApiKey::updateOrCreate(
         ['key_hash' => hash('sha256', 'unb_live_testkey_dailystar_001')],
         [
             'client_id' => $clientDailyStar->id,
@@ -466,7 +482,7 @@ if ($action === 'wire_api') {
         ]
     );
 
-    $keyD = ClientApiKey::updateOrCreate(
+    ClientApiKey::updateOrCreate(
         ['key_hash' => hash('sha256', 'unb_live_testkey_suspended_004')],
         [
             'client_id' => $clientSuspended->id,
@@ -477,7 +493,7 @@ if ($action === 'wire_api') {
         ]
     );
 
-    $keyE = ClientApiKey::updateOrCreate(
+    ClientApiKey::updateOrCreate(
         ['key_hash' => hash('sha256', 'unb_live_testkey_prothomalo_005')],
         [
             'client_id' => $clientProthomAlo->id,
@@ -490,10 +506,12 @@ if ($action === 'wire_api') {
 
     RateLimiter::clear('api-key:'.$keyC->id);
 
-    // 6. Test Stories
     $author = User::first();
+    if (! $author) {
+        e2e_seed_fail('author missing for wire_api stories');
+    }
 
-    $storyEnPol = Story::updateOrCreate(
+    Story::updateOrCreate(
         ['public_id' => '01JWIREAPITESTENPOL0000001'],
         [
             'language' => 'en',
@@ -512,7 +530,7 @@ if ($action === 'wire_api') {
         ]
     );
 
-    $storyEnBiz = Story::updateOrCreate(
+    Story::updateOrCreate(
         ['public_id' => '01JWIREAPITESTENBIZ0000002'],
         [
             'language' => 'en',
@@ -531,7 +549,7 @@ if ($action === 'wire_api') {
         ]
     );
 
-    $storyBnSpt = Story::updateOrCreate(
+    Story::updateOrCreate(
         ['public_id' => '01JWIREAPITESTBNSPT0000003'],
         [
             'language' => 'bn',
@@ -550,7 +568,7 @@ if ($action === 'wire_api') {
         ]
     );
 
-    $storyKilled = Story::updateOrCreate(
+    Story::updateOrCreate(
         ['public_id' => '01JWIREAPITESTKILLED000004'],
         [
             'language' => 'en',
@@ -592,15 +610,13 @@ if ($action === 'wire_api') {
     );
 
     Storage::disk('public')->put('media/test/budget-session.jpg', 'fake-jpeg-content');
-    $storyEnPol->media()->syncWithoutDetaching([$media->id => ['role' => 'featured', 'sort_order' => 1]]);
 
-    // Forget client feed cache keys
     Cache::forget('feed:v1:'.$clientDailyStar->id.':'.md5('http://localhost:8000/api/v1/feed'));
     Cache::forget('feed:v1:'.$clientDailyStar->id.':'.md5('http://127.0.0.1:8000/api/v1/feed'));
     Cache::forget('feed:v1:'.$clientProthomAlo->id.':'.md5('http://localhost:8000/api/v1/feed'));
     Cache::forget('feed:v1:'.$clientProthomAlo->id.':'.md5('http://127.0.0.1:8000/api/v1/feed'));
 
-    echo "wire_api seeded: stories=[{$storyEnPol->id}, {$storyEnBiz->id}, {$storyBnSpt->id}, {$storyKilled->id}], media={$media->id}\n";
+    echo "wire_api seeded\n";
 }
 
 if ($action === 'download_count') {
@@ -611,4 +627,65 @@ if ($action === 'download_count') {
     }
     echo (int) $q->count();
     exit(0);
+}
+
+if ($action === 'expire-key') {
+    $hash = $argv[2] ?? null;
+    if (! $hash) {
+        e2e_seed_fail('expire-key requires a key raw token as second arg');
+    }
+    $row = ClientApiKey::where('key_hash', hash('sha256', $hash))->first();
+    if (! $row) {
+        e2e_seed_fail('expire-key: no key for token');
+    }
+    $row->update(['expires_at' => now()->subMinute()]);
+    echo "expired key id: {$row->id}\n";
+}
+
+if ($action === 'create-throwaway-user') {
+    $email = $argv[2] ?? null;
+    if (! $email) {
+        e2e_seed_fail('create-throwaway-user requires email as second arg');
+    }
+    $role = Role::where('name', 'Editor')->first() ?? Role::first();
+    $user = User::updateOrCreate(
+        ['email' => $email],
+        [
+            'public_id' => (string) Str::ulid(),
+            'name' => 'Throwaway E2E User',
+            'password' => Hash::make('password'),
+            'role_id' => $role?->id,
+            'desk' => 'Editorial',
+            'status' => 'active',
+            'timezone' => 'Asia/Dhaka',
+        ]
+    );
+    echo "throwaway user id: {$user->id}\n";
+}
+
+if ($action === 'create-throwaway-portal-user') {
+    $email = $argv[2] ?? null;
+    if (! $email) {
+        e2e_seed_fail('create-throwaway-portal-user requires email as second arg');
+    }
+    $client = Client::first();
+    if (! $client) {
+        e2e_seed_fail('create-throwaway-portal-user: no client');
+    }
+    $u = User::updateOrCreate(
+        ['email' => $email],
+        [
+            'public_id' => (string) Str::ulid(),
+            'name' => 'Throwaway Portal User',
+            'password' => Hash::make('password'),
+            'desk' => 'Client Portal',
+            'status' => 'active',
+            'timezone' => 'Asia/Dhaka',
+        ]
+    );
+    DB::table('client_users')->updateOrInsert(
+        ['client_id' => $client->id, 'user_id' => $u->id],
+        ['role' => 'viewer', 'created_at' => now(), 'updated_at' => now()]
+    );
+    echo "throwaway portal user id: {$u->id}\n";
 }

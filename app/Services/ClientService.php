@@ -8,6 +8,7 @@ use App\Models\ClientChannel;
 use App\Models\ClientPackage;
 use App\Models\Package;
 use App\Models\Role;
+use App\Services\Billing\QuotaService;
 use App\Services\Delivery\FtpDiskFactory;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
@@ -105,14 +106,23 @@ class ClientService
 
     public function getClientMeta(Client $client): array
     {
+        $meta = [];
         if (! empty($client->notes) && str_starts_with($client->notes, '{')) {
             $decoded = json_decode($client->notes, true);
             if (is_array($decoded)) {
-                return $decoded;
+                $meta = $decoded;
             }
         }
 
-        return [
+        $client->loadMissing('clientPackages.package');
+        $downloads = (int) DB::table('downloads')->where('client_id', $client->id)->count();
+        $lastDownload = DB::table('downloads')->where('client_id', $client->id)->max('created_at');
+        $lastKeyUsed = DB::table('client_api_keys')->where('client_id', $client->id)->max('last_used_at');
+        $quota = app(QuotaService::class)->getUsage($client);
+        $pkgName = (string) ($client->clientPackages->first()?->package?->name ?? '');
+        $tier = str_contains(strtolower($pkgName), 'premium') ? 'Premium' : (str_contains(strtolower($pkgName), 'basic') ? 'Basic' : ($pkgName !== '' ? 'Standard' : '—'));
+
+        return array_merge([
             'ini' => strtoupper(substr($client->name, 0, 2)),
             'grad' => 'g'.(1 + ($client->id % 8)),
             'display_type' => $client->type,
@@ -120,10 +130,17 @@ class ClientService
             'tier' => 'Standard',
             'since' => $client->created_at->format('M Y'),
             'addons' => [],
-            'usage' => ['dl' => 0, 'quota' => 800, 'api' => '—', 'last' => '1 hr ago'],
             'note_text' => $client->notes ?: '',
             'activity' => [],
-        ];
+        ], $meta, [
+            'tier' => $tier,
+            'usage' => [
+                'dl' => $downloads,
+                'quota' => $quota['media_quota'] ?? ($quota['stories_quota'] ?? null),
+                'api' => $lastKeyUsed ? Carbon::parse($lastKeyUsed)->diffForHumans() : '—',
+                'last' => $lastDownload ? Carbon::parse($lastDownload)->diffForHumans() : '—',
+            ],
+        ]);
     }
 
     // ─── Onboarding ─────────────────────────────────────────────────

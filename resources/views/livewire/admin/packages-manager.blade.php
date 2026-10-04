@@ -150,7 +150,7 @@
                             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
                             Restore
                         </button>
-                        <button class="pk-btn danger" wire:click="deletePkg({{ $p->id }})" title="Delete package">
+                        <button class="pk-btn danger" wire:click="deletePkg({{ $p->id }})" wire:confirm="Are you sure you want to permanently delete this package? This cannot be undone." title="Delete package">
                             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                             Delete
                         </button>
@@ -213,7 +213,7 @@
                     <button class="ao-btn" wire:click="openAoModal({{ $a->id }})" title="Edit add-on">
                         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                     </button>
-                    <button class="ao-btn" wire:click="deleteAo({{ $a->id }})" title="Delete add-on">
+                    <button class="ao-btn" wire:click="deleteAo({{ $a->id }})" wire:confirm="Delete this add-on permanently?" title="Delete add-on">
                         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
                 </span>
@@ -379,8 +379,14 @@
 
                 <div class="mo-actions">
                     <button class="btn btn-outline" wire:click="closePkgModal">Cancel</button>
-                    <button class="btn btn-outline" wire:click="savePkg('draft')" id="pkgSaveDraft">Save as draft</button>
-                    <button class="btn btn-primary" wire:click="savePkg('live')" id="pkgSave">Save &amp; publish</button>
+                    <button class="btn btn-outline" wire:click="savePkg('draft')" id="pkgSaveDraft" wire:loading.attr="disabled">
+                      <span wire:loading.remove wire:target="savePkg">Save as draft</span>
+                      <span wire:loading wire:target="savePkg">Saving…</span>
+                    </button>
+                    <button class="btn btn-primary" wire:click="savePkg('live')" id="pkgSave" wire:loading.attr="disabled">
+                      <span wire:loading.remove wire:target="savePkg">Save &amp; publish</span>
+                      <span wire:loading wire:target="savePkg">Saving…</span>
+                    </button>
                 </div>
             </div>
         @endif
@@ -441,7 +447,10 @@
 
                 <div class="mo-actions">
                     <button class="btn btn-outline" wire:click="closeAoModal">Cancel</button>
-                    <button class="btn btn-primary" wire:click="saveAo" id="aoSave">Save add-on</button>
+                    <button class="btn btn-primary" wire:click="saveAo" id="aoSave" wire:loading.attr="disabled">
+                      <span wire:loading.remove wire:target="saveAo">Save add-on</span>
+                      <span wire:loading wire:target="saveAo">Saving…</span>
+                    </button>
                 </div>
             </div>
         @endif

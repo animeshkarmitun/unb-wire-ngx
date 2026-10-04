@@ -24,6 +24,7 @@
 - **Append-only** (`story_notes`, `story_events`, `audit_logs`, `deliveries`,
   `downloads`): enforced by DB grants — app role gets INSERT+SELECT only.
 - **Optimistic locking:** `stories.version` incremented on every save; stale → 409.
+- **Duplicate detection:** `stories.body_fingerprint` (sha1 of normalized body text, indexed) — DEC-014.
 - **Idempotency:** unique `idempotency_key` on worker-written tables (deliveries).
 - **Multi-language:** `language` ('en'|'bn') + `mirror_of_id` self-FK — not
   row-per-translation.
@@ -70,3 +71,4 @@ moves search doc main→archive); `deliveries`/`audit_logs`/`downloads`/
 `ai_generations` are monthly RANGE partitions detached to an archive schema after
 12 months (audit kept 7 years); media originals tier to S3 IA/Glacier, derivatives
 stay hot; `index_outbox` rows purged 7 days after `done`.
+- **Search-only EN tags:** stories.en_search_tags (jsonb, DEC-016) � confirmed AI-suggested English tags for indexing only.

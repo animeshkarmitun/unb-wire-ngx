@@ -28,15 +28,9 @@ class DownloadGateService
      */
     public function downloadStory(Story $story, Client $client, ?int $clientUserId = null, string $format = 'json-unb-v1'): WireOutput
     {
-        // 1. Check entitlement
-        $ent = $this->entitlementResolver->forClient($client);
-
-        if (! empty($ent['languages']) && ! in_array($story->language, $ent['languages'], true)) {
-            throw new AccessDeniedHttpException('Client is not entitled to stories in this language.');
-        }
-
-        if (! empty($ent['category_ids']) && ! in_array($story->category_id, $ent['category_ids'])) {
-            throw new AccessDeniedHttpException('Client is not entitled to stories in this category.');
+        // 1. Check entitlement — strict variant (fail-closed: no current packages = deny).
+        if (! $this->entitlementResolver->clientAllowed($client, $story)) {
+            throw new AccessDeniedHttpException('Client is not entitled to this story.');
         }
 
         // 2. Check quota

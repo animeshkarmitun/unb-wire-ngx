@@ -160,7 +160,8 @@
     <div class="kill-zone">
         <div class="card-title" style="color:var(--crimson-dark)">Emergency kill switch</div>
         <div class="card-sub">Instantly disables every AI feature newsroom-wide — pre-edit, translation, captions, auto-publish. Manual work is never affected.</div>
-        <button type="button" class="kill-btn {{ $killed ? 'restore' : '' }}" id="killBtn" wire:click="toggleKill">
+        <button type="button" class="kill-btn {{ $killed ? 'restore' : '' }}" id="killBtn" wire:click="toggleKill"
+          wire:confirm="{{ $killed ? 'Re-enable all AI features newsroom-wide?' : 'Disable ALL AI features newsroom-wide? This affects every desk immediately.' }}">
             {{ $killed ? 'Re-enable AI features' : 'Disable all AI features now' }}
         </button>
     </div>
@@ -168,7 +169,10 @@
     {{-- Sticky save bar --}}
     <div class="save-bar">
         <button type="button" class="btn btn-outline" id="resetBtn" wire:click="resetDefaults">Reset to defaults</button>
-        <button type="button" class="btn btn-primary" id="saveBtn" wire:click="save">Save settings</button>
+        <button type="button" class="btn btn-primary" id="saveBtn" wire:click="save" wire:loading.attr="disabled">
+          <span wire:loading.remove wire:target="save">Save settings</span>
+          <span wire:loading wire:target="save">Saving…</span>
+        </button>
     </div>
 
     {{-- auto-publish enable confirmation modal --}}

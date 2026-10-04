@@ -64,8 +64,14 @@
             <div class="bg-navy-800 text-white px-5 py-2.5 flex items-center justify-between text-xs transition-all">
                 <span class="font-medium">{{ count($selectedStories) }} {{ count($selectedStories) === 1 ? 'story' : 'stories' }} selected</span>
                 <div class="flex items-center gap-2">
-                    <button type="button" wire:click="bulkPublish" class="px-3 py-1 bg-green hover:bg-green-700 text-white rounded font-medium transition-colors">Publish Selected</button>
-                    <button type="button" wire:click="bulkDelete" wire:confirm="Are you sure you want to delete the selected stories?" class="px-3 py-1 bg-crimson hover:bg-crimson-dark text-white rounded font-medium transition-colors">Delete Selected</button>
+                    <button type="button" wire:click="bulkPublish" wire:loading.attr="disabled" class="px-3 py-1 bg-green hover:bg-green-700 text-white rounded font-medium transition-colors">
+                      <span wire:loading.remove wire:target="bulkPublish">Publish Selected</span>
+                      <span wire:loading wire:target="bulkPublish">Publishing…</span>
+                    </button>
+                    <button type="button" wire:click="bulkDelete" wire:confirm="Are you sure you want to delete the selected stories?" wire:loading.attr="disabled" class="px-3 py-1 bg-crimson hover:bg-crimson-dark text-white rounded font-medium transition-colors">
+                      <span wire:loading.remove wire:target="bulkDelete">Delete Selected</span>
+                      <span wire:loading wire:target="bulkDelete">Deleting…</span>
+                    </button>
                 </div>
             </div>
         @endif
@@ -301,7 +307,7 @@
                         @endif
                     </span>
                     @if($selected->owner_id !== auth()->id())
-                        <button type="button" wire:click="takeOver" class="btn btn-outline" title="Take ownership — handover is audit-logged">Take over</button>
+                        <button type="button" wire:click="takeOver" wire:confirm="Take over this story? The current owner will be notified." class="btn btn-outline" title="Take ownership — handover is audit-logged">Take over</button>
                     @endif
                 </div>
 

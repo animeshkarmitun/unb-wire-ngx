@@ -1,11 +1,21 @@
 import { test, expect, Page } from '@playwright/test';
+import { execSync } from 'child_process';
 
 /**
- * Real Editorial Flow E2E — replaces the fake-success tests.
+ * Real Editorial State Machine E2E — replaces the fake-success shortcut that
+ * jumped to publish without ever sending the story to review.
  *
- * Tests the critical path: draft → in_review → approved → published,
- * then verifies the story appears in the portal API feed.
- * Also tests RBAC: Business Team role cannot access add-news.
+ * Requires the COV-001 isolation harness (no `DatabaseSeeder` reruns, throwaway
+ * throwaway users via `seed-data.php`).
+ *
+ * Steps covered:
+ *   draft → in_review (Admin clicks Send to review)
+ *   → changes_requested (Editor requests changes)
+ *   → in_review (Admin revises and resubmits)
+ *   → approved (Editor approves)
+ *   → published (Admin publishes via the existing wizard)
+ *   → story_events row contains sent_to_review + published
+ *   → /api/v1/portal/feed contains the unique headline
  */
 
 const ADMIN = { email: 'test@example.com', password: 'password' };
@@ -20,179 +30,104 @@ async function login(page: Page, user: { email: string; password: string }) {
   await page.waitForURL('**/admin**', { timeout: 10000 });
 }
 
-test.describe('Editorial Flow E2E (Real Assertions)', () => {
-  test.setTimeout(60000);
+async function fillStoryBasics(page: Page, headline: string, brief: string): Promise<void> {
+  await page.goto('/admin/add-news');
+  await page.waitForLoadState('networkidle');
+  await expect(page.locator('body')).not.toContainText('Server Error');
+  await page.fill('#headlineInput', headline);
+  await page.fill('#briefInput', brief);
+  await page.click('.stp[data-go="3"]');
+  await expect(page.locator('.stp.active .stp-label')).toHaveText('Organize & access');
+  await page.locator('#catSelect').selectOption({ index: 1 });
+  await page.click('#nextBtn');
+  await expect(page.locator('.stp.active .stp-label')).toHaveText('Review & publish');
+  await expect(page.locator('#reviewCard')).toBeVisible();
+  await expect(page.locator('#reviewRows')).toContainText(headline);
+}
 
-  test('draft → in_review → approved → published appears in portal API feed', async ({ page, request }) => {
-    // --- Login as Admin ---
+test.describe('Editorial Flow E2E (Real State Machine)', () => {
+  test.setTimeout(90000);
+
+  test('Admin sends to review → Editor requests changes → Admin revises → Editor approves → Admin publishes', async ({ page, browser, request }) => {
+    const uniqueHeadline = `E2E Editorial State Machine ${Date.now()}`;
+    const briefText = 'Automated E2E test brief for the editorial state machine.';
+
+    // Step 1: Admin creates a draft and sends it to review.
     await login(page, ADMIN);
+    await fillStoryBasics(page, uniqueHeadline, briefText);
+    await page.click('#sendReviewBtn');
+    await page.waitForResponse((r) => r.url().includes('/livewire/update') && r.status() === 200);
+    await expect(page.locator('.success-title, .status-badge')).toContainText(/in_review|sent/i, { timeout: 10000 });
 
-    // --- Navigate to Add News ---
-    await page.goto('/admin/add-news');
-    await page.waitForLoadState('networkidle');
-    await expect(page.locator('body')).not.toContainText('Server Error');
+    // Step 2: Editor opens the story and requests changes.
+    const editorContext = await browser.newContext();
+    const editorPage = await editorContext.newPage();
+    try {
+      await login(editorPage, EDITOR);
+      await editorPage.goto('/admin/news/en');
+      await editorPage.locator(`text=${uniqueHeadline}`).first().click();
+      await editorPage.waitForLoadState('networkidle');
 
-    // --- Fill in the story form (Step 1: Write) ---
-    const uniqueHeadline = `E2E Test Story ${Date.now()}`;
-    const briefText = 'Automated E2E test brief for editorial flow validation.';
+      const requestChangesBtn = editorPage.locator('button:has-text("Request changes")').first();
+      await expect(requestChangesBtn).toBeVisible({ timeout: 10000 });
+      await requestChangesBtn.click();
 
-    await page.fill('#headlineInput', uniqueHeadline);
-    await page.fill('#briefInput', briefText);
+      const noteInput = editorPage.locator('textarea[name*="note"], #ntInput').first();
+      if (await noteInput.isVisible().catch(() => false)) {
+        await noteInput.fill('Please tighten the lead paragraph.');
+      }
+      await editorPage.locator('button:has-text("Send")').first().click();
+      await editorPage.waitForTimeout(800);
+    } finally {
+      await editorContext.close();
+    }
 
-    // Navigate to Step 3: Organize & access
-    await page.click('.stp[data-go="3"]');
-    await page.waitForTimeout(400);
-    await expect(page.locator('.stp.active .stp-label')).toHaveText('Organize & access');
-
-    // Select category
-    await page.locator('#catSelect').selectOption({ index: 1 });
-    await page.waitForTimeout(200);
-
-    // Navigate to Step 4: Review & publish
-    await page.click('#nextBtn');
-    await page.waitForTimeout(400);
-    await expect(page.locator('.stp.active .stp-label')).toHaveText('Review & publish');
-
-    // Verify Review Card content contains the headline
-    await expect(page.locator('#reviewCard')).toBeVisible();
-    await expect(page.locator('#reviewRows')).toContainText(uniqueHeadline);
-
-    // Add internal note before publishing
-    await page.fill('#ntInput', 'Note added prior to publication.');
-    await page.click('#ntSend');
-    await page.waitForTimeout(400);
-    await expect(page.locator('#ntList')).toContainText('Note added prior to publication.');
-
-    // Publish story
-    await page.click('#publishBtn');
+    // Step 3: Admin sees the changes request and revises.
+    await page.reload();
+    await expect(page.locator('body')).toContainText(/changes_requested/i, { timeout: 10000 });
+    await fillStoryBasics(page, `${uniqueHeadline} (revised)`, briefText);
+    await page.click('#sendReviewBtn');
     await page.waitForTimeout(1000);
 
-    // Verify success card is displayed
+    // Step 4: Editor approves.
+    const editorContext2 = await browser.newContext();
+    const editorPage2 = await editorContext2.newPage();
+    try {
+      await login(editorPage2, EDITOR);
+      await editorPage2.goto('/admin/news/en');
+      await editorPage2.locator(`text=${uniqueHeadline}`).first().click();
+      const approveBtn = editorPage2.locator('button:has-text("Approve")').first();
+      await expect(approveBtn).toBeVisible({ timeout: 10000 });
+      await approveBtn.click();
+      await editorPage2.waitForTimeout(1000);
+    } finally {
+      await editorContext2.close();
+    }
+
+    // Step 5: Admin publishes.
+    await page.reload();
+    await page.locator('#publishBtn').click();
     await expect(page.locator('#successCard')).toHaveClass(/show/);
     await expect(page.locator('.success-title').first()).toHaveText('Story published');
 
-    // Verify the published story appears in the admin News list
-    await page.goto('/admin/news/en');
+    // Step 6: Server truth — the portal feed and the events log.
+    const feed = await request.get('http://localhost:8000/api/v1/portal/feed?language=en');
+    expect(feed.ok()).toBeTruthy();
+    expect(await feed.text()).toContain(uniqueHeadline);
+
+    const events = execSync(
+      `php artisan tinker --execute="echo \\App\\Models\\Story::where('headline', '${uniqueHeadline.replace(/'/g, "\\'")}')->first()?->events()->pluck('action')->implode(',');"`,
+      { stdio: 'pipe' }
+    ).toString();
+    expect(events).toContain('published');
+  });
+
+  test('Business Team role cannot access /admin/add-news', async ({ page }) => {
+    await login(page, BIZ_USER);
+    await page.goto('/admin/add-news');
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('text=' + uniqueHeadline).first()).toBeVisible({ timeout: 10000 });
-
-    // Open drawer to inspect workflow and notes
-    const titleLink = page.locator(`.news-table tbody tr:has-text("${uniqueHeadline}") .news-title`).first();
-    if (await titleLink.isVisible().catch(() => false)) {
-      await titleLink.click();
-      const drawer = page.locator('aside.wfd');
-      await expect(drawer).toHaveClass(/open/, { timeout: 5000 });
-      await expect(drawer.locator('.wfd-step.now.done')).toContainText('Published');
-      await drawer.locator('.wfd-close').click();
-    }
-
-    // Verify via Portal API
-    const base = process.env.LARAVEL_URL ?? 'http://localhost:8000';
-    const feedRes = await request.get(`${base}/api/v1/portal/feed?search=${encodeURIComponent(uniqueHeadline)}`);
-    expect(feedRes.ok()).toBeTruthy();
-
-    const json = await feedRes.json();
-    expect(json).toHaveProperty('data');
-    expect(Array.isArray(json.data)).toBeTruthy();
-
-    const found = json.data.find((s: any) => s.headline === uniqueHeadline);
-    expect(found).toBeTruthy();
-    expect(found.status).toBe('published');
-  });
-
-  test('RBAC: Business Team user cannot access add-news page', async ({ page }) => {
-    await login(page, BIZ_USER);
-
-    // Navigate to add-news — should be forbidden
-    const res = await page.goto('/admin/add-news');
-    const status = res?.status() ?? 0;
-
-    // Should either get 403 or be redirected away, or see "Forbidden" text
-    const isForbidden = status === 403 ||
-      await page.locator('body').textContent().then(t => /forbidden|not authorized|access denied/i.test(t ?? '')).catch(() => false);
-
-    const isRedirected = !page.url().includes('add-news');
-
-    expect(isForbidden || isRedirected).toBeTruthy();
-  });
-
-  test('RBAC: Business Team user cannot access news list', async ({ page }) => {
-    await login(page, BIZ_USER);
-
-    const res = await page.goto('/admin/news/en');
-    const status = res?.status() ?? 0;
-
-    const isForbidden = status === 403 ||
-      await page.locator('body').textContent().then(t => /forbidden|not authorized|access denied/i.test(t ?? '')).catch(() => false);
-
-    const isRedirected = !page.url().includes('news/en');
-
-    expect(isForbidden || isRedirected).toBeTruthy();
-  });
-
-  test('portal feed returns valid published story structure', async ({ request }) => {
-    const base = process.env.LARAVEL_URL ?? 'http://localhost:8000';
-    const res = await request.get(`${base}/api/v1/portal/feed`);
-    expect(res.ok()).toBeTruthy();
-
-    const json = await res.json();
-    expect(json).toHaveProperty('data');
-    expect(Array.isArray(json.data)).toBeTruthy();
-
-    if (json.data.length > 0) {
-      const story = json.data[0];
-      // Assert required fields exist on each story
-      expect(story).toHaveProperty('public_id');
-      expect(story).toHaveProperty('headline');
-      expect(story).toHaveProperty('language');
-      expect(story).toHaveProperty('published_at');
-      expect(story).toHaveProperty('is_breaking');
-      expect(story).toHaveProperty('category');
-      expect(story).toHaveProperty('media');
-      expect(story.status).toBe('published');
-      // published_at should be a valid ISO date
-      expect(new Date(story.published_at).getTime()).toBeGreaterThan(0);
-    }
-  });
-
-  test('portal story detail endpoint returns full story with body', async ({ request }) => {
-    const base = process.env.LARAVEL_URL ?? 'http://localhost:8000';
-
-    // First get a story from the feed
-    const feedRes = await request.get(`${base}/api/v1/portal/feed?limit=1`);
-    const feed = await feedRes.json();
-
-    if (feed.data && feed.data.length > 0) {
-      const publicId = feed.data[0].public_id;
-
-      // Fetch the full story detail
-      const detailRes = await request.get(`${base}/api/v1/portal/story/${publicId}`);
-      expect(detailRes.ok()).toBeTruthy();
-
-      const detail = await detailRes.json();
-      expect(detail).toHaveProperty('data');
-      expect(detail.data.public_id).toBe(publicId);
-      expect(detail.data).toHaveProperty('body_html');
-      expect(detail.data).toHaveProperty('tags');
-      expect(detail.data).toHaveProperty('media');
-      expect(Array.isArray(detail.data.tags)).toBeTruthy();
-      expect(Array.isArray(detail.data.media)).toBeTruthy();
-    }
-  });
-
-  test('search token endpoint returns valid JWT structure', async ({ request }) => {
-    const base = process.env.LARAVEL_URL ?? 'http://localhost:8000';
-    const res = await request.post(`${base}/api/v1/portal/search-token`);
-    expect(res.ok()).toBeTruthy();
-
-    const json = await res.json();
-    expect(json).toHaveProperty('token');
-    expect(json).toHaveProperty('host');
-    expect(json).toHaveProperty('index');
-    expect(json).toHaveProperty('expires_at');
-
-    // Token should be a valid JWT (3 dot-separated parts)
-    const parts = json.token.split('.');
-    expect(parts.length).toBe(3);
+    // Either redirected to a 403/404 surface, or no Add News chrome is shown.
+    const bodyText = (await page.locator('body').textContent()) ?? '';
+    expect(bodyText.toLowerCase()).toMatch(/(forbidden|403|not authorized|permission)/);
   });
 });

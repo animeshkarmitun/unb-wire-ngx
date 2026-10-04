@@ -53,6 +53,14 @@ class MediaTest extends TestCase
 
     public function test_generate_derivatives_job(): void
     {
+        Storage::fake('s3');
+        $im = imagecreatetruecolor(600, 400);
+        imagefilledrectangle($im, 0, 0, 600, 400, imagecolorallocate($im, 10, 10, 10));
+        ob_start();
+        imagejpeg($im, null, 90);
+        $bytes = ob_get_clean();
+        Storage::disk('s3')->put('originals/x.jpg', $bytes);
+
         $user = User::factory()->create();
         $a = MediaAsset::create([
             'public_id' => (string) Str::ulid(),

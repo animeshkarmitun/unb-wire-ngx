@@ -131,6 +131,39 @@ class MediaRepository
         return $query->paginate($perPage);
     }
 
+    public function findDuplicateOf(MediaAsset $asset): ?MediaAsset
+    {
+        return MediaAsset::where('checksum', $asset->checksum)
+            ->where('id', '!=', $asset->id)
+            ->orderBy('id')
+            ->first();
+    }
+
+    /**
+     * @param  array<int>  $assetIds
+     * @return array<int, bool>
+     */
+    public function duplicateFlags(array $assetIds): array
+    {
+        if ($assetIds === []) {
+            return [];
+        }
+        $rows = MediaAsset::whereIn('id', $assetIds)->get(['id', 'checksum']);
+        $elsewhere = MediaAsset::whereIn('checksum', $rows->pluck('checksum')->all())
+            ->whereNotIn('id', $assetIds)
+            ->pluck('checksum')
+            ->flip();
+
+        $flags = [];
+        foreach ($rows as $r) {
+            if (isset($elsewhere[$r->checksum])) {
+                $flags[$r->id] = true;
+            }
+        }
+
+        return $flags;
+    }
+
     public function getPendingBatches(): Collection
     {
         return MediaBatch::with([

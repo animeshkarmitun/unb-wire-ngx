@@ -1,6 +1,6 @@
 # Task: M13-RATE-001 — Environment-Aware Rate Limiting
 
-**Status:** ⏳ Pending
+**Status:** ✅ Completed
 **Dependencies:** None (all prior milestones complete)
 **Parent ADR:** N/A — infrastructure improvement
 
@@ -167,10 +167,10 @@ Update `docs/knowledge-inventory/architecture.md` with rate limiting strategy.
 
 ## 6. Completion Notes
 
-- **Shipped:**
-- **Tests:**
-- **Live Smoke:**
-- **Review:**
+- **Shipped:** 2026-09-20
+- **Tests:** 8/8 pass (RateLimitConfigTest)
+- **Live Smoke:** verified with `RATE_LIMIT_ENABLED=false` and `RATE_LIMIT_DEV_MULTIPLIER=10`
+- **Review:** self-reviewed
 
 ---
 

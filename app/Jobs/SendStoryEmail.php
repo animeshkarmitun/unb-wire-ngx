@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Mail\StoryAlert;
 use App\Models\Client;
 use App\Models\Story;
+use App\Services\Search\EntitlementResolver;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -33,6 +34,10 @@ class SendStoryEmail implements ShouldQueue
         $story = Story::with(['category', 'tags', 'media'])->find($this->storyId);
 
         if (! $client || ! $story) {
+            return;
+        }
+
+        if (! app(EntitlementResolver::class)->clientAllowed($client, $story)) {
             return;
         }
 

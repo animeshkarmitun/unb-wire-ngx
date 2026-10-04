@@ -31,6 +31,7 @@ class MediaZipExportService
      */
     public function export(Collection $assets, Client $client, ?int $clientUserId = null, string $variant = 'original'): array
     {
+        $assets = $assets->reject(fn ($a) => $a->isEmbargoed());
         if ($assets->isEmpty()) {
             throw new \InvalidArgumentException('No assets provided for export.');
         }

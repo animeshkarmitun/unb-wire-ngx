@@ -73,6 +73,12 @@ repositories never cache.
   recorded per attempt.
 - **Scheduler (defined in Dhaka wall-clock, executed as UTC instants):** embargo
   lifts (±60s), archival sweep, digests, backup drills.
+- **Database backups (M13-OPS-001):** `backup:run` daily at `BACKUP_SCHEDULE`
+  (default 02:00) — pg_dump → gzip → `backups/db-YYYYMMDD-HHMMSS.sql.gz` on the
+  local disk, optional copy to `BACKUP_DISK` (e.g. S3 offsite). Rotation keeps
+  7 daily (`BACKUP_RETENTION_DAYS`) + 4 weekly (newest per ISO week) + 3 monthly
+  (newest per month). `backup:list` inventories them; failures log + email
+  `BackupFailed` to `BACKUP_ALERT_EMAIL` and exit 1.
 - **Search sync:** `index_outbox` → indexer workers → Meilisearch `main`/`archive`;
   lag budget ≤5s after publish; full reindex from Postgres must stay a tested,
   scripted operation.
@@ -86,6 +92,9 @@ repositories never cache.
   TTL.
 - `CacheAside` get-or-load with tag-based invalidation on publish/update (in the
   service layer).
+- Dashboard KPI aggregates (`DashboardService`) ride a 60s `Cache::remember`
+  (M13-PERF-001); lists stay fresh. Query hot paths are indexed (FK/pivot
+  indexes added 2026-09-22); `index_outbox` processing batch-prefetches stories.
 - Latency budgets (NFR §1/§5): feed API p95 < 200ms; portal/admin search p95
   < 300ms; publish → client feed visible within 60s.
 
@@ -94,8 +103,14 @@ repositories never cache.
 ## 5. Security topology (NFR §8)
 
 - RBAC: `role_permissions` matrix → `RbacService.assertCan` on every endpoint;
-  UI hides what the role can't do, the server still says no.
+  UI hides what the role can't do, the server still says no. Superadmin
+  (`users.is_superadmin`) bypasses all RBAC checks. System roles (`is_locked`)
+  editable only by superadmin. Last-superadmin self-demotion guard prevents lockout.
 - Client API keys: sha256-hashed, scoped, per-key rate limit, rotation overlap.
+- Environment-aware rate limiting (`config/rate-limiting.php` + `RateLimitHelper`):
+  production strict, development 10x relaxed via `RATE_LIMIT_DEV_MULTIPLIER`,
+  testing disabled via `RATE_LIMIT_ENABLED=false`. Named limiters registered in
+  `AppServiceProvider`; per-key RPM in `EnsureClientApiKey` also respects multiplier.
 - Channel secrets stored as vault references only (`credential_ref`/`secret_ref`).
 - Audit log: append-only (DB-grant enforced), before/after diffs, correlation ids,
   7-year retention.

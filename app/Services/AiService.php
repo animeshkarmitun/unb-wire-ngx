@@ -4,8 +4,10 @@ namespace App\Services;
 
 use App\Models\AiGeneration;
 use App\Services\Ai\AiProvider;
+use App\Services\Ai\FactGuard;
 use App\Services\Ai\OpenAiProvider;
 use App\Services\Ai\StubAiProvider;
+use App\Services\Ai\WireStyleLinter;
 use Illuminate\Support\Facades\DB;
 
 class AiService
@@ -46,6 +48,11 @@ class AiService
             return ['error' => $result->error];
         }
 
+        $newFacts = app(FactGuard::class)->extract(
+            (string) ($payload['text'] ?? ''),
+            trim(($result->headline ?? '').' '.($result->brief ?? '').' '.strip_tags((string) ($result->body ?? ''))),
+        );
+
         AiGeneration::create([
             'story_id' => $storyId,
             'user_id' => $userId,
@@ -54,7 +61,7 @@ class AiService
             'model' => $result->model,
             'input_hash' => hash('sha256', json_encode($payload)),
             'pack' => $result->toPack(),
-            'new_facts' => null,
+            'new_facts' => $newFacts ?: null,
             'tokens_in' => $result->tokensIn,
             'tokens_out' => $result->tokensOut,
             'cost_micros' => $result->costMicros,
@@ -70,11 +77,19 @@ class AiService
             'tokens' => $totalTokens,
             'cost_micros' => $result->costMicros,
         ], ['date', 'scope', 'kind'], [
-            'tokens' => DB::raw('ai_token_usage_daily.tokens + '.$totalTokens),
-            'cost_micros' => DB::raw('ai_token_usage_daily.cost_micros + '.$result->costMicros),
+            'tokens' => DB::raw('ai_token_usage_daily.tokens + '.((int) $totalTokens)),
+            'cost_micros' => DB::raw('ai_token_usage_daily.cost_micros + '.((int) $result->costMicros)),
         ]);
 
-        return $result->toPack();
+        $pack = $result->toPack();
+        $pack['style_lint'] = app(WireStyleLinter::class)->lint(
+            $pack['headline'] ?? null,
+            $pack['body'] ?? null,
+            ($payload['language'] ?? 'en') === 'bn',
+        );
+        $pack['new_facts'] = $newFacts;
+
+        return $pack;
     }
 
     private function resolveProvider(): AiProvider

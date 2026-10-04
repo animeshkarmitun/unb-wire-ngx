@@ -21,6 +21,10 @@ class StubAiProvider implements AiProvider
             'tags' => [
                 'category' => ['name' => 'Sports'],
                 'tags' => ['cricket', 'world-cup'],
+                'caption' => 'AI suggested caption for the photo',
+            ],
+            'en_tags' => [
+                'tags' => ['bangladesh', 'dhaka', 'metro', 'transport'],
             ],
             'translate' => [
                 'headline' => 'বাংলা শিরোনাম',
@@ -39,6 +43,7 @@ class StubAiProvider implements AiProvider
         return new AiResult(
             headline: $pack['headline'] ?? null,
             brief: $pack['brief'] ?? null,
+            caption: $pack['caption'] ?? null,
             body: $pack['body'] ?? null,
             categoryName: $pack['category']['name'] ?? null,
             tags: $pack['tags'] ?? [],

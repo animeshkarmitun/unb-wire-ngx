@@ -24,6 +24,26 @@
             </div>
           </div>
 
+          @if(count($dupMatches))
+            <div class="publish-note" style="margin-top:18px;border-color:#d97706;background:#fffbeb;color:#92400e">
+              <b>Similar story detected{{ $dupBlocked ? ' — publishing is blocked' : ' — continue or revise?' }}</b>
+              <ul style="margin:8px 0 0 18px">
+                @foreach($dupMatches as $m)
+                  <li>
+                    <a href="{{ route('admin.story', ['publicId' => $m['public_id']]) }}" target="_blank">{{ $m['headline'] }}</a>
+                    <span>(title {{ (int) round($m['title_score'] * 100) }}% · body {{ (int) round($m['body_score'] * 100) }}% · {{ $m['level'] }})</span>
+                  </li>
+                @endforeach
+              </ul>
+              @if($dupBlocked)
+                <div style="margin-top:10px">
+                  <textarea wire:model.live="dupOverrideReason" rows="2" style="width:100%" placeholder="Override reason (required to publish — logged in audit)"></textarea>
+                  <button type="button" class="btn btn-primary" style="margin-top:8px" wire:click="publish" wire:loading.attr="disabled">Publish anyway</button>
+                </div>
+              @endif
+            </div>
+          @endif
+
           <div class="publish-note" style="margin-top:18px">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             Story enters the distribution queue right after publishing and is pushed to all subscribed clients.
@@ -90,9 +110,18 @@
         <button type="button" class="btn btn-outline" id="backBtn" @if($step === 1) style="visibility:hidden" @endif>← Back</button>
         <span class="wizard-progress" id="progressText">Step {{ $step }} of 4 — {{ $step === 1 ? 'Write' : ($step === 2 ? 'Media' : ($step === 3 ? 'Organize & access' : 'Review & publish')) }}</span>
         <span class="spacer"></span>
-        <button type="button" class="btn btn-outline" id="saveDraftBtn" wire:click="autosave">Save draft</button>
-        <button type="button" class="btn btn-quick" id="quickPublishBtn" wire:click="quickPublish" style="{{ $step === 4 ? 'display:none' : '' }}">Publish now</button>
+        <button type="button" class="btn btn-outline" id="saveDraftBtn" wire:click="autosave" wire:loading.attr="disabled">
+          <span wire:loading.remove wire:target="autosave">Save draft</span>
+          <span wire:loading wire:target="autosave">Saving…</span>
+        </button>
+        <button type="button" class="btn btn-quick" id="quickPublishBtn" wire:click="quickPublish" wire:loading.attr="disabled" style="{{ $step === 4 ? 'display:none' : '' }}">
+          <span wire:loading.remove wire:target="quickPublish">Publish now</span>
+          <span wire:loading wire:target="quickPublish">Publishing…</span>
+        </button>
         <button type="button" class="btn btn-navy" id="nextBtn" style="{{ $step === 4 ? 'display:none' : '' }}">{{ $step === 3 ? 'Review →' : 'Continue →' }}</button>
-        <button type="button" class="btn btn-primary" id="publishBtn" wire:click="publish" style="{{ $step === 4 ? '' : 'display:none' }}">Publish story</button>
+        <button type="button" class="btn btn-primary" id="publishBtn" wire:click="publish" wire:loading.attr="disabled" style="{{ $step === 4 ? '' : 'display:none' }}">
+          <span wire:loading.remove wire:target="publish">Publish story</span>
+          <span wire:loading wire:target="publish">Publishing…</span>
+        </button>
       </div>
     </div><!-- /add-form-col -->

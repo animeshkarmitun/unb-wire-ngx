@@ -294,19 +294,23 @@ class PackagesManager extends Component
 
     public function deletePkg(int $id, RbacService $rbac): void
     {
-        $rbac->assertCan(auth()->user(), 'packages', 'delete');
+        try {
+            $rbac->assertCan(auth()->user(), 'packages', 'delete');
 
-        $pkg = Package::findOrFail($id);
-        $clientCount = ClientPackage::where('package_id', $pkg->id)->count();
+            $pkg = Package::findOrFail($id);
+            $clientCount = ClientPackage::where('package_id', $pkg->id)->count();
 
-        if ($clientCount > 0) {
-            $this->dispatch('toast', message: 'Reassign clients before deleting');
+            if ($clientCount > 0) {
+                $this->dispatch('toast', message: 'Reassign clients before deleting');
 
-            return;
+                return;
+            }
+
+            $pkg->delete();
+            $this->dispatch('toast', message: 'Package deleted');
+        } catch (\Throwable $e) {
+            $this->dispatch('toast', message: 'Failed to delete package: '.$e->getMessage());
         }
-
-        $pkg->delete();
-        $this->dispatch('toast', message: 'Package deleted');
     }
 
     // ==========================================
@@ -444,21 +448,25 @@ class PackagesManager extends Component
 
     public function deleteAo(int $id, RbacService $rbac): void
     {
-        $rbac->assertCan(auth()->user(), 'packages', 'delete');
+        try {
+            $rbac->assertCan(auth()->user(), 'packages', 'delete');
 
-        $ao = Package::findOrFail($id);
-        $clientCount = ClientPackage::where('package_id', $ao->id)
-            ->where('status', 'active')
-            ->count();
+            $ao = Package::findOrFail($id);
+            $clientCount = ClientPackage::where('package_id', $ao->id)
+                ->where('status', 'active')
+                ->count();
 
-        if ($clientCount > 0) {
-            $this->dispatch('toast', message: '<b>'.$clientCount.'</b> clients use this add-on — remove it from them first');
+            if ($clientCount > 0) {
+                $this->dispatch('toast', message: '<b>'.$clientCount.'</b> clients use this add-on — remove it from them first');
 
-            return;
+                return;
+            }
+
+            $ao->delete();
+            $this->dispatch('toast', message: 'Add-on deleted');
+        } catch (\Throwable $e) {
+            $this->dispatch('toast', message: 'Failed to delete add-on: '.$e->getMessage());
         }
-
-        $ao->delete();
-        $this->dispatch('toast', message: 'Add-on deleted');
     }
 
     // ==========================================

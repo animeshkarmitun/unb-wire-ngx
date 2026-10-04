@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Jobs\GenerateDerivatives;
 use App\Models\MediaAsset;
 use App\Models\MediaBatch;
 use App\Models\MediaReview;
@@ -9,13 +10,19 @@ use App\Models\Story;
 use App\Models\User;
 use App\Repositories\MediaRepository;
 use App\Repositories\StoryRepository;
+use App\Services\AiService;
 use App\Services\NotificationService;
 use App\Services\RbacService;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use ZipArchive;
 
 class PhotoManager extends Component
 {
@@ -37,6 +44,59 @@ class PhotoManager extends Component
 
     // Multi-select & Bulk Bar
     public array $selectedIds = [];
+
+    public array $clientUsage = [];
+
+    public array $uploadDuplicates = [];
+
+    public array $aiSuggestions = [];
+
+    public function suggestAiMetadata(): void
+    {
+        app(RbacService::class)->assertCan(auth()->user(), 'media', 'edit');
+        if (! $this->selectedAssetId) {
+            return;
+        }
+        $cfgRow = DB::table('settings')->where('key', 'ai.desk')->first();
+        $cfg = $cfgRow ? (is_string($cfgRow->value) ? json_decode($cfgRow->value, true) : $cfgRow->value) : [];
+        if (isset($cfg['preeditPhotos']) && ! $cfg['preeditPhotos']) {
+            $this->dispatch('toast', message: 'Photos AI is disabled in AI settings');
+
+            return;
+        }
+        $asset = app(MediaRepository::class)->findById($this->selectedAssetId);
+        if (! $asset) {
+            return;
+        }
+        $pack = app(AiService::class)->call('tags', [
+            'text' => (string) ($asset->caption ?: $asset->title),
+            'headline' => (string) $asset->title,
+        ], auth()->id() ?? User::first()?->id);
+        if (isset($pack['error'])) {
+            $this->dispatch('toast', message: 'AI suggestion failed');
+
+            return;
+        }
+        $this->aiSuggestions = [
+            'caption' => (string) ($pack['caption'] ?? ''),
+            'tags' => array_values(array_filter((array) ($pack['tags'] ?? []), fn ($t) => is_string($t) && $t !== '')),
+        ];
+        $this->dispatch('toast', message: 'AI suggestions ready — confirm with Use');
+    }
+
+    public function applyAiSuggestion(string $field): void
+    {
+        app(RbacService::class)->assertCan(auth()->user(), 'media', 'edit');
+        if ($field === 'caption' && ($this->aiSuggestions['caption'] ?? '') !== '') {
+            $this->inspCaption = $this->aiSuggestions['caption'];
+        }
+        if ($field === 'tags' && ($this->aiSuggestions['tags'] ?? []) !== []) {
+            $this->inspKeywords = implode(', ', $this->aiSuggestions['tags']);
+        }
+        $this->dispatch('toast', message: 'Suggestion applied — review and Save changes');
+    }
+
+    public string $inspEmbargo = '';
 
     // Burst Series Stack expansion
     public ?int $expandedStackId = null;
@@ -194,7 +254,65 @@ class PhotoManager extends Component
 
         $pkg = $asset->packages->first();
         $this->inspPackage = $pkg ? ($pkg->code === 'PREMIUM-BUNDLE' ? 'Exclusive' : 'Standard') : '—';
+        $this->inspEmbargo = $asset->embargo_until ? $asset->embargo_until->setTimezone('Asia/Dhaka')->format('Y-m-d\TH:i') : '';
         $this->inspStoryInput = '';
+
+        $this->clientUsage = DB::table('downloads')
+            ->join('clients', 'clients.id', '=', 'downloads.client_id')
+            ->where('downloads.item_type', 'media')
+            ->where('downloads.item_id', $id)
+            ->groupBy('clients.id', 'clients.name')
+            ->orderByDesc('cnt')
+            ->limit(5)
+            ->get(['clients.name', DB::raw('count(*) as cnt')])
+            ->map(fn ($r) => [(string) $r->name, (int) $r->cnt])
+            ->all();
+    }
+
+    public function downloadZip(RbacService $rbac): ?StreamedResponse
+    {
+        $rbac->assertCan(auth()->user(), 'media', 'view');
+
+        $assets = MediaAsset::whereIn('id', $this->selectedIds)->get();
+        if ($assets->isEmpty()) {
+            $this->dispatch('toast', message: 'Select photos to download');
+
+            return null;
+        }
+
+        $zipPath = tempnam(sys_get_temp_dir(), 'unb-admin-zip-');
+        $zip = new ZipArchive;
+        $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        $entries = [];
+        $manifest = [];
+        foreach ($assets as $asset) {
+            $disk = Storage::disk($asset->storage_disk ?: 'local');
+            if ($asset->original_path && $disk->exists($asset->original_path)) {
+                $ext = pathinfo($asset->original_path, PATHINFO_EXTENSION) ?: 'bin';
+                $name = (string) ($asset->public_id ?: 'asset-'.$asset->id).'.'.$ext;
+                $tmp = tempnam(sys_get_temp_dir(), 'unb-zip-entry-');
+                $in = $disk->readStream($asset->original_path);
+                $out = fopen($tmp, 'wb');
+                stream_copy_to_stream($in, $out);
+                fclose($out);
+                fclose($in);
+                $zip->addFile($tmp, $name);
+                $entries[] = $tmp;
+                $manifest[] = $name."\t".$asset->title."\tPhoto: ".($asset->photographer?->name ?: 'UNB').' / UNB';
+            } else {
+                $manifest[] = '(original file not available)'."\t".$asset->title;
+            }
+        }
+        $zip->addFromString('captions.txt', implode("\n", $manifest));
+        $zip->close();
+        foreach ($entries as $tmp) {
+            @unlink($tmp);
+        }
+
+        return response()->streamDownload(function () use ($zipPath) {
+            readfile($zipPath);
+            @unlink($zipPath);
+        }, 'unb-photos-'.$assets->count().'.zip', ['Content-Type' => 'application/zip']);
     }
 
     public function closeInspector(): void
@@ -224,6 +342,7 @@ class PhotoManager extends Component
             'credit_line' => 'Photo: '.$this->inspPhotographer.' / UNB',
             'location_city' => $this->inspLocation,
             'en_tags' => $tags,
+            'embargo_until' => $this->inspEmbargo !== '' ? Carbon::parse($this->inspEmbargo, 'Asia/Dhaka') : null,
         ]);
 
         // Update package assignment
@@ -531,6 +650,7 @@ class PhotoManager extends Component
         $this->validate(['uploads.*' => 'image|mimes:jpg,jpeg,png,webp|max:10240']);
         $count = count($this->uploads);
         $uploaderId = auth()->id() ?? User::first()?->id;
+        $this->uploadDuplicates = [];
 
         $gradientIndex = 1;
         foreach ($this->uploads as $file) {
@@ -543,7 +663,7 @@ class PhotoManager extends Component
             $height = $size[1] ?? 800;
             $ratio = $height > 0 ? round($width / $height, 2) : 1.5;
 
-            MediaAsset::create([
+            $asset = MediaAsset::create([
                 'public_id' => (string) Str::ulid(),
                 'title' => $cleanTitle,
                 'caption' => $cleanTitle,
@@ -563,10 +683,23 @@ class PhotoManager extends Component
                 ],
                 'uploaded_by' => $uploaderId,
             ]);
+            GenerateDerivatives::dispatch($asset->id);
+            $dup = app(MediaRepository::class)->findDuplicateOf($asset);
+            if ($dup) {
+                $this->uploadDuplicates[] = [
+                    'id' => $asset->id,
+                    'title' => (string) $asset->title,
+                    'existing_id' => $dup->id,
+                    'existing_title' => (string) $dup->title,
+                ];
+            }
             $gradientIndex++;
         }
 
         $this->uploads = [];
+        if ($this->uploadDuplicates !== []) {
+            $this->dispatch('toast', message: 'Possible duplicates detected - verify before publishing');
+        }
         $this->dispatch('toast', message: '✓ '.$count.' photo'.($count > 1 ? 's' : '').' added to “Needs review”');
     }
 
@@ -585,6 +718,14 @@ class PhotoManager extends Component
 
         // 2. Field Batches (for field intake tab)
         $fieldBatches = $this->tab === 'field' ? $repo->getPendingBatches() : null;
+        $duplicateIds = [];
+        if ($this->tab === 'field' && $fieldBatches) {
+            $duplicateIds = $repo->duplicateFlags($fieldBatches->flatMap(fn ($b) => $b->assets->pluck('id'))->all());
+        }
+        $duplicateIds = [];
+        if ($this->tab === 'field' && $fieldBatches) {
+            $duplicateIds = $repo->duplicateFlags($fieldBatches->flatMap(fn ($b) => $b->assets->pluck('id'))->all());
+        }
 
         // 3. Asset Query (for photo grid)
         $assets = $this->tab === 'field' ? collect([]) : $repo->paginateAssets(
@@ -608,6 +749,7 @@ class PhotoManager extends Component
         return view('livewire.admin.photo-manager', compact(
             'counts',
             'fieldBatches',
+            'duplicateIds',
             'assets',
             'photographersList',
             'categoriesList',

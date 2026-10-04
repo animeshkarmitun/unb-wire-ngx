@@ -1,5 +1,5 @@
 <div id="toastWrap" class="fixed bottom-5 right-5 z-[300] flex flex-col gap-2 pointer-events-none"></div>
-<script>
+<script nonce="{{ $cspNonce ?? '' }}">
 window.unbToast = function(html){
   const w=document.getElementById('toastWrap');
   if(!w) return;

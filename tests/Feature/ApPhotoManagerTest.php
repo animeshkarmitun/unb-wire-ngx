@@ -262,7 +262,7 @@ class ApPhotoManagerTest extends TestCase
         Livewire::test(ApPhotoManager::class)
             ->call('syncNow')
             ->assertDispatched('toast')
-            ->assertSet('todaySyncCount', 226);
+            ->assertSet('todaySyncCount', 0);
     }
 
     public function test_toggle_sync_log_shows_and_hides_modal(): void
@@ -274,7 +274,7 @@ class ApPhotoManagerTest extends TestCase
             ->call('toggleSyncLog')
             ->assertSet('showSyncLog', true)
             ->assertSee('AP Wire Sync Log')
-            ->assertSee('AP Associated Press Media API v1')
+            ->assertDontSee('214 new photos')
             ->call('toggleSyncLog')
             ->assertSet('showSyncLog', false);
     }

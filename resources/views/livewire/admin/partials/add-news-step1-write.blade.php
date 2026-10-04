@@ -18,6 +18,16 @@
             <button type="button" class="db-btn" id="draftDiscard">Discard</button>
           </div>
 
+          @if(count($dupMatches))
+            <div class="draft-banner" style="border-color:#d97706;background:#fffbeb;color:#92400e">
+              <span><b>Similar story detected</b> — continue or revise?
+                @foreach($dupMatches as $m)
+                  <a href="{{ route('admin.story', ['publicId' => $m['public_id']]) }}" target="_blank" style="margin-left:6px">{{ $m['headline'] }}</a>
+                @endforeach
+              </span>
+            </div>
+          @endif
+
           <!-- Start with AI -->
           <div class="ai-start" id="aiStart" x-data="{ open: true }">
             <div class="ai-start-head">

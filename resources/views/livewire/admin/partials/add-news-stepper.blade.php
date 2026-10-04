@@ -40,7 +40,7 @@
         </span>
         <span class="spacer"></span>
         @if($ownerId !== auth()->id() && $status !== 'published')
-          <button class="btn btn-outline" id="wfTakeOverBtn" type="button" wire:click="takeOver" title="Take ownership — the current owner is notified, the handover is audit-logged" aria-label="Take over ownership of this story">Take over this story</button>
+          <button class="btn btn-outline" id="wfTakeOverBtn" type="button" wire:click="takeOver" wire:confirm="Take over this story? The current owner will be notified." title="Take ownership — the current owner is notified, the handover is audit-logged" aria-label="Take over ownership of this story">Take over this story</button>
         @endif
         @if($status !== 'published' && $status !== 'in_review')
           <button class="btn btn-navy" id="wfSendBtn" type="button" wire:click="sendToReview" title="Send to the desk editor for final check" aria-label="Send story to editor for review">Send to editor</button>

@@ -10,6 +10,7 @@ class JsonUnbV1Formatter
     public function format(Story $story): WireOutput
     {
         $publicId = trim($story->public_id);
+        $visibleMedia = $story->media ? $story->media->reject(fn ($m) => $m->isEmbargoed()) : collect();
         $data = [
             'public_id' => $publicId,
             'headline' => $story->headline,
@@ -22,15 +23,15 @@ class JsonUnbV1Formatter
             'status' => $story->status,
             'is_breaking' => (bool) $story->is_breaking,
             'tags' => $story->tags ? $story->tags->pluck('name')->values()->all() : [],
-            'caps' => $story->media ? $story->media->pluck('caption')->filter()->values()->all() : [],
-            'media' => $story->media ? $story->media->map(fn ($m) => [
+            'caps' => $visibleMedia->pluck('caption')->filter()->values()->all(),
+            'media' => $visibleMedia->map(fn ($m) => [
                 'id' => $m->id,
                 'public_id' => $m->public_id,
                 'caption' => $m->caption ?: $m->title,
                 'kind' => $m->kind,
                 'credit' => $m->credit ?? 'UNB',
-            ])->values()->all() : [],
-            'has_video' => $story->media ? $story->media->where('kind', 'video')->isNotEmpty() : false,
+            ])->values()->all(),
+            'has_video' => $visibleMedia->where('kind', 'video')->isNotEmpty(),
         ];
 
         return new WireOutput(

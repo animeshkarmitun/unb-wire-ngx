@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Client;
 use App\Models\ClientApiKey;
+use App\Repositories\AuditLogRepository;
 use Illuminate\Support\Str;
 
 class ApiKeyService
@@ -18,6 +19,7 @@ class ApiKeyService
             'scopes' => $scopes,
             'rate_limit_rpm' => $rpm,
         ]);
+        app(AuditLogRepository::class)->log('api_key.issued', 'ClientApiKey', (int) $key->id, ['client_id' => $client->id, 'name' => $name]);
 
         return [$key, $raw];
     }
@@ -33,6 +35,7 @@ class ApiKeyService
             'rate_limit_rpm' => $old->rate_limit_rpm,
         ]);
         $old->update(['expires_at' => now()->addHour()]);
+        app(AuditLogRepository::class)->log('api_key.rotated', 'ClientApiKey', (int) $new->id, ['client_id' => $old->client_id, 'replaced_id' => $old->id]);
 
         return [$new, $raw];
     }
@@ -40,6 +43,7 @@ class ApiKeyService
     public function revoke(ClientApiKey $key): void
     {
         $key->update(['revoked_at' => now()]);
+        app(AuditLogRepository::class)->log('api_key.revoked', 'ClientApiKey', (int) $key->id, ['client_id' => $key->client_id]);
     }
 
     public function authenticate(string $raw): ?ClientApiKey

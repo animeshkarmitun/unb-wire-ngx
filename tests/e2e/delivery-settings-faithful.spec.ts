@@ -1,19 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { execSync } from 'child_process';
 
 test.describe('Delivery Settings Manager Faithful (M8-DELIV-001)', () => {
-  test.beforeAll(async () => {
-    try {
-      execSync('php artisan db:seed --class=DatabaseSeeder', { stdio: 'ignore' });
-    } catch (_) {}
-  });
-
   test.beforeEach(async ({ page }) => {
     await page.goto('/login');
     await page.fill('input[name="email"]', 'nahar@unbnews.org');
     await page.fill('input[name="password"]', 'password');
     await page.click('button[type="submit"]');
-    await page.waitForURL('**/admin**', { timeout: 10000 }).catch(() => {});
+    await page.waitForURL('**/admin**', { timeout: 10000 });
   });
 
   test('Page header, masthead context, Dhaka clock, client switcher, and 5 cards render correctly', async ({ page }) => {

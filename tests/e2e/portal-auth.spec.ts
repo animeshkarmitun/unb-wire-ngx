@@ -165,14 +165,10 @@ test.describe('Portal Authentication', () => {
     await modal.locator('input[type="email"]').fill(CLIENTS.dailyStar.email);
     await modal.locator('input[type="password"]').first().fill(CLIENTS.dailyStar.password);
 
-    const responsePromise = page.waitForResponse(resp => resp.url().includes('/api/v1/portal/login'), { timeout: 10000 }).catch(() => null);
+    const responsePromise = page.waitForResponse(resp => resp.url().includes('/api/v1/portal/login'), { timeout: 10000 });
     await modal.locator('button[type="submit"]:has-text("Login")').click();
     const response = await responsePromise;
-
-    if (!response || !response.ok()) {
-      test.skip();
-      return;
-    }
+    expect(response.ok()).toBeTruthy();
 
     await expect(modal).toBeHidden({ timeout: 10000 });
     const userBtn = page.locator('#userBtn');
@@ -217,14 +213,10 @@ test.describe('Portal Authentication', () => {
     await modal.locator('input[type="email"]').fill(CLIENTS.dailyStar.email);
     await modal.locator('input[type="password"]').first().fill(CLIENTS.dailyStar.password);
 
-    const responsePromise = page.waitForResponse(resp => resp.url().includes('/api/v1/portal/login'), { timeout: 10000 }).catch(() => null);
+    const responsePromise = page.waitForResponse(resp => resp.url().includes('/api/v1/portal/login'), { timeout: 10000 });
     await modal.locator('button[type="submit"]:has-text("Login")').click();
     const response = await responsePromise;
-
-    if (!response || !response.ok()) {
-      test.skip();
-      return;
-    }
+    expect(response.ok()).toBeTruthy();
 
     await expect(modal).toBeHidden({ timeout: 10000 });
     const userBtn = page.locator('#userBtn');

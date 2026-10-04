@@ -23,16 +23,24 @@ export async function getSearchClient(): Promise<{ client: Meilisearch; token: s
   }
 }
 
-export async function searchStories(query: string, filter?: string) {
+export type SearchHit = Record<string, unknown> & { from_archive: boolean };
+
+export async function searchStories(query: string, filter?: string): Promise<SearchHit[] | null> {
   const ctx = await getSearchClient();
   if (!ctx) return null;
   try {
-    const index = ctx.client.index(process.env.NEXT_PUBLIC_MEILISARCH_INDEX ?? "main");
-    const res = await Promise.race([
-      index.search(query, { filter, limit: 20 }),
+    const names = [process.env.NEXT_PUBLIC_MEILISARCH_INDEX ?? "main", "archive"];
+    const race = await Promise.race([
+      Promise.all(names.map((n) => ctx!.client.index(n).search(query, { filter, limit: 20 }))),
       new Promise<null>((_, rej) => setTimeout(() => rej(new Error("timeout")), 5000)),
-    ]) as any;
-    return res;
+    ]);
+    if (!race) return null;
+    const results = race as Array<{ hits?: unknown[] }>;
+    const hits: SearchHit[] = [];
+    results.forEach((res, i) => {
+      (res.hits ?? []).forEach((h) => hits.push({ ...(h as Record<string, unknown>), from_archive: names[i] === "archive" }));
+    });
+    return hits;
   } catch {
     client = null; tenantToken = null;
     return null;

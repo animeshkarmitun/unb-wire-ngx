@@ -35,7 +35,7 @@ class NitfFormatter
 
         $xml .= '    <body.content>'."\n";
         if ($story->media) {
-            foreach ($story->media as $media) {
+            foreach ($story->media->reject(fn ($m) => $m->isEmbargoed()) as $media) {
                 $xml .= '      <media media-type="'.htmlspecialchars($media->kind ?? 'image').'">'."\n";
                 $xml .= '        <media-reference source="urn:unb.news.media:'.htmlspecialchars($media->public_id ?? '').'"/>'."\n";
                 $xml .= '        <media-caption>'.htmlspecialchars($media->caption ?: ($media->title ?? '')).'</media-caption>'."\n";

@@ -3,11 +3,14 @@
 namespace App\Livewire\Admin;
 
 use App\Jobs\ProcessIndexOutbox;
+use App\Models\AiGeneration;
 use App\Models\Category;
 use App\Models\MediaAsset;
 use App\Models\StoryNote;
+use App\Repositories\AuditLogRepository;
 use App\Repositories\StoryRepository;
 use App\Services\AiService;
+use App\Services\DuplicateDetectionService;
 use App\Services\HtmlSanitizer;
 use App\Services\RbacService;
 use App\Services\RevisionService;
@@ -81,6 +84,14 @@ class AddNews extends Component
 
     // Step 4 & Workflow fields
     public array $aiTouched = [];
+
+    public array $dupMatches = [];
+
+    public array $enTagSuggestions = [];
+
+    public bool $dupBlocked = false;
+
+    public string $dupOverrideReason = '';
 
     public ?array $aiPack = null;
 
@@ -419,6 +430,31 @@ class AddNews extends Component
         }
     }
 
+    public function confirmEnTags(): void
+    {
+        app(RbacService::class)->assertCan(auth()->user(), 'stories', 'edit');
+        if (! $this->storyId || $this->enTagSuggestions === []) {
+            return;
+        }
+        app(StoryRepository::class)->findOrFail($this->storyId)->update(['en_search_tags' => $this->enTagSuggestions]);
+        $this->dispatch('toast', message: 'Search tags confirmed — used for search indexing only');
+    }
+
+    private function loadEnTagSuggestions(): void
+    {
+        $this->enTagSuggestions = [];
+        if (! $this->storyId) {
+            return;
+        }
+        $row = AiGeneration::where('story_id', $this->storyId)->where('kind', 'en_tags')->latest('id')->first();
+        $pack = $row?->pack ?? null;
+        $pack = is_string($pack) ? json_decode($pack, true) : $pack;
+        $tags = is_array($pack) ? ($pack['tags'] ?? []) : [];
+        if (is_array($tags)) {
+            $this->enTagSuggestions = array_values(array_filter($tags, fn ($t) => is_string($t) && $t !== ''));
+        }
+    }
+
     public function autosave(?RbacService $rbac = null, ?StoryService $stories = null): void
     {
         $rbac = $rbac ?? app(RbacService::class);
@@ -469,6 +505,15 @@ class AddNews extends Component
 
         // Sync tags via repository
         $repo->syncTags($repo->findOrFail($this->storyId), $this->tags);
+
+        $this->dupMatches = app(DuplicateDetectionService::class)->matches(
+            $this->headline,
+            HtmlSanitizer::text($cleanHtml),
+            $this->language,
+            (int) $this->storyId,
+        );
+
+        $this->loadEnTagSuggestions();
 
         $this->dispatch('draft-autosaved', [
             'id' => $this->storyId,
@@ -535,6 +580,29 @@ class AddNews extends Component
 
         $this->autosave($rbac, $svc);
         $s = app(StoryRepository::class)->findOrFail($this->storyId);
+
+        $dupes = app(DuplicateDetectionService::class)->matches(
+            $this->headline,
+            HtmlSanitizer::text($this->bodyHtml ?: ''),
+            $this->language,
+            (int) $this->storyId,
+        );
+        $this->dupMatches = $dupes;
+        $high = array_values(array_filter($dupes, fn ($m) => $m['level'] === DuplicateDetectionService::LEVEL_HIGH));
+        if ($high !== []) {
+            $reason = trim($this->dupOverrideReason);
+            if (mb_strlen($reason) < 5 || mb_strlen($reason) > 500) {
+                $this->dupBlocked = true;
+                $this->dispatch('toast', message: 'Similar story detected — a valid override reason (5–500 chars) is required to publish');
+
+                return;
+            }
+            app(AuditLogRepository::class)->log('publish.duplicate_override', 'Story', (int) $this->storyId, [
+                'reason' => $reason,
+                'matched' => array_map(fn ($m) => $m['public_id'], $high),
+            ]);
+        }
+        $this->dupBlocked = false;
 
         try {
             // Wizard publish may be invoked from draft by an editor/admin with publish permission.

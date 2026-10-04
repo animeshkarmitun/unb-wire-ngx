@@ -25,6 +25,7 @@ export interface WireStory {
   has_video?: boolean;
   ex?: 'you' | 'other' | null;
   mins?: number;
+  from_archive?: boolean;
 }
 
 export interface ClientContext {

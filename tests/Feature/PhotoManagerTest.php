@@ -14,6 +14,8 @@ use Database\Seeders\CategorySeeder;
 use Database\Seeders\PackageSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -286,6 +288,32 @@ class PhotoManagerTest extends TestCase
         $asset->refresh();
         $this->assertEquals(1.78, $asset->derivatives['r']);
         $this->assertEquals('g4', $asset->derivatives['grad']);
+    }
+
+    public function test_bulk_zip_download_streams_real_archive(): void
+    {
+        Storage::fake('local');
+        $asset = MediaAsset::create([
+            'public_id' => (string) Str::ulid(),
+            'kind' => 'photo',
+            'status' => 'library',
+            'title' => 'Zip me',
+            'caption' => 'Zip caption',
+            'credit_line' => 'UNB',
+            'mime' => 'image/jpeg',
+            'size_bytes' => 10,
+            'checksum' => hash('sha256', 'zip'),
+            'storage_disk' => 'local',
+            'original_path' => 'media/uploads/zip-me.jpg',
+            'uploaded_by' => $this->admin->id,
+        ]);
+        Storage::disk('local')->put('media/uploads/zip-me.jpg', 'real-jpeg-bytes');
+
+        Livewire::actingAs($this->admin)
+            ->test(PhotoManager::class)
+            ->call('toggleSelect', $asset->id)
+            ->call('downloadZip')
+            ->assertFileDownloaded('unb-photos-1.zip');
     }
 
     public function test_bulk_approve_and_bulk_assign_package(): void

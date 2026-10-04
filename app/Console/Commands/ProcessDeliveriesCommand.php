@@ -6,6 +6,7 @@ use App\Models\Delivery;
 use App\Models\Setting;
 use App\Models\Story;
 use App\Repositories\ClientRepository;
+use App\Repositories\DeliveryRepository;
 use App\Services\Delivery\WebhookPayloadBuilder;
 use App\Services\Delivery\WebhookSigner;
 use Illuminate\Console\Command;
@@ -66,10 +67,13 @@ class ProcessDeliveriesCommand extends Command
                         continue;
                     }
 
-                    $payload = app(WebhookPayloadBuilder::class)->build($story, 'story.published');
+                    $event = $story->status === 'killed'
+                        ? 'story.killed'
+                        : (app(DeliveryRepository::class)->hasPriorSuccess($story->id, $delivery->channel_id, $delivery->id) ? 'story.updated' : 'story.published');
+                    $payload = app(WebhookPayloadBuilder::class)->build($story, $event);
                     $jsonPayload = json_encode($payload);
                     $secret = $config['signing_secret'] ?? '';
-                    $headers = app(WebhookSigner::class)->headers($jsonPayload, $secret, 'story.published');
+                    $headers = app(WebhookSigner::class)->headers($jsonPayload, $secret, $event);
 
                     try {
                         $response = Http::withHeaders($headers)->timeout(5)->post($config['url'], $payload);

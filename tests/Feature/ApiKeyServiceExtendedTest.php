@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Client;
 use App\Services\ApiKeyService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class ApiKeyServiceExtendedTest extends TestCase
@@ -70,6 +71,56 @@ class ApiKeyServiceExtendedTest extends TestCase
         $this->assertNotNull($this->svc->authenticate($rawOld));
         $this->assertNotNull($this->svc->authenticate($rawNew));
         $this->assertTrue($old->refresh()->expires_at->isFuture());
+    }
+
+    public function test_rotate_old_key_dies_after_overlap_window(): void
+    {
+        $client = Client::factory()->create();
+        [$old, $rawOld] = $this->svc->issue($client, 'orig');
+        [$new, $rawNew] = $this->svc->rotate($old);
+
+        // Immediately both work (overlap starts at +1h from now).
+        $this->assertNotNull($this->svc->authenticate($rawOld));
+        $this->assertNotNull($this->svc->authenticate($rawNew));
+
+        // Travel one minute past the old key's expires_at.
+        Carbon::setTestNow($old->refresh()->expires_at->copy()->addMinute());
+
+        $this->assertNull($this->svc->authenticate($rawOld));
+        $this->assertNotNull($this->svc->authenticate($rawNew));
+
+        Carbon::setTestNow();
+    }
+
+    public function test_rotate_old_key_returns_401_on_feed_after_overlap(): void
+    {
+        $client = Client::factory()->create(['status' => 'active']);
+        [$old, $rawOld] = $this->svc->issue($client, 'orig', ['feed:read']);
+        [$new, $rawNew] = $this->svc->rotate($old);
+
+        // Immediately: both work via HTTP.
+        $this->getJson('/api/v1/feed', ['Authorization' => "Bearer {$rawOld}"])->assertOk();
+        $this->getJson('/api/v1/feed', ['Authorization' => "Bearer {$rawNew}"])->assertOk();
+
+        Carbon::setTestNow($old->refresh()->expires_at->copy()->addMinute());
+
+        $this->getJson('/api/v1/feed', ['Authorization' => "Bearer {$rawOld}"])->assertStatus(401);
+        $this->getJson('/api/v1/feed', ['Authorization' => "Bearer {$rawNew}"])->assertOk();
+
+        Carbon::setTestNow();
+    }
+
+    public function test_rotate_writes_audit_row(): void
+    {
+        $client = Client::factory()->create();
+        [$old] = $this->svc->issue($client, 'orig');
+        [$new] = $this->svc->rotate($old);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'api_key.rotated',
+            'entity_type' => 'ClientApiKey',
+            'entity_id' => $new->id,
+        ]);
     }
 
     public function test_has_scope_negative(): void

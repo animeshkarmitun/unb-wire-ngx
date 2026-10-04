@@ -8,48 +8,6 @@
         clearTimeout(this.toastTimer);
         this.toastTimer = setTimeout(() => { this.toastMsg = ''; }, 2600);
     },
-    async downloadZip(selectedAssets) {
-        if (!selectedAssets || selectedAssets.length === 0) return;
-        this.zipping = true;
-        try {
-            if (typeof JSZip === 'undefined') {
-                await new Promise((resolve, reject) => {
-                    const script = document.createElement('script');
-                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-                    script.onload = resolve;
-                    script.onerror = reject;
-                    document.head.appendChild(script);
-                });
-            }
-            const zip = new JSZip();
-            for (let i = 0; i < selectedAssets.length; i++) {
-                const a = selectedAssets[i];
-                const canvas = document.createElement('canvas');
-                canvas.width = 1200; canvas.height = 800;
-                const ctx = canvas.getContext('2d');
-                const cols = [['#3b6fe0','#16204a'],['#e5484d','#7a1f2b'],['#16a34a','#0b3d24'],['#f0a832','#8a5410'],['#7c3aed','#2e1065'],['#0ea5e9','#0c4a6e'],['#db2777','#831843'],['#64748b','#1e293b']][i % 8];
-                const g = ctx.createLinearGradient(0, 0, 1200, 800);
-                g.addColorStop(0, cols[0]); g.addColorStop(1, cols[1]);
-                ctx.fillStyle = g; ctx.fillRect(0, 0, 1200, 800);
-                const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
-                zip.file((a.id || ('p' + (i+1))) + '.png', blob);
-            }
-            const captionText = selectedAssets.map(a => (a.caption || a.title) + '\nPhoto: ' + (a.photographer || 'UNB') + ' / UNB · ' + (a.location || 'Dhaka')).join('\n\n');
-            zip.file('captions.txt', captionText);
-            const content = await zip.generateAsync({ type: 'blob' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(content);
-            link.download = 'unb-photos-' + selectedAssets.length + '.zip';
-            link.click();
-            setTimeout(() => URL.revokeObjectURL(link.href), 4000);
-            this.showToast('✓ ZIP downloaded (' + selectedAssets.length + ' photos)');
-        } catch (e) {
-            console.error('ZIP failed', e);
-            this.showToast('ZIP generation failed');
-        } finally {
-            this.zipping = false;
-        }
-    }
 }"
 @toast.window="showToast($event.detail.message)"
 @dragenter.window="dragDepth++;"
@@ -66,7 +24,21 @@ class="relative">
         </div>
     </div>
 
-    <!-- Hidden file upload input -->
+            @if(count($uploadDuplicates))
+                <div class="fq-batch" style="border-color:#d97706;background:#fffbeb;margin-bottom:12px">
+                    <b style="color:#92400e">Possible duplicates detected - verify before publishing</b>
+                    <ul style="margin:8px 0 0 16px;font-size:12px">
+                        @foreach($uploadDuplicates as $dup)
+                            <li>
+                                {{ $dup['title'] }} — matches existing
+                                <button type="button" wire:click="selectAsset({{ $dup['existing_id'] }})" style="color:#5b5fc7;background:none;border:none;cursor:pointer;text-decoration:underline">{{ $dup['existing_title'] }} #{{ $dup['existing_id'] }}</button>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <!-- Hidden file upload input -->
     <input type="file" x-ref="uploadInput" wire:model="uploads" multiple accept="image/*" class="hidden">
 
     <!-- Breadcrumb & Topbar -->
@@ -177,13 +149,13 @@ class="relative">
             }
         @endphp
 
-        <button @click="downloadZip({{ json_encode($selectedAssetsJson) }})" class="bulk-btn" id="bulkZip" aria-label="Download selected photos as ZIP">
+        <button wire:click="downloadZip" wire:loading.attr="disabled" class="bulk-btn" id="bulkZip" aria-label="Download selected photos as ZIP">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/>
                 <line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
-            <span x-text="zipping ? 'Zipping…' : 'ZIP'"></span>
+            <span wire:loading.remove wire:target="downloadZip">ZIP</span><span wire:loading wire:target="downloadZip">Zipping...</span>
         </button>
 
         <button wire:click="clearSelection" class="bulk-clear" id="bulkClear" aria-label="Clear photo selection">Clear</button>
@@ -193,6 +165,7 @@ class="relative">
     <div class="dam-layout {{ $selectedAssetId ? 'insp' : '' }}" id="damLayout">
 
         @if($tab === 'field')
+
             <!-- ============ Field Intake Queue View ============ -->
             <div class="w-full">
                 @if(!$fieldBatches || $fieldBatches->isEmpty())
@@ -235,7 +208,10 @@ class="relative">
                                         $grad = $asset->derivatives['grad'] ?? ('g' . (($asset->id % 8) + 1));
                                     @endphp
                                     <div class="fq-ph">
-                                        <div class="fq-thumb {{ $grad }}">
+                                        @if(!empty($duplicateIds[$asset->id]))
+                                            <button type="button" wire:click="selectAsset({{ $asset->id }})" title="Possible duplicate of an existing asset" style="position:absolute;top:4px;left:4px;z-index:2;background:#d97706;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;border:none;cursor:pointer">Possible duplicate</button>
+                                        @endif
+                                        <div class="fq-thumb {{ $grad }}" @if($asset->thumbUrl()) style="background-image: url('{{ $asset->thumbUrl() }}'); background-size: cover; background-position: center;" @endif>
                                             <svg class="ph" viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
                                                 <rect x="3" y="3" width="18" height="18" rx="2"/>
                                                 <circle cx="8.5" cy="8.5" r="1.5"/>
@@ -328,7 +304,7 @@ class="relative">
                              style="--r: {{ $r }};"
                              title="{{ $asset->caption ?: $asset->title }}">
                             
-                            <div class="dam-thumb {{ $grad }}">
+                            <div class="dam-thumb {{ $grad }}" @if($asset->thumbUrl()) style="background-image: url('{{ $asset->thumbUrl() }}'); background-size: cover; background-position: center;" @endif>
                                 <svg class="ph" viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
                                     <rect x="3" y="3" width="18" height="18" rx="2"/>
                                     <circle cx="8.5" cy="8.5" r="1.5"/>
@@ -376,7 +352,7 @@ class="relative">
                                      class="dam-item in-stack"
                                      style="--r: {{ $childR }};"
                                      title="{{ $asset->caption }} — frame {{ $frame }} (Click to set as cover)">
-                                    <div class="dam-thumb {{ $childGrad }}">
+                                    <div class="dam-thumb {{ $childGrad }}" @if($asset->thumbUrl()) style="background-image: url('{{ $asset->thumbUrl() }}'); background-size: cover; background-position: center;" @endif>
                                         <svg class="ph" viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
                                             <rect x="3" y="3" width="18" height="18" rx="2"/>
                                             <circle cx="8.5" cy="8.5" r="1.5"/>
@@ -466,6 +442,10 @@ class="relative">
                             <label class="f-label">Location</label>
                             <input wire:model.defer="inspLocation" class="f-inp" id="iLoc">
                         </div>
+                        <div class="f-group">
+                            <label class="f-label">Embargo until (client hold)</label>
+                            <input type="datetime-local" wire:model.defer="inspEmbargo" class="f-inp" id="iEmbargo">
+                        </div>
                     </div>
 
                     <div class="f-group">
@@ -506,13 +486,9 @@ class="relative">
                                 {{ $selected->download_count }} downloads <span>all time</span>
                             </div>
                             @php
-                                $clientsList = [
-                                    ['Daily Star', round($selected->download_count * 0.4)],
-                                    ['Prothom Alo', round($selected->download_count * 0.3)],
-                                    ['bdnews24', round($selected->download_count * 0.2)],
-                                ];
+                                $clientsList = $clientUsage;
                             @endphp
-                            @if($selected->download_count > 0)
+                            @if(count($clientUsage) > 0)
                                 @foreach($clientsList as $c)
                                     @if($c[1] > 0)
                                         <div class="client-row">
@@ -527,14 +503,30 @@ class="relative">
                         </div>
                     </div>
 
+                    <div class="f-group">
+                        <label class="f-label">AI suggestions</label>
+                        <button type="button" wire:click="suggestAiMetadata" class="btn btn-outline btn-sm" id="iAiSuggest" wire:loading.attr="disabled">Suggest with AI</button>
+                        @if(count($aiSuggestions))
+                            <div style="margin-top:8px;font-size:12px">
+                                @if(!empty($aiSuggestions['caption']))
+                                    <div><b>Caption:</b> {{ $aiSuggestions['caption'] }} <button type="button" class="aid-use" wire:click="applyAiSuggestion('caption')">Use</button></div>
+                                @endif
+                                @if(!empty($aiSuggestions['tags']))
+                                    <div style="margin-top:6px"><b>Tags:</b> @foreach($aiSuggestions['tags'] as $t)<span class="tag-chip" style="cursor:default">#{{ $t }}</span> @endforeach <button type="button" class="aid-use" wire:click="applyAiSuggestion('tags')">Use</button></div>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+
                     <div class="insp-actions">
                         @if($selected->status === 'field' || !$selected->approved_at)
                             <button wire:click="approveInspected" class="btn btn-navy" id="iApprove">
                                 ✓ Approve → library
                             </button>
                         @endif
-                        <button wire:click="saveAssetMetadata" class="btn btn-primary" id="iSave">
-                            Save changes
+                        <button wire:click="saveAssetMetadata" class="btn btn-primary" id="iSave" wire:loading.attr="disabled">
+                          <span wire:loading.remove wire:target="saveAssetMetadata">Save changes</span>
+                          <span wire:loading wire:target="saveAssetMetadata">Saving…</span>
                         </button>
                     </div>
                 </div>

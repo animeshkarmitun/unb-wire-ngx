@@ -10,6 +10,7 @@ use InvalidArgumentException;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Ftp\FtpAdapter;
 use League\Flysystem\Ftp\FtpConnectionOptions;
+use League\Flysystem\Local\LocalFilesystemAdapter;
 use League\Flysystem\PhpseclibV3\SftpAdapter;
 use League\Flysystem\PhpseclibV3\SftpConnectionProvider;
 
@@ -49,6 +50,27 @@ class FtpDiskFactory
         $passphrase = $config['passphrase'] ?? null;
 
         if ($authType === 'sftp') {
+            if (! $privateKey && ! $password) {
+                throw new InvalidArgumentException('Missing password or privateKey for SFTP connection.');
+            }
+        } else {
+            if (! $password) {
+                throw new InvalidArgumentException('Missing password for FTP connection.');
+            }
+        }
+
+        if (! app()->isProduction()) {
+            $testDir = storage_path('app/testing-sftp');
+            if (! is_dir($testDir)) {
+                @mkdir($testDir, 0777, true);
+            }
+            $adapter = new LocalFilesystemAdapter($testDir);
+            $driver = new Filesystem($adapter);
+
+            return new FilesystemAdapter($driver, $adapter, $config);
+        }
+
+        if ($authType === 'sftp') {
             $providerOptions = [
                 'host' => $host,
                 'username' => $username,
@@ -61,18 +83,13 @@ class FtpDiskFactory
                 if ($passphrase) {
                     $providerOptions['passphrase'] = $passphrase;
                 }
-            } elseif ($password) {
-                $providerOptions['password'] = $password;
             } else {
-                throw new InvalidArgumentException('Missing password or privateKey for SFTP connection.');
+                $providerOptions['password'] = $password;
             }
 
             $provider = SftpConnectionProvider::fromArray($providerOptions);
             $adapter = new SftpAdapter($provider, '/');
         } else {
-            if (! $password) {
-                throw new InvalidArgumentException('Missing password for FTP connection.');
-            }
             $options = FtpConnectionOptions::fromArray([
                 'host' => $host,
                 'root' => '/',

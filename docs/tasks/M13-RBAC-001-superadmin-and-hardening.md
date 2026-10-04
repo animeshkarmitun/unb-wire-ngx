@@ -1,6 +1,6 @@
 # Task: M13-RBAC — Superadmin + RBAC Hardening
 
-**Status:** ⏳ Pending
+**Status:** ✅ Completed
 **Dependencies:** None
 **Parent ADR:** N/A — RBAC hardening + superadmin concept
 
@@ -209,10 +209,10 @@ if ($adminRole) {
 
 ## 6. Completion Notes
 
-- **Shipped:**
-- **Tests:**
-- **Live Smoke:**
-- **Review:**
+- **Shipped:** 2026-09-13
+- **Tests:** 12 SuperadminTest + 16 RbacEndpointTest pass
+- **Live Smoke:** verified superadmin bypass, locked role protection, last-superadmin guard
+- **Review:** self-reviewed
 
 ---
 

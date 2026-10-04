@@ -241,7 +241,7 @@
   <div class="media-overlay" id="aiGateOverlay" wire:ignore>
     <div class="modal ai-gate">
       <h3>✦ AI Human Review Checklist</h3>
-      <div class="g-sub">This story includes AI-generated or assisted content. Verify accuracy before wire broadcast (<span id="gateFacts">0 facts flagged</span>).</div>
+      <div class="g-sub">This story includes AI-generated or assisted content. Verify accuracy before wire broadcast (<span id="gateFacts">{{ count($aiPack['new_facts'] ?? []) }} facts flagged</span>).</div>
       <label class="g-check"><input type="checkbox" class="gate-check"> <span><b>Headline checked:</b> Accurate, tone compliant, no hallucinated quotes.</span></label>
       <label class="g-check"><input type="checkbox" class="gate-check"> <span><b>Facts &amp; figures confirmed:</b> All numbers and names match source notes.</span></label>
       <label class="g-check"><input type="checkbox" class="gate-check"> <span><b>Category &amp; tags verified:</b> Correct taxonomy for wire routing.</span></label>

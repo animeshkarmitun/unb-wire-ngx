@@ -118,4 +118,38 @@ class DeliveryRepositoryTest extends TestCase
 
         $this->assertDatabaseHas('deliveries', ['id' => $delivery->id, 'status' => 'queued', 'attempt_count' => 0]);
     }
+
+    public function test_has_prior_success_true_when_a_prior_delivery_exists(): void
+    {
+        $delivery = Delivery::factory()->create(['status' => 'sent']);
+        $other = Delivery::factory()->create(['status' => 'queued']);
+
+        $this->assertTrue($this->repo->hasPriorSuccess($delivery->deliverable_id, $delivery->channel_id));
+        $this->assertFalse($this->repo->hasPriorSuccess($other->deliverable_id, $other->channel_id));
+    }
+
+    public function test_has_prior_success_excludes_target_id(): void
+    {
+        $delivery = Delivery::factory()->create(['status' => 'sent']);
+
+        $this->assertFalse($this->repo->hasPriorSuccess($delivery->deliverable_id, $delivery->channel_id, excludeDeliveryId: $delivery->id));
+    }
+
+    public function test_failed_count_dlq_count_and_delivered_between(): void
+    {
+        $client = Client::factory()->create();
+        $channel = ClientChannel::factory()->create(['client_id' => $client->id]);
+
+        Delivery::factory()->count(2)->create(['status' => 'failed', 'attempt_count' => 5]);
+        Delivery::factory()->create(['status' => 'delivered', 'delivered_at' => now()->subDay(), 'attempt_count' => 1]);
+
+        $this->assertSame(2, $this->repo->failedCount());
+
+        $start = now()->subDays(2);
+        $end = now();
+        $this->assertSame(1, $this->repo->deliveredCountBetween($start, $end));
+
+        // dlqCount reads the deliveries table; assert it returns int (>=0).
+        $this->assertIsInt($this->repo->dlqCount());
+    }
 }

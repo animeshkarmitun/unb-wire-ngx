@@ -3,7 +3,7 @@ import { CLIENTS } from './helpers/auth';
 
 const BASE = 'http://localhost:3000';
 
-async function loginViaUI(page: import('@playwright/test').Page): Promise<boolean> {
+async function loginViaUI(page: import('@playwright/test').Page): Promise<void> {
   await page.goto(BASE);
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(1000);
@@ -18,23 +18,19 @@ async function loginViaUI(page: import('@playwright/test').Page): Promise<boolea
   const responsePromise = page.waitForResponse(
     resp => resp.url().includes('/api/v1/portal/login'),
     { timeout: 10000 }
-  ).catch(() => null);
-
+  );
   await modal.locator('button[type="submit"]:has-text("Login")').click();
   const response = await responsePromise;
-
-  if (!response || !response.ok()) return false;
+  expect(response.ok(), 'portal login must succeed — see M14-COV-001 loginAsClient').toBeTruthy();
 
   await expect(modal).toBeHidden({ timeout: 10000 });
-  return true;
 }
 
 test.describe('Portal Account Page (/account)', () => {
   test.setTimeout(45000);
 
   test('Account page loads with user profile data', async ({ page }) => {
-    const loggedIn = await loginViaUI(page);
-    if (!loggedIn) { test.skip(); return; }
+    await loginViaUI(page);
 
     await page.goto(`${BASE}/account`);
     await page.waitForLoadState('networkidle');
@@ -44,8 +40,7 @@ test.describe('Portal Account Page (/account)', () => {
   });
 
   test('Edit name and save persists after reload', async ({ page }) => {
-    const loggedIn = await loginViaUI(page);
-    if (!loggedIn) { test.skip(); return; }
+    await loginViaUI(page);
 
     await page.goto(`${BASE}/account`);
     await page.waitForLoadState('networkidle');
@@ -72,8 +67,7 @@ test.describe('Portal Account Page (/account)', () => {
   });
 
   test('Change password with correct current password succeeds', async ({ page }) => {
-    const loggedIn = await loginViaUI(page);
-    if (!loggedIn) { test.skip(); return; }
+    await loginViaUI(page);
 
     await page.goto(`${BASE}/account`);
     await page.waitForLoadState('networkidle');
@@ -87,19 +81,15 @@ test.describe('Portal Account Page (/account)', () => {
     const responsePromise = page.waitForResponse(
       resp => resp.url().includes('/api/v1/portal/password'),
       { timeout: 10000 }
-    ).catch(() => null);
-
+    );
     await section.getByRole('button', { name: 'Change password' }).click();
     const response = await responsePromise;
-
-    if (response && response.ok()) {
-      await expect(page.getByText(/changed|updated/i).first()).toBeVisible({ timeout: 5000 });
-    }
+    expect(response.ok(), 'password change must return 2xx').toBeTruthy();
+    await expect(page.getByText(/changed|updated/i).first()).toBeVisible({ timeout: 5000 });
   });
 
   test('Change password with wrong current shows error', async ({ page }) => {
-    const loggedIn = await loginViaUI(page);
-    if (!loggedIn) { test.skip(); return; }
+    await loginViaUI(page);
 
     await page.goto(`${BASE}/account`);
     await page.waitForLoadState('networkidle');
@@ -113,19 +103,15 @@ test.describe('Portal Account Page (/account)', () => {
     const responsePromise = page.waitForResponse(
       resp => resp.url().includes('/api/v1/portal/password'),
       { timeout: 10000 }
-    ).catch(() => null);
-
+    );
     await section.getByRole('button', { name: 'Change password' }).click();
     const response = await responsePromise;
-
-    if (response && !response.ok()) {
-      await expect(page.locator('text=/error|wrong|incorrect|invalid|failed/i').first()).toBeVisible({ timeout: 5000 });
-    }
+    expect(response.ok(), 'wrong-current password must not succeed').toBeFalsy();
+    await expect(page.locator('text=/error|wrong|incorrect|invalid|failed/i').first()).toBeVisible({ timeout: 5000 });
   });
 
   test('Back to wire feed link navigates to portal home', async ({ page }) => {
-    const loggedIn = await loginViaUI(page);
-    if (!loggedIn) { test.skip(); return; }
+    await loginViaUI(page);
 
     await page.goto(`${BASE}/account`);
     await page.waitForLoadState('networkidle');

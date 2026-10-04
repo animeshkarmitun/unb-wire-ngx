@@ -13,6 +13,7 @@ use App\Services\Search\TenantTokenIssuer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -63,7 +64,8 @@ class PortalController extends Controller
             }
             if ($request->filled('search')) {
                 $term = '%'.$request->query('search').'%';
-                $q->where(fn ($sub) => $sub->where('headline', 'ilike', $term)->orWhere('brief', 'ilike', $term));
+                $operator = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+                $q->where(fn ($sub) => $sub->where('headline', $operator, $term)->orWhere('brief', $operator, $term));
             }
             $limit = min(100, max(1, (int) $request->query('limit', 50)));
 
@@ -180,15 +182,15 @@ class PortalController extends Controller
             'status' => $s->status,
             'is_breaking' => (bool) $s->is_breaking,
             'tags' => $s->tags->pluck('name')->values()->all(),
-            'caps' => $s->media->pluck('caption')->filter()->values()->all(),
-            'media' => $s->media->map(fn ($m) => [
+            'caps' => $s->media->reject(fn ($m) => $m->isEmbargoed())->pluck('caption')->filter()->values()->all(),
+            'media' => $s->media->reject(fn ($m) => $m->isEmbargoed())->values()->map(fn ($m) => [
                 'id' => $m->id,
                 'public_id' => $m->public_id,
                 'caption' => $m->caption ?: $m->title,
                 'kind' => $m->kind,
                 'credit' => $m->credit ?? 'UNB',
             ])->values()->all(),
-            'has_video' => $s->media->where('kind', 'video')->isNotEmpty(),
+            'has_video' => $s->media->reject(fn ($m) => $m->isEmbargoed())->where('kind', 'video')->isNotEmpty(),
         ];
     }
 }

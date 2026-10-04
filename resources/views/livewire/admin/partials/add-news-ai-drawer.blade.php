@@ -69,6 +69,28 @@
             </div>
           </div>
         @endif
+
+        @if(!empty($aiPack['style_lint']))
+          <div class="aid-card" id="aidStyleLint" style="border-color:#d97706;background:#fffbeb">
+            <div class="aid-card-t" style="color:#92400e">Style lint — {{ count($aiPack['style_lint']) }} issue(s)</div>
+            <ul style="margin:6px 0 0 16px;font-size:12px;color:#92400e">
+              @foreach($aiPack['style_lint'] as $v)
+                <li>[{{ $v['severity'] }}] {{ $v['message'] }}</li>
+              @endforeach
+            </ul>
+          </div>
+        @endif
+
+        @if(!empty($aiPack['new_facts']))
+          <div class="aid-card" id="aidNewFacts" style="border-color:#d97706;background:#fffbeb">
+            <div class="aid-card-t" style="color:#92400e">{{ count($aiPack['new_facts']) }} new facts — verify before use</div>
+            <ul style="margin:6px 0 0 16px;font-size:12px;color:#92400e">
+              @foreach($aiPack['new_facts'] as $f)
+                <li>{{ $f }}</li>
+              @endforeach
+            </ul>
+          </div>
+        @endif
       @endif
     </div>
     <div class="aid-foot">

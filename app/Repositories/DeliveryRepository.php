@@ -11,7 +11,7 @@ class DeliveryRepository
 {
     // ─── Read Methods ───────────────────────────────────────────
 
-    public function paginateWithFilters(string $status, string $search, int $perPage = 20): LengthAwarePaginator
+    public function paginateWithFilters(string $status, string $search, ?int $clientId = null, ?string $channelType = null, ?string $dateFrom = null, ?string $dateTo = null, int $perPage = 20): LengthAwarePaginator
     {
         $q = Delivery::with(['client', 'channel'])->orderByDesc('created_at');
         if ($status !== 'all') {
@@ -20,8 +20,34 @@ class DeliveryRepository
         if ($search !== '') {
             $q->where('payload_hash', 'like', '%'.$search.'%');
         }
+        if ($clientId) {
+            $q->where('client_id', $clientId);
+        }
+        if ($channelType && $channelType !== 'all') {
+            $q->whereHas('channel', fn ($c) => $c->where('type', $channelType));
+        }
+        if ($dateFrom) {
+            $q->where('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $q->where('created_at', '<=', $dateTo);
+        }
 
         return $q->paginate($perPage);
+    }
+
+    public function hasPriorSuccess(int $storyId, int $channelId, ?int $excludeDeliveryId = null): bool
+    {
+        $q = DB::table('deliveries')
+            ->where('deliverable_type', 'story')
+            ->where('deliverable_id', $storyId)
+            ->where('channel_id', $channelId)
+            ->whereIn('status', ['sent', 'delivered']);
+        if ($excludeDeliveryId !== null) {
+            $q->where('id', '!=', $excludeDeliveryId);
+        }
+
+        return $q->exists();
     }
 
     public function getDistributionCounts(): array

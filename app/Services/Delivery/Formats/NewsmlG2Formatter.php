@@ -25,7 +25,7 @@ class NewsmlG2Formatter
         $xml .= '    <language tag="'.htmlspecialchars($story->language ?? 'en').'"/>'."\n";
         $xml .= '    <headline>'.htmlspecialchars($story->headline ?? '').'</headline>'."\n";
         if ($story->media) {
-            foreach ($story->media as $media) {
+            foreach ($story->media->reject(fn ($m) => $m->isEmbargoed()) as $media) {
                 $xml .= '    <link rel="irel:associatedMedia" residref="urn:newsml:unb.news.media:'.htmlspecialchars($media->public_id ?? '').'">'."\n";
                 $xml .= '      <title>'.htmlspecialchars($media->caption ?: ($media->title ?? '')).'</title>'."\n";
                 $xml .= '    </link>'."\n";

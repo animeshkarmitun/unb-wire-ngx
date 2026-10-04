@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { execSync } from 'child_process';
 
+const THROWAWAY_EMAIL = `throwaway-editor-${Date.now()}@unbnews.org`;
+
 test.describe('Roles & Access Manager Faithful (M8-ROLE-001)', () => {
-  test.beforeAll(async () => {
-    try {
-      execSync('php artisan db:seed --class=RoleSeeder && php artisan db:seed --class=UserSeeder', { stdio: 'ignore' });
-    } catch (_) {}
+  test.beforeAll(() => {
+    execSync(`php tests/e2e/helpers/seed-data.php create-throwaway-user ${THROWAWAY_EMAIL}`, { stdio: 'inherit' });
   });
 
   test.beforeEach(async ({ page }) => {
@@ -175,19 +175,16 @@ test.describe('Roles & Access Manager Faithful (M8-ROLE-001)', () => {
     await page.locator('.pg-tab', { hasText: 'People' }).click();
     await expect(page.locator('#ppList')).toBeVisible();
 
-    // Find Shohel Ahmed's row
-    const shohelRow = page.locator('.pp-row', { hasText: 'Shohel Ahmed' }).first();
-    await expect(shohelRow).toBeVisible();
+    const targetRow = page.locator('.pp-row', { hasText: 'Throwaway E2E User' }).first();
+    await expect(targetRow).toBeVisible();
 
-    // Deactivate
-    await shohelRow.getByRole('button', { name: 'Deactivate' }).click();
-    await expect(shohelRow.locator('.pp-status')).toContainText('deactivated');
-    await expect(shohelRow.getByRole('button', { name: 'Reactivate' })).toBeVisible();
+    await targetRow.getByRole('button', { name: 'Deactivate' }).click();
+    await expect(targetRow.locator('.pp-status')).toContainText('deactivated');
+    await expect(targetRow.getByRole('button', { name: 'Reactivate' })).toBeVisible();
 
-    // Reactivate
-    await shohelRow.getByRole('button', { name: 'Reactivate' }).click();
-    await expect(shohelRow.locator('.pp-status')).toContainText('active');
-    await expect(shohelRow.getByRole('button', { name: 'Deactivate' })).toBeVisible();
+    await targetRow.getByRole('button', { name: 'Reactivate' }).click();
+    await expect(targetRow.locator('.pp-status')).toContainText('active');
+    await expect(targetRow.getByRole('button', { name: 'Deactivate' })).toBeVisible();
   });
 
   test('Invite team member modal validates, cancels, and submits invite', async ({ page }) => {
