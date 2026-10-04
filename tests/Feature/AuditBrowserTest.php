@@ -5,9 +5,9 @@ namespace Tests\Feature;
 use App\Livewire\Admin\AuditLogBrowser;
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Support\Str;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Tests\TestCase;
 
