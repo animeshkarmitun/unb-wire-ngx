@@ -1,10 +1,20 @@
 import { test, expect } from '@playwright/test';
+import { execSync } from 'child_process';
 import { loginAs } from './helpers/auth';
+import { execSync } from 'child_process';
 
 const BASE = 'http://localhost:8000';
+const THROWAWAY_PORTAL_EMAIL = `throwaway-portal-${Date.now()}@unbnews.org`;
 
 test.describe('Admin Portal Users (M12-PROFILE-005)', () => {
   test.setTimeout(60000);
+
+  test.beforeAll(() => {
+    execSync(
+      `php tests/e2e/helpers/seed-data.php create-throwaway-portal-user ${THROWAWAY_PORTAL_EMAIL}`,
+      { stdio: 'inherit' }
+    );
+  });
 
   async function openDrawer(page: import('@playwright/test').Page) {
     await page.goto(`${BASE}/admin/clients`);
@@ -166,15 +176,14 @@ test.describe('Admin Portal Users (M12-PROFILE-005)', () => {
 
     const body = drawer.locator('#drBody');
 
-    // Find an active user's Deactivate button
-    const deactivateBtn = body.locator('button:has-text("Deactivate")').first();
+    const row = body.locator('.pp-row, li, tr').filter({ hasText: THROWAWAY_PORTAL_EMAIL }).first();
+    await expect(row).toBeVisible({ timeout: 5000 });
+    const deactivateBtn = row.locator('button:has-text("Deactivate")').first();
     await deactivateBtn.click();
     await page.waitForTimeout(2000);
 
-    // Status badge should show Deactivated
     await expect(body.locator('span:has-text("Deactivated")').first()).toBeVisible({ timeout: 5000 });
 
-    // Reactivate button should appear
     await expect(body.locator('button:has-text("Reactivate")').first()).toBeVisible();
   });
 
@@ -186,17 +195,16 @@ test.describe('Admin Portal Users (M12-PROFILE-005)', () => {
 
     const body = drawer.locator('#drBody');
 
-    // First deactivate a user
-    const deactivateBtn = body.locator('button:has-text("Deactivate")').first();
+    const row = body.locator('.pp-row, li, tr').filter({ hasText: THROWAWAY_PORTAL_EMAIL }).first();
+    await expect(row).toBeVisible({ timeout: 5000 });
+    const deactivateBtn = row.locator('button:has-text("Deactivate")').first();
     await deactivateBtn.click();
     await page.waitForTimeout(2000);
 
-    // Now reactivate
     const reactivateBtn = body.locator('button:has-text("Reactivate")').first();
     await reactivateBtn.click();
     await page.waitForTimeout(2000);
 
-    // Status badge should show Active
     await expect(body.locator('span:has-text("Active")').first()).toBeVisible({ timeout: 5000 });
   });
 
@@ -244,41 +252,32 @@ test.describe('Admin Portal Users (M12-PROFILE-005)', () => {
 
   // 11
   test('Change user role via dropdown shows toast', async ({ page }) => {
+    // Seed an active throwaway portal user so the role dropdown is guaranteed present.
+    const email = `e2e-role-change-${Date.now()}@unbnews.org`;
+    execSync(
+      `php tests/e2e/helpers/seed-data.php create-throwaway-portal-user ${email}`,
+      { stdio: 'inherit' }
+    );
+
     await loginAs(page, 'admin');
     const drawer = await openDrawer(page);
     await switchToPortalUsersTab(page, drawer);
 
     const body = drawer.locator('#drBody');
+    const roleDropdown = body.locator(`select:has(option:has-text("Change role"))`).filter({
+      has: page.locator('xpath=ancestor::tr[descendant::*[text()="' + email + '"]]'),
+    }).first();
+    await expect(roleDropdown).toBeVisible({ timeout: 10000 });
 
-    // Find the first role dropdown for an active user
-    const roleDropdown = body.locator('select:has(option:has-text("Change role"))').first();
-    const isVisible = await roleDropdown.isVisible().catch(() => false);
-
-    if (!isVisible) {
-      // No active user with role dropdown — skip gracefully
-      test.skip();
-      return;
-    }
-
-    // Select a different role (second option after "Change role…")
     const options = roleDropdown.locator('option:not([value=""])');
-    const optionCount = await options.count();
-    if (optionCount < 2) {
-      test.skip();
-      return;
-    }
-
-    // Pick the second role option
     const secondOptionValue = await options.nth(1).getAttribute('value');
-    if (secondOptionValue) {
-      await roleDropdown.selectOption(secondOptionValue);
-    }
+    expect(secondOptionValue).toBeTruthy();
+    await roleDropdown.selectOption(secondOptionValue);
 
-    await page.waitForTimeout(2000);
+    await page.waitForResponse((r) => r.url().includes('/livewire/update') && r.status() === 200);
 
-    // Toast should appear
-    const toast = page.locator('#toastWrap, [class*="toast"]').first();
-    await expect(toast).toBeVisible({ timeout: 5000 });
+    // Toast confirms the change.
+    await expect(page.locator('#toastWrap, [class*="toast"]').first()).toBeVisible({ timeout: 5000 });
   });
 
   // 12

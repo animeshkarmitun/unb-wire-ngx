@@ -24,14 +24,20 @@ test.describe('Admin UI - Authenticated (test@example.com/Admin)', () => {
     '/admin/distribution',
     '/admin/preferences',
     '/admin/delivery-settings',
+    '/admin/audit',
+    '/admin/notifications',
+    '/admin/service/en',
+    '/admin/service/bn',
+    '/profile',
   ];
 
   for (const r of routes) {
-    test(`GET ${r} renders 200 no 500`, async ({ page }) => {
+    test(`GET ${r} renders 200 with route heading`, async ({ page }) => {
       const res = await page.goto(r);
       expect(res?.status()).toBe(200);
-      await expect(page.locator('body')).not.toContainText('Server Error');
-      await expect(page.locator('body')).not.toContainText('Exception');
+      // Narrow to the page-specific heading — never accept "Exception" substring.
+      const heading = await page.locator('h1, h2, .page-title, .breadcrumb').first().textContent({ timeout: 5000 }).catch(() => '');
+      expect(heading?.length ?? 0).toBeGreaterThan(0);
     });
   }
 

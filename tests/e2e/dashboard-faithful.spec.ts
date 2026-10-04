@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { execSync } from 'child_process';
 
 test.describe('Dashboard Faithful (M8-DASH-001)', () => {
   test.beforeEach(async ({ page }) => {
@@ -64,15 +65,21 @@ test.describe('Dashboard Faithful (M8-DASH-001)', () => {
   });
 
   test('Recent stories table allows navigating to individual story reader', async ({ page }) => {
+    // Seed a story so the table is not empty.
+    const seedId = `e2e-dash-${Date.now()}`;
+    execSync(
+      `php artisan tinker --execute="\\$u = \\App\\Models\\User::first(); \\$c = \\App\\Models\\Category::first(); \\$s = app(\\App\\Services\\StoryService::class)->createDraft(['language' => 'en', 'headline' => '${seedId}', 'brief' => 'b', 'body_html' => '<p>x</p>', 'category_id' => \\$c->id], \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'in_review', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'approved', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'published', \\$u); echo \\$s->public_id;"`,
+      { stdio: 'pipe' }
+    );
+
     await page.goto('/admin');
-    
+
     const storyLinks = page.locator('section a[href*="/admin/story/"]');
-    if (await storyLinks.count() > 0) {
-      const firstLink = storyLinks.first();
-      await firstLink.click();
-      await page.waitForURL('**/admin/story/**', { timeout: 8000 });
-      expect(page.url()).toContain('/admin/story/');
-    }
+    await expect(storyLinks.first()).toBeVisible({ timeout: 10000 });
+    const firstLink = storyLinks.first();
+    await firstLink.click();
+    await page.waitForURL('**/admin/story/**', { timeout: 8000 });
+    expect(page.url()).toContain('/admin/story/');
   });
 
   test('Download FAB is visible and interactive', async ({ page }) => {

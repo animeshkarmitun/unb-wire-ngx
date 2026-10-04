@@ -387,7 +387,7 @@ test.describe('Add News Wizard — Full Rebuilt Flow & Interaction Contracts', (
     await page.goto('/admin/add-news');
     await page.waitForLoadState('networkidle');
 
-    const testHead = 'National Board of Revenue integrates digital tax system across all zones';
+    const testHead = `E2E Wizard ${Date.now()} — NBR digital tax integration`;
     const testBrief = 'Automated income tax filing system aims for 10 million registered taxpayers.';
     await page.fill('#headlineInput', testHead);
     await page.fill('#briefInput', testBrief);
