@@ -4,10 +4,13 @@ namespace Tests\Feature\Services;
 
 use App\Models\Category;
 use App\Models\Client;
+use App\Models\ClientPackage;
+use App\Models\Package;
 use App\Models\Story;
 use App\Models\User;
 use App\Services\Download\DownloadGateService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class DownloadGateServiceTest extends TestCase
@@ -25,6 +28,22 @@ class DownloadGateServiceTest extends TestCase
         parent::setUp();
         $this->svc = app(DownloadGateService::class);
         $this->client = Client::factory()->create();
+        $pkg = Package::create([
+            'code' => 'PKG-'.Str::random(6),
+            'name' => 'open',
+            'kind' => 'news',
+            'entitlement_filter' => ['languages' => ['en']],
+            'price_monthly' => 0,
+            'status' => 'active',
+        ]);
+        ClientPackage::create([
+            'client_id' => $this->client->id,
+            'package_id' => $pkg->id,
+            'status' => 'active',
+            'starts_at' => now()->subDay(),
+            'ends_at' => now()->addDay(),
+        ]);
+
         $cat = Category::factory()->create();
         $user = User::factory()->create();
         $this->story = Story::factory()->create([

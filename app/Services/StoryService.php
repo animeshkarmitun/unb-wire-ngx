@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Console\Scheduling\LiftEmbargoedStories;
 use App\Events\StoryPublished;
 use App\Jobs\FanoutStory;
 use App\Jobs\GenerateEnTags;
@@ -9,7 +10,6 @@ use App\Models\Story;
 use App\Models\StoryNote;
 use App\Models\User;
 use App\Repositories\AuditLogRepository;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -201,7 +201,7 @@ class StoryService
                 $story->id,
                 ['from' => $from, 'to' => $to],
             );
-            app(\App\Console\Scheduling\LiftEmbargoedStories::class)->invalidatePortalFeedCache();
+            app(LiftEmbargoedStories::class)->invalidatePortalFeedCache();
             if ($to === 'published') {
                 event(new StoryPublished($story));
 

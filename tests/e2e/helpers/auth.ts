@@ -33,35 +33,33 @@ export async function loginAsClient(page: Page, clientType: ClientType) {
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(1500);
 
-  // Click Login button to open the modal
   const loginBtn = page.locator('button:has-text("Login")').first();
   if (await loginBtn.isVisible().catch(() => false)) {
     await loginBtn.click();
     await page.waitForTimeout(500);
   }
 
-  // The modal has email/password form by default
   const emailInput = page.locator('input[type="email"]').first();
   await emailInput.fill(client.email);
 
   const pwInput = page.locator('input[type="password"]').first();
   await pwInput.fill(client.password);
 
-  // Submit the form
   const submitBtn = page.locator('button[type="submit"]:has-text("Login")').first();
   await submitBtn.click();
 
-  // Wait for login to complete — modal should close
-  await page.waitForTimeout(3000);
+  await page.waitForFunction(
+    () => sessionStorage.getItem('unb_portal_token') !== null,
+    null,
+    { timeout: 15000 }
+  ).catch(() => null);
 
-  // Verify token was stored
   const hasToken = await page.evaluate(() => {
     return sessionStorage.getItem('unb_portal_token') !== null;
   }).catch(() => false);
 
   if (!hasToken) {
-    // If token not stored, wait a bit more for API response
-    await page.waitForTimeout(2000);
+    throw new Error(`loginAsClient(${clientType}) failed: portal token missing in sessionStorage`);
   }
 }
 

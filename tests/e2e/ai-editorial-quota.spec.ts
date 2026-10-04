@@ -4,10 +4,12 @@ import { execSync } from 'child_process';
 
 test.describe('AI Editorial Assistant, Token Quota & Guardrail Flow (M8-AI)', () => {
   test.beforeEach(async ({ page }) => {
-    try {
-      execSync('php tests/e2e/helpers/seed-data.php ai', { stdio: 'ignore' });
-    } catch (_) {}
+    execSync('php tests/e2e/helpers/seed-data.php ai', { stdio: 'inherit' });
     await loginAs(page, 'admin');
+  });
+
+  test.afterEach(async () => {
+    execSync('php tests/e2e/helpers/seed-data.php ai', { stdio: 'inherit' });
   });
 
   test('Start with AI generation in Add News drafts headline, brief, category, and tags into suggestion drawer', async ({ page }) => {
@@ -131,7 +133,7 @@ test.describe('AI Editorial Assistant, Token Quota & Guardrail Flow (M8-AI)', ()
 
   test('AI kill switch blocks generation requests with clear notice', async ({ page }) => {
     // Enable AI kill switch via tinker
-    execSync('php artisan tinker --execute="\\Illuminate\\Support\\Facades\\DB::table(\'settings\')->updateOrInsert([\'key\' => \'ai.desk\'], [\'value\' => json_encode([\'killed\' => true])]);"', { stdio: 'ignore' });
+    execSync('php artisan tinker --execute="\\Illuminate\\Support\\Facades\\DB::table(\'settings\')->updateOrInsert([\'key\' => \'ai.desk\'], [\'value\' => json_encode([\'killed\' => true])]);"', { stdio: 'inherit' });
 
     await page.goto('/admin/add-news');
     await page.waitForLoadState('networkidle');
@@ -141,8 +143,5 @@ test.describe('AI Editorial Assistant, Token Quota & Guardrail Flow (M8-AI)', ()
 
     // Clean error notification
     await expect(page.getByText(/kill switch is ON/i)).toBeVisible({ timeout: 5000 });
-
-    // Restore settings
-    execSync('php tests/e2e/helpers/seed-data.php ai', { stdio: 'ignore' });
   });
 });

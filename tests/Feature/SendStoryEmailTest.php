@@ -5,9 +5,12 @@ namespace Tests\Feature;
 use App\Jobs\SendStoryEmail;
 use App\Mail\StoryAlert;
 use App\Models\Client;
+use App\Models\ClientPackage;
+use App\Models\Package;
 use App\Models\Story;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class SendStoryEmailTest extends TestCase
@@ -16,13 +19,31 @@ class SendStoryEmailTest extends TestCase
 
     private function createClientWithEmailPrefs(array $emailPrefs): Client
     {
-        return Client::factory()->create([
+        $client = Client::factory()->create([
             'notes' => json_encode([
                 'channels' => [
                     'email' => $emailPrefs,
                 ],
             ]),
         ]);
+
+        $pkg = Package::create([
+            'code' => 'PKG-EMAIL-'.Str::random(6),
+            'name' => 'Email Open',
+            'kind' => 'news',
+            'entitlement_filter' => ['languages' => ['en', 'bn']],
+            'price_monthly' => 0,
+            'status' => 'active',
+        ]);
+        ClientPackage::create([
+            'client_id' => $client->id,
+            'package_id' => $pkg->id,
+            'status' => 'active',
+            'starts_at' => now()->subDay(),
+            'ends_at' => now()->addDay(),
+        ]);
+
+        return $client;
     }
 
     public function test_emails_sent_to_all_recipients_when_alerts_match()

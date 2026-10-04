@@ -2,15 +2,24 @@
 
 namespace Tests\Feature;
 
+use App\Console\Scheduling\LiftEmbargoedStories;
+use App\Console\Scheduling\PruneUploadSessions;
+use App\Console\Scheduling\SweepArchivedStories;
+use App\Jobs\FanoutStory;
+use App\Jobs\ProcessIndexOutbox;
 use App\Models\Category;
 use App\Models\Client;
 use App\Models\MediaAsset;
 use App\Models\Story;
+use App\Models\UploadSession;
 use App\Models\User;
 use App\Services\ApiKeyService;
 use App\Services\Media\PresignedUrlService;
 use App\Services\StoryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
@@ -87,5 +96,125 @@ class SchedulerAndMiddlewareTest extends TestCase
         app(PresignedUrlService::class)->recordDownload($a, $client->id, null, 'original');
         $this->assertDatabaseHas('downloads', ['item_id' => $a->id, 'format' => 'original']);
         $this->assertEquals(1, $a->refresh()->download_count);
+    }
+
+    public function test_embargo_lift_runs_real_invokable_and_publishes(): void
+    {
+        Queue::fake();
+        $cat = Category::factory()->create();
+        $user = User::factory()->create();
+        $past = Story::factory()->create([
+            'status' => 'approved',
+            'category_id' => $cat->id,
+            'owner_id' => $user->id,
+            'created_by' => $user->id,
+            'embargo_until' => now()->subMinute(),
+        ]);
+        $future = Story::factory()->create([
+            'status' => 'approved',
+            'category_id' => $cat->id,
+            'owner_id' => $user->id,
+            'created_by' => $user->id,
+            'embargo_until' => now()->addHour(),
+        ]);
+
+        $lifted = app(LiftEmbargoedStories::class)->handle();
+
+        $this->assertContains($past->public_id, $lifted);
+        $this->assertNotContains($future->public_id, $lifted);
+        $this->assertEquals('published', $past->refresh()->status);
+        $this->assertNotNull($past->refresh()->published_at);
+        $this->assertEquals('approved', $future->refresh()->status);
+        $this->assertDatabaseHas('index_outbox', [
+            'index_name' => 'main',
+            'op' => 'upsert',
+            'document_id' => $past->public_id,
+        ]);
+        Queue::assertPushed(FanoutStory::class);
+        Queue::assertPushed(ProcessIndexOutbox::class);
+    }
+
+    public function test_embargo_lift_invalidates_real_feed_cache_keys(): void
+    {
+        $client = Client::factory()->create(['status' => 'active']);
+        $key = 'feed:v1:'.$client->id.':'.md5(url('/api/v1/feed'));
+        Cache::put($key, ['cached' => true], now()->addMinutes(5));
+        $this->assertTrue(Cache::has($key));
+
+        app(LiftEmbargoedStories::class)->invalidatePortalFeedCache();
+
+        $this->assertFalse(Cache::has($key));
+    }
+
+    public function test_archive_sweep_runs_real_invokable_and_archives_old_only(): void
+    {
+        Queue::fake();
+        $cat = Category::factory()->create();
+        $user = User::factory()->create();
+        $old = Story::factory()->create([
+            'status' => 'published',
+            'published_at' => now()->subMonths(13),
+            'category_id' => $cat->id,
+            'owner_id' => $user->id,
+            'created_by' => $user->id,
+        ]);
+        $recent = Story::factory()->create([
+            'status' => 'published',
+            'published_at' => now()->subDays(5),
+            'category_id' => $cat->id,
+            'owner_id' => $user->id,
+            'created_by' => $user->id,
+        ]);
+
+        $archived = app(SweepArchivedStories::class)->handle();
+
+        $this->assertContains($old->public_id, $archived);
+        $this->assertNotContains($recent->public_id, $archived);
+        $this->assertEquals('archived', $old->refresh()->status);
+        $this->assertEquals('published', $recent->refresh()->status);
+        $this->assertDatabaseHas('index_outbox', [
+            'index_name' => 'main',
+            'op' => 'delete',
+            'document_id' => $old->public_id,
+        ]);
+        $this->assertDatabaseHas('index_outbox', [
+            'index_name' => 'archive',
+            'op' => 'upsert',
+            'document_id' => $old->public_id,
+        ]);
+        Queue::assertPushed(ProcessIndexOutbox::class);
+    }
+
+    public function test_upload_janitor_deletes_only_expired_sessions(): void
+    {
+        $user = User::factory()->create();
+        UploadSession::create([
+            'id' => (string) Str::uuid(),
+            'user_id' => $user->id,
+            'kind' => 'photo',
+            'filename' => 'expired.bin',
+            'size_bytes' => 10,
+            'offset_bytes' => 0,
+            'status' => 'active',
+            'meta' => null,
+            'expires_at' => now()->subMinute(),
+        ]);
+        UploadSession::create([
+            'id' => (string) Str::uuid(),
+            'user_id' => $user->id,
+            'kind' => 'photo',
+            'filename' => 'live.bin',
+            'size_bytes' => 10,
+            'offset_bytes' => 0,
+            'status' => 'active',
+            'meta' => null,
+            'expires_at' => now()->addHour(),
+        ]);
+
+        $deleted = app(PruneUploadSessions::class)->handle();
+
+        $this->assertEquals(1, $deleted);
+        $this->assertEquals(1, DB::table('upload_sessions')->where('filename', 'live.bin')->count());
+        $this->assertEquals(0, DB::table('upload_sessions')->where('filename', 'expired.bin')->count());
     }
 }

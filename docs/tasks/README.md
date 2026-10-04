@@ -322,7 +322,46 @@
 
 ---
 
-## 20. How to Add a Task
+## 21. Coverage closure (`M14-COV`) — 2026-10-04
+
+> Closes `docs/testing-coverage-gaps.md`. Tests assert the domain contract (`docs/knowledge-inventory/domain.md`, DEC-007). If code fails the assertion, fix the code in that task — do not weaken the test. Out of scope: `FR-BIL` (not in the FRD), field PWAs (`DEC-008`), a global 85% coverage fail-gate.
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M14-COV-001` | E2E isolation harness (no shared-user clobber, seed failures fail, workers=2 safe) | — | ✅ | — | 2026-10-04 |
+| `M14-COV-002` | Run embargo-lift, archive-sweep, upload-janitor for real | — | ✅ | — | 2026-10-04 |
+| `M14-COV-003` | `delivery:process` + webhook non-2xx marks failed | — | ✅ | — | 2026-10-04 |
+| `M14-COV-004` | One entitlement compiler for fan-out, email, portal | — | ✅ | — | 2026-10-04 |
+| `M14-COV-005` | Kill/correction pipeline writes index delete + notices | — | ✅ | — | 2026-10-04 |
+| `M14-COV-006` | `ProcessIndexOutbox` delete + `monitor:outbox-lag` | `M14-COV-005` | ✅ | — | 2026-10-04 |
+| `M14-COV-007` | API key overlap expiry via time travel | — | ✅ | — | 2026-10-04 |
+| `M14-COV-008` | `OpenAiProvider` unit tests (`Http::fake`) | — | ✅ | — | 2026-10-04 |
+| `M14-COV-009` | Unit suite for pure rules + sanitizer bypasses | — | ✅ | — | 2026-10-04 |
+| `M14-COV-010` | Publish chain + stale-save 409 in one Feature test | — | ✅ | — | 2026-10-04 |
+| `M14-COV-011` | Download gate denial/ledger + presign TTL | — | ✅ | — | 2026-10-04 |
+| `M14-COV-012` | Thin service/repo surfaces | — | ✅ | — | 2026-10-04 |
+| `M14-COV-013` | Model invariant tests | — | ✅ | — | 2026-10-04 |
+| `M14-COV-014` | Form request + portal middleware negatives | — | ✅ | — | 2026-10-04 |
+| `M14-COV-015` | Honest Feature tests (no self-fulfilling asserts) | `M14-COV-002` | ✅ | — | 2026-10-04 |
+| `M14-COV-016` | CI coverage artifact (no global % fail-gate) | `M14-COV-009` | ✅ | — | 2026-10-04 |
+| `M14-COV-017` | E2E real editorial state machine | `M14-COV-001` | ✅ | — | 2026-10-04 |
+| `M14-COV-018` | E2E embargo then lift | `M14-COV-001`, `M14-COV-002` | ✅ | — | 2026-10-04 |
+| `M14-COV-019` | E2E kill, correction, unpublish | `M14-COV-001`, `M14-COV-005` | ⏳ | — | — |
+| `M14-COV-020` | E2E subscription expiry and overlap | `M14-COV-001`, `M14-COV-004` | ✅ | — | 2026-10-04 |
+| `M14-COV-021` | Portal e2e fail-closed (no mock pass, real `since`) | `M14-COV-001` | ⏳ | — | — |
+| `M14-COV-022` | E2E key rotation + delivery retry DB asserts | `M14-COV-001`, `M14-COV-003`, `M14-COV-007` | ⏳ | — | — |
+| `M14-COV-023` | E2E two-browser stale save 409 | `M14-COV-001` | ✅ | — | 2026-10-04 |
+| `M14-COV-024` | E2E Bangla publish; notes absent from client API | `M14-COV-001` | ✅ | — | 2026-10-04 |
+| `M14-COV-025` | E2E mutation asserts (clients, AP, bulk, roles) | `M14-COV-001` | ✅ | — | 2026-10-04 |
+| `M14-COV-026` | E2E auth edges, role matrix, portal reset, Tus | `M14-COV-001` | ⏳ | — | — |
+| `M14-COV-027` | E2E qualitative cleanup (waits, skips, brittle asserts) | `M14-COV-017` | ✅ | commit `65780c0` | 2026-10-04 |
+| `M14-COV-028` | Mark gap report closed | `M14-COV-001`…`027` | ✅ | — | 2026-10-04 |
+
+Build order: `002`–`015` can run in parallel with `001`. E2E tasks start after `001`. `028` last.
+
+---
+
+## 22. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.

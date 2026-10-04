@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\Story;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -86,7 +87,7 @@ class ProcessIndexOutbox implements ShouldQueue
         }
 
         try {
-            $oldestDt = \Illuminate\Support\Carbon::parse($oldest)->setTimezone('UTC');
+            $oldestDt = Carbon::parse($oldest)->setTimezone('UTC');
         } catch (\Throwable) {
             return 0;
         }

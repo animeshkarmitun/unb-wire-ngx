@@ -6,6 +6,7 @@ use App\Livewire\Admin\AuditLogBrowser;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -48,5 +49,51 @@ class AuditBrowserTest extends TestCase
             ->test(AuditLogBrowser::class)
             ->assertSee('All actions')
             ->assertSee('All types');
+    }
+
+    public function test_audit_browser_filter_excludes_non_matching_action(): void
+    {
+        // Seed one published + one handover audit row.
+        $actorId = $this->admin->id;
+        DB::table('audit_logs')->insert([
+            [
+                'actor_type' => 'user',
+                'actor_id' => $actorId,
+                'action' => 'handover',
+                'entity_type' => 'Story',
+                'entity_id' => 1,
+                'diff' => null,
+                'ip' => '127.0.0.1',
+                'user_agent' => 'Test',
+                'correlation_id' => '01TESTAUDITFILTER00001',
+                'created_at' => now(),
+            ],
+            [
+                'actor_type' => 'user',
+                'actor_id' => $actorId,
+                'action' => 'role.updated',
+                'entity_type' => 'Role',
+                'entity_id' => 2,
+                'diff' => null,
+                'ip' => '127.0.0.1',
+                'user_agent' => 'Test',
+                'correlation_id' => '01TESTAUDITFILTER00002',
+                'created_at' => now(),
+            ],
+        ]);
+
+        $component = Livewire::actingAs($this->admin)->test(AuditLogBrowser::class);
+
+        // The component initialises without a filter; both rows are present.
+        $this->assertGreaterThanOrEqual(2, $component->results->total());
+
+        $component->set('filterAction', 'handover');
+        $this->assertSame(1, $component->results->total());
+
+        $component->set('filterAction', 'role.updated');
+        $this->assertSame(1, $component->results->total());
+
+        $component->set('filterAction', 'no_such_action_xyzzy');
+        $this->assertSame(0, $component->results->total());
     }
 }
