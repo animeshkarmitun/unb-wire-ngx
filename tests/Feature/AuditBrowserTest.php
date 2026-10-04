@@ -66,7 +66,7 @@ class AuditBrowserTest extends TestCase
                 'diff' => null,
                 'ip' => '127.0.0.1',
                 'user_agent' => 'Test',
-                'correlation_id' => '01TESTAUDITFILTER00001',
+                'correlation_id' => (string) Str::uuid(),
                 'created_at' => now(),
             ],
             [
@@ -78,7 +78,7 @@ class AuditBrowserTest extends TestCase
                 'diff' => null,
                 'ip' => '127.0.0.1',
                 'user_agent' => 'Test',
-                'correlation_id' => '01TESTAUDITFILTER00002',
+                'correlation_id' => (string) Str::uuid(),
                 'created_at' => now(),
             ],
         ]);
