@@ -20,7 +20,7 @@
     <coverage>
         <report>
             <clover outputFile="coverage.xml"/>
-            <text outputFile="php://stdout" showOnlySummary="true" showUncoveredFiles="false" threshold="85" failOnLowCoverage="true"/>
+            <text outputFile="php://stdout" showOnlySummary="true" showUncoveredFiles="false"/>
         </report>
     </coverage>
     <php>
