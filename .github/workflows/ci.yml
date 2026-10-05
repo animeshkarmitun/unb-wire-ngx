@@ -74,6 +74,9 @@ jobs:
       - name: Test
         run: php artisan test --coverage-clover=coverage.xml
 
+      - name: Coverage threshold gate
+        run: php scripts/coverage-gate.php coverage.xml
+
       - name: Upload coverage artifact
         if: always()
         uses: actions/upload-artifact@v4
