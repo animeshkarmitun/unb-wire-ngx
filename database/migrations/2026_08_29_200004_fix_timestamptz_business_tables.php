@@ -14,10 +14,11 @@ return new class extends Migration
             DB::statement('ALTER TABLE password_reset_tokens ALTER COLUMN created_at TYPE timestamptz USING created_at::timestamptz');
         } catch (Throwable $e) {
         }
-        try {
-            DB::statement('ALTER TABLE failed_jobs ALTER COLUMN failed_at TYPE timestamptz USING to_timestamp(failed_at) WHERE false');
-        } catch (Throwable $e) {
-        }
+        // Both statements target failed_jobs.failed_at. The first is a no-op cast
+        // (Postgres will succeed when the column is already timestamptz); the second
+        // forces the cast when it is plain timestamp. The earlier 'USING
+        // to_timestamp(failed_at) WHERE false' was invalid Postgres syntax and
+        // aborted the whole migration.
         try {
             DB::statement('ALTER TABLE failed_jobs ALTER COLUMN failed_at TYPE timestamptz USING failed_at::timestamptz');
         } catch (Throwable $e) {

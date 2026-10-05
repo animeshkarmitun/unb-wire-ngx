@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { execSync } from 'child_process';
 import { loginAs } from './helpers/auth';
-import { execSync } from 'child_process';
 
 const BASE = 'http://localhost:8000';
 const THROWAWAY_PORTAL_EMAIL = `throwaway-portal-${Date.now()}@unbnews.org`;
