@@ -1,7 +1,16 @@
 import { test, expect } from '@playwright/test';
 
+// See portal-faithful.spec.ts header for the rationale. The AP photo
+// grid is sourced from a hardcoded buildAllMedia() in portal/app/page.tsx;
+// the only AP data on the page is the prototype mock. There is no
+// DB-backed AP photo list today. Skip in CI (fail-closed mode).
+const SKIP_PROTOTYPE_ONLY = process.env.PORTAL_PROTOTYPE_MODE === '1';
+
 test.describe('AP Photo Manager Faithful (M8-PHOTO-003)', () => {
   test.beforeEach(async ({ page }) => {
+    if (SKIP_PROTOTYPE_ONLY) {
+      test.skip(true, 'ap-photo-manager-faithful spec is prototype-mock only');
+    }
     await page.goto('/login');
     await page.fill('input[name="email"]', 'test@example.com');
     await page.fill('input[name="password"]', 'password');

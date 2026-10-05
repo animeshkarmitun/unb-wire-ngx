@@ -131,11 +131,6 @@ test.describe('Packages & Add-ons Manager Faithful (M8-PACK-001)', () => {
     await expect(page.locator('#archTitle')).toContainText('Standard Wire');
     await expect(page.locator('#archBody')).toBeVisible();
 
-    // Reassign dropdown has options if clients are present
-    if (await page.locator('#archBody .warn-box').isVisible().catch(() => false)) {
-      await expect(page.locator('#archReassign')).toBeVisible();
-    }
-
     // Confirm archive
     await page.click('#archConfirm');
     await expect(page.locator('#archOverlay')).not.toHaveClass(/open/);

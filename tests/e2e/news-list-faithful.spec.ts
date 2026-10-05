@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { execSync } from 'child_process';
+import { spawnSync } from 'child_process';
 
 test.describe('News List Faithful (M8-NEWS-001 & M8-NEWS-002)', () => {
   test.beforeEach(async ({ page }) => {
@@ -35,62 +36,77 @@ test.describe('News List Faithful (M8-NEWS-001 & M8-NEWS-002)', () => {
     await expect(table.locator('th').nth(5)).toContainText('Status');
     await expect(table.locator('th').nth(6)).toContainText('Actions');
 
-    // Check row elements if stories exist
-    const rows = table.locator('tbody tr');
-    const rowCount = await rows.count();
-    if (rowCount > 0 && !await rows.first().locator('td[colspan]').isVisible().catch(() => false)) {
-      // Thumbnail & title
-      await expect(rows.first().locator('.thumb')).toBeVisible();
-      await expect(rows.first().locator('.news-title')).toBeVisible();
-      // Category pill
-      await expect(rows.first().locator('.cat-tag')).toBeVisible();
-      // Views with icon
-      await expect(rows.first().locator('.views')).toBeVisible();
-      // Actions
-      await expect(rows.first().locator('.actions .icon-btn').first()).toBeVisible();
-    }
+    // Seed a unique published story so the row is guaranteed present and the
+    // "col-span: empty state" placeholder is not what we hit.
+    const seedHeadline = `E2E News List Row ${Date.now()}`;
+    execSync(
+      `php artisan tinker --execute="\\$u = \\App\\Models\\User::first(); \\$c = \\App\\Models\\Category::first(); \\$s = app(\\App\\Services\\StoryService::class)->createDraft(['language' => 'en', 'headline' => '${seedHeadline}', 'brief' => 'b', 'body_html' => '<p>x</p>', 'category_id' => \\$c->id], \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'in_review', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'approved', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'published', \\$u);" 2>/dev/null`
+    );
+
+    // Re-open the page to see the seeded row.
+    await page.goto('/admin/news/en');
+    await expect(page.getByRole('heading', { name: 'English News' })).toBeVisible({ timeout: 5000 });
+
+    // Check row elements
+    const rows = table.locator(`tbody tr:has-text("${seedHeadline}")`);
+    await expect(rows).toHaveCount(1);
+
+    // Thumbnail & title
+    await expect(rows.first().locator('.thumb')).toBeVisible();
+    await expect(rows.first().locator('.news-title')).toBeVisible();
+    // Category pill
+    await expect(rows.first().locator('.cat-tag')).toBeVisible();
+    // Views with icon
+    await expect(rows.first().locator('.views')).toBeVisible();
+    // Actions
+    await expect(rows.first().locator('.actions .icon-btn').first()).toBeVisible();
   });
 
   test('Workflow drawer opens with stepper, owner, notes thread, and composer', async ({ page }) => {
+    // Seed a unique published story so the row is guaranteed present.
+    const seedHeadline = `E2E News Drawer ${Date.now()}`;
+    execSync(
+      `php artisan tinker --execute="\\$u = \\App\\Models\\User::first(); \\$c = \\App\\Models\\Category::first(); \\$s = app(\\App\\Services\\StoryService::class)->createDraft(['language' => 'en', 'headline' => '${seedHeadline}', 'brief' => 'b', 'body_html' => '<p>x</p>', 'category_id' => \\$c->id], \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'in_review', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'approved', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'published', \\$u);" 2>/dev/null`
+    );
+
     await page.goto('/admin/news/en');
+    await expect(page.getByRole('heading', { name: 'English News' })).toBeVisible({ timeout: 5000 });
 
     const table = page.locator('.news-table');
-    const titleLink = table.locator('.news-title').first();
+    const titleLink = table.locator(`tbody tr:has-text("${seedHeadline}") .news-title`).first();
+    await expect(titleLink).toBeVisible({ timeout: 5000 });
+    await titleLink.click();
 
-    if (await titleLink.isVisible().catch(() => false)) {
-      await titleLink.click();
+    // Drawer should slide open
+    const drawer = page.locator('aside.wfd');
+    await expect(drawer).toHaveClass(/open/, { timeout: 5000 });
 
-      // Drawer should slide open
-      const drawer = page.locator('aside.wfd');
-      await expect(drawer).toHaveClass(/open/, { timeout: 5000 });
+    // Workflow stepper
+    await expect(drawer.locator('.wfd-sec-label').first()).toContainText('Workflow');
+    await expect(drawer.locator('.wfd-flow')).toBeVisible();
+    await expect(drawer.locator('.wfd-step')).toHaveCount(4);
 
-      // Workflow stepper
-      await expect(drawer.locator('.wfd-sec-label').first()).toContainText('Workflow');
-      await expect(drawer.locator('.wfd-flow')).toBeVisible();
-      await expect(drawer.locator('.wfd-step')).toHaveCount(4);
+    // Owner card
+    await expect(drawer.locator('.wfd-owner')).toBeVisible();
+    await expect(drawer.locator('.wfd-owner .wf-ava')).toBeVisible();
 
-      // Owner card
-      await expect(drawer.locator('.wfd-owner')).toBeVisible();
-      await expect(drawer.locator('.wfd-owner .wf-ava')).toBeVisible();
+    // Notes section & reply composer
+    await expect(drawer.locator('.wfd-sec-label').nth(2)).toContainText('Internal notes');
+    const textarea = drawer.locator('.nt-reply textarea');
+    await expect(textarea).toBeVisible();
+    const sendBtn = drawer.locator('.nt-reply button');
+    await expect(sendBtn).toBeVisible();
 
-      // Notes section & reply composer
-      await expect(drawer.locator('.wfd-sec-label').nth(2)).toContainText('Internal notes');
-      const textarea = drawer.locator('.nt-reply textarea');
-      await expect(textarea).toBeVisible();
-      const sendBtn = drawer.locator('.nt-reply button');
-      await expect(sendBtn).toBeVisible();
+    // Add a test reply note
+    await textarea.fill('E2E automated test note response');
+    await sendBtn.click();
 
-      // Add a test reply note
-      await textarea.fill('E2E automated test note response');
-      await sendBtn.click();
+    // Verify the new note appears in thread
+    await expect(drawer.locator('.nt-list')).toContainText('E2E automated test note response', { timeout: 5000 });
 
-      // Verify the new note appears in thread
-      await expect(drawer.locator('.nt-list')).toContainText('E2E automated test note response', { timeout: 5000 });
-
-      // Close drawer
-      await drawer.locator('.wfd-close').click();
-      await expect(drawer).not.toHaveClass(/open/);
-    }
+    // Close drawer
+    await drawer.locator('.wfd-close').click();
+    await expect(drawer).not.toHaveClass(/open/);
   });
 
   test('Bangla News surface renders faithfully with language scope', async ({ page }) => {
@@ -186,11 +202,12 @@ test.describe('News List Faithful (M8-NEWS-001 & M8-NEWS-002)', () => {
   test('Row navigation links and live toggle switches function properly', async ({ page, request }) => {
     test.setTimeout(60000);
     // Seed a unique published story so the row is guaranteed present.
+    // spawnSync (no shell) so the tinker snippet passes identically on Windows and bash CI.
     const seedId = `e2e-row-${Date.now()}`;
-    execSync(
-      `php artisan tinker --execute="\\$u = \\App\\Models\\User::first(); \\$c = \\App\\Models\\Category::first(); \\$s = app(\\App\\Services\\StoryService::class)->createDraft(['language' => 'en', 'headline' => '${seedId}', 'brief' => 'b', 'body_html' => '<p>x</p>', 'category_id' => \\$c->id], \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'in_review', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'approved', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'published', \\$u); echo \\$s->public_id;"`,
-      { stdio: 'pipe' }
-    );
+    const seed = spawnSync('php', ['artisan', 'tinker', '--execute',
+      `$u = \\App\\Models\\User::first(); $c = \\App\\Models\\Category::first(); $s = app(\\App\\Services\\StoryService::class)->createDraft(['language' => 'en', 'headline' => '${seedId}', 'brief' => 'b', 'body_html' => '<p>x</p>', 'category_id' => $c->id], $u); app(\\App\\Services\\StoryService::class)->transition($s, 'in_review', $u); $s = $s->fresh(); app(\\App\\Services\\StoryService::class)->transition($s, 'approved', $u); $s = $s->fresh(); app(\\App\\Services\\StoryService::class)->transition($s, 'published', $u); echo $s->public_id;`,
+    ], { encoding: 'utf-8' });
+    if (seed.status !== 0) throw new Error(`tinker seed failed: ${seed.stderr}`);
 
     await page.goto('/admin/news/en');
     await expect(page.getByRole('heading', { name: 'English News' })).toBeVisible({ timeout: 5000 });
@@ -208,21 +225,26 @@ test.describe('News List Faithful (M8-NEWS-001 & M8-NEWS-002)', () => {
     const editLink = row.locator('.actions a[title="Edit story"]');
     await expect(editLink).toHaveAttribute('href', /.*add-news\?id=.*/);
 
-    // Live switch toggle — assert DB membership change, not just a click.
+    // Live switch toggle — assert feed membership via API, not a sleep. Reads are
+    // cache-busted (`cb`) because the portal feed caches per full URL for 60s.
     const switchLabel = row.locator('label.switch');
     await expect(switchLabel).toBeVisible();
-    const beforeFeed = await request.get('http://localhost:8000/api/v1/portal/feed?language=en');
-    const beforeText = await beforeFeed.text();
-    const beforeHas = beforeText.includes(seedId);
+    const cbRead = () =>
+      request.get(`http://localhost:8000/api/v1/portal/feed?language=en&cb=${Date.now()}_${Math.random()}`).then((r) => r.text());
+    expect(await cbRead()).toContain(seedId);
 
-    await switchLabel.click();
-    await page.waitForResponse((r) => r.url().includes('/livewire/update') && r.status() === 200);
-    await page.waitForTimeout(500);
+    await switchLabel.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes('/livewire/update') && r.status() === 200, { timeout: 30000 }),
+      switchLabel.click(),
+    ]);
 
-    const afterFeed = await request.get('http://localhost:8000/api/v1/portal/feed?language=en');
-    const afterText = await afterFeed.text();
-    const afterHas = afterText.includes(seedId);
-    expect(afterHas).not.toBe(beforeHas);
+    await expect
+      .poll(async () => (await cbRead()).includes(seedId), {
+        timeout: 15000,
+        message: 'live toggle did not change feed membership',
+      })
+      .toBe(false);
   });
 });
 

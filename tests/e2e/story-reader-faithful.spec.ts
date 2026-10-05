@@ -1,7 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { execSync } from 'child_process';
 
 test.describe('Story Reader Faithful (M8-STORY-001 / story.html + FR-NWS-019)', () => {
   test.beforeEach(async ({ page }) => {
+    // Seed a unique published story so the reader has a real target.
+    execSync(
+      `php artisan tinker --execute="\\$u = \\App\\Models\\User::first(); \\$c = \\App\\Models\\Category::first(); \\$s = app(\\App\\Services\\StoryService::class)->createDraft(['language' => 'en', 'headline' => 'E2E Story Reader ' . time(), 'brief' => 'b', 'body_html' => '<p>x</p>', 'category_id' => \\$c->id], \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'in_review', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'approved', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'published', \\$u); echo \\$s->public_id;" 2>/dev/null`
+    );
     await page.goto('/login');
     await page.fill('input[name="email"]', 'test@example.com');
     await page.fill('input[name="password"]', 'password');
@@ -171,9 +176,10 @@ test.describe('Story Reader Faithful (M8-STORY-001 / story.html + FR-NWS-019)', 
     await expect(backLink).toBeVisible();
     await expect(backLink).toHaveAttribute('href', /.*admin\/(news|service).*/);
 
-    // Related story mini cards link to story reader
+    // Related story mini cards link to story reader (only if any exist)
     const relCard = page.locator('.story-mini-card').first();
-    if (await relCard.isVisible().catch(() => false)) {
+    const relCount = await relCard.count();
+    if (relCount > 0 && (await relCard.isVisible().catch(() => false))) {
       await expect(relCard).toHaveAttribute('href', /.*admin\/story\/.*/);
     }
   });
@@ -188,7 +194,7 @@ test.describe('Story Reader Faithful (M8-STORY-001 / story.html + FR-NWS-019)', 
 
     // Find any workflow transition button
     const transitionBtn = page.locator('.story-editorial-panel button[wire\\:click*="transitionStatus"]').first();
-    if (await transitionBtn.isVisible().catch(() => false)) {
+    if ((await transitionBtn.count()) > 0 && (await transitionBtn.isVisible().catch(() => false))) {
       await expect(transitionBtn).toBeEnabled();
     }
   });
