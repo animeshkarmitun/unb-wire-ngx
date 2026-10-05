@@ -128,9 +128,6 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
-
       - name: Build admin assets
         run: |
           npm ci
@@ -142,6 +139,9 @@ jobs:
           npm ci
           npm run build
           cd ..
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
 
       - name: Prepare environment
         run: |
