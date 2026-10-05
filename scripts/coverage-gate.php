@@ -73,8 +73,10 @@ if ($methodPct < MIN_METHOD_PCT) {
 // one executable statement. (We are not checking coverage % here; that is the
 // job of M14-COV-016's reference check plus the new line-coverage threshold.)
 $files = [];
-foreach ($xml->project->file as $f) {
-    $files[] = (string) $f['name'];
+foreach ($xml->project->package as $pkg) {
+    foreach ($pkg->file as $f) {
+        $files[] = (string) $f['name'];
+    }
 }
 $haystack = implode("\n", $files);
 foreach (ALLOWLIST as $class) {
