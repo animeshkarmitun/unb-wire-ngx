@@ -15,6 +15,8 @@ class AiTokenUsageDaily extends Model
 
     protected $primaryKey = null;
 
+    protected $table = 'ai_token_usage_daily';
+
     protected $fillable = [
         'date',
         'scope',

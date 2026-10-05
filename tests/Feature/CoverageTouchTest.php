@@ -12,6 +12,7 @@ class CoverageTouchTest extends TestCase
      * Failing this check means a critical class has been added/changed without test coverage.
      */
     private const ALLOWLIST = [
+        // High-risk services / jobs / commands (M14-COV-016)
         'OpenAiProvider',
         'ProcessDeliveriesCommand',
         'CheckOutboxLag',
@@ -19,6 +20,17 @@ class CoverageTouchTest extends TestCase
         'HtmlSanitizer',
         'FanoutStory',
         'ProcessIndexOutbox',
+        'StoryService',
+        'PresignedUrlService',
+        'DownloadGateService',
+        // Models that previously had no direct test reference (M14-COV-016
+        // follow-up: AiTokenUsageDaily, IndexOutbox, InvoiceLine, RolePermission,
+        // StoryEvent; AiGeneration is covered by the SchemaServiceProvider test).
+        'AiTokenUsageDaily',
+        'IndexOutbox',
+        'InvoiceLine',
+        'RolePermission',
+        'StoryEvent',
     ];
 
     public function test_allowlisted_classes_have_test_references(): void
