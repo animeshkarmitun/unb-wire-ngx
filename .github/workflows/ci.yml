@@ -86,6 +86,7 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     services:
       postgres:
@@ -109,6 +110,7 @@ jobs:
       DB_DATABASE: unb_wire_testing
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
+      CI: 'true'
 
     steps:
       - uses: actions/checkout@v4
@@ -152,7 +154,7 @@ jobs:
         run: php artisan migrate:fresh --seed
 
       - name: Run Playwright e2e suite
-        run: npx playwright test --workers=2
+        run: npx playwright test --workers=2 --reporter=line
 
       - name: Upload Playwright report
         if: always()
