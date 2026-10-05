@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { execSync } from 'child_process';
 
 test.describe('UNB Photo Manager & Field Intake Queue Faithful (M8-PHOTO-001 & M8-PHOTO-002)', () => {
   test.beforeEach(async ({ page }) => {
@@ -10,6 +11,9 @@ test.describe('UNB Photo Manager & Field Intake Queue Faithful (M8-PHOTO-001 & M
   });
 
   test('Page header, 7 workflow tabs with counts, toolbar, and justified grid render', async ({ page }) => {
+    // Seed a library asset so the grid is guaranteed populated.
+    execSync('php tests/e2e/helpers/seed-data.php media', { stdio: 'pipe' });
+
     await page.goto('/admin/photos');
 
     // Heading & Topbar
@@ -42,150 +46,126 @@ test.describe('UNB Photo Manager & Field Intake Queue Faithful (M8-PHOTO-001 & M
     await expect(damGrid).toBeVisible();
 
     const items = damGrid.locator('.dam-item');
-    if (await items.count() > 0) {
-      const firstItem = items.first();
-      await expect(firstItem).toBeVisible();
-      // Verify --r aspect ratio style is set
-      const styleAttr = await firstItem.getAttribute('style');
-      expect(styleAttr).toContain('--r');
-      // Hover overlay
-      await expect(firstItem.locator('.dam-overlay')).toBeAttached();
-      // Status pill
-      await expect(firstItem.locator('.dam-status')).toBeVisible();
-    }
+    await expect(items.first()).toBeVisible();
+    const firstItem = items.first();
+    const styleAttr = await firstItem.getAttribute('style');
+    expect(styleAttr).toContain('--r');
+    await expect(firstItem.locator('.dam-overlay')).toBeAttached();
+    await expect(firstItem.locator('.dam-status')).toBeVisible();
   });
 
   test('Multi-select triggers sticky bulk bar and allows clearing', async ({ page }) => {
+    execSync('php tests/e2e/helpers/seed-data.php media', { stdio: 'pipe' });
+
     await page.goto('/admin/photos');
 
-    const damGrid = page.locator('#damGrid');
-    const items = damGrid.locator('.dam-item');
+    const firstCheck = page.locator('#damGrid .dam-item').first().locator('.dam-check');
+    await firstCheck.check({ force: true });
 
-    if (await items.count() > 0) {
-      const firstCheck = items.first().locator('.dam-check');
-      await firstCheck.check({ force: true });
+    const bulkbar = page.locator('#bulkbar');
+    await expect(bulkbar).toHaveClass(/show/);
+    await expect(page.locator('#bulkCount')).toContainText('1 selected');
+    await expect(page.locator('#bulkApprove')).toBeVisible();
+    await expect(page.locator('#bulkPkg')).toBeVisible();
+    await expect(page.locator('#bulkZip')).toBeVisible();
 
-      // Bulk bar appears
-      const bulkbar = page.locator('#bulkbar');
-      await expect(bulkbar).toHaveClass(/show/);
-      await expect(page.locator('#bulkCount')).toContainText('1 selected');
-      await expect(page.locator('#bulkApprove')).toBeVisible();
-      await expect(page.locator('#bulkPkg')).toBeVisible();
-      await expect(page.locator('#bulkZip')).toBeVisible();
-
-      // Clear selection
-      await page.locator('#bulkClear').click();
-      await expect(bulkbar).not.toHaveClass(/show/);
-    }
+    await page.locator('#bulkClear').click();
+    await expect(bulkbar).not.toHaveClass(/show/);
   });
 
   test('Clicking asset opens sticky inspector with editable metadata and usage stats', async ({ page }) => {
+    execSync('php tests/e2e/helpers/seed-data.php media', { stdio: 'pipe' });
+
     await page.goto('/admin/photos');
+    await page.locator('#damGrid .dam-item').first().click();
 
-    const damGrid = page.locator('#damGrid');
-    const items = damGrid.locator('.dam-item');
+    const inspPanel = page.locator('#inspPanel');
+    await expect(inspPanel).toBeVisible({ timeout: 5000 });
+    await expect(inspPanel.locator('.insp-title')).toContainText('Asset details');
 
-    if (await items.count() > 0) {
-      // Click first item to open inspector
-      await items.first().click();
+    await expect(inspPanel.locator('#iCap')).toBeVisible();
+    await expect(inspPanel.locator('#iBy')).toBeVisible();
+    await expect(inspPanel.locator('#iLoc')).toBeVisible();
+    await expect(inspPanel.locator('#iKw')).toBeVisible();
+    await expect(inspPanel.locator('#iPkg')).toBeVisible();
+    await expect(inspPanel.locator('.usage-box')).toBeVisible();
+    await expect(inspPanel.locator('#iSave')).toBeVisible();
 
-      const inspPanel = page.locator('#inspPanel');
-      await expect(inspPanel).toBeVisible({ timeout: 5000 });
-      await expect(inspPanel.locator('.insp-title')).toContainText('Asset details');
-
-      // Inspector form inputs
-      await expect(inspPanel.locator('#iCap')).toBeVisible();
-      await expect(inspPanel.locator('#iBy')).toBeVisible();
-      await expect(inspPanel.locator('#iLoc')).toBeVisible();
-      await expect(inspPanel.locator('#iKw')).toBeVisible();
-      await expect(inspPanel.locator('#iPkg')).toBeVisible();
-      await expect(inspPanel.locator('.usage-box')).toBeVisible();
-      await expect(inspPanel.locator('#iSave')).toBeVisible();
-
-      // Close inspector
-      await inspPanel.locator('#inspClose').click();
-      await expect(inspPanel).not.toBeVisible();
-    }
+    await inspPanel.locator('#inspClose').click();
+    await expect(inspPanel).not.toBeVisible();
   });
 
   test('Field intake queue displays batches, urgency badges, and decision modal', async ({ page }) => {
-    await page.goto('/admin/photos');
+    // The media seed creates a pending field batch.
+    execSync('php tests/e2e/helpers/seed-data.php media', { stdio: 'pipe' });
 
-    // Click Field intake tab
+    await page.goto('/admin/photos');
     const fieldTab = page.locator('#wfTabs .wf-tab').filter({ hasText: /Field intake/i });
     await fieldTab.click();
 
-    // Check for batches or queue summary
     const summary = page.locator('.fq-summary');
-    if (await summary.isVisible().catch(() => false)) {
-      await expect(summary).toContainText(/photos.*batch/i);
-      await expect(page.locator('.fq-live')).toContainText('Watching for new uploads');
+    await expect(summary).toBeVisible({ timeout: 10000 });
+    await expect(summary).toContainText(/photos.*batch/i);
+    await expect(page.locator('.fq-live')).toContainText('Watching for new uploads');
 
-      const batch = page.locator('.fq-batch').first();
-      await expect(batch).toBeVisible();
-      await expect(batch.locator('.fq-av')).toBeVisible();
-      await expect(batch.locator('.fq-who')).toBeVisible();
-      await expect(batch.locator('.fq-event')).toBeVisible();
-      await expect(batch.locator('.fq-urg')).toBeVisible();
+    const batch = page.locator('.fq-batch').first();
+    await expect(batch).toBeVisible();
+    await expect(batch.locator('.fq-av')).toBeVisible();
+    await expect(batch.locator('.fq-who')).toBeVisible();
+    await expect(batch.locator('.fq-event')).toBeVisible();
+    await expect(batch.locator('.fq-urg')).toBeVisible();
 
-      // Photos in batch
-      await expect(batch.locator('.fq-ph').first()).toBeVisible();
+    await expect(batch.locator('.fq-ph').first()).toBeVisible();
 
-      // Batch footer buttons
-      await expect(batch.locator('.fq-btn.ok')).toContainText(/Approve all/i);
-      const rejectBtn = batch.locator('.fq-btn.danger');
-      await expect(rejectBtn).toContainText(/Reject batch/i);
+    await expect(batch.locator('.fq-btn.ok')).toContainText(/Approve all/i);
+    const rejectBtn = batch.locator('.fq-btn.danger');
+    await expect(rejectBtn).toContainText(/Reject batch/i);
 
-      // Click reject batch to open reason modal
-      await rejectBtn.click();
-      const modal = page.locator('#fqOverlay');
-      await expect(modal).toHaveClass(/open/);
-      await expect(page.locator('#fqTitle')).toContainText(/Reject batch/i);
-      await expect(page.locator('.fq-reason')).toHaveCount(4);
-      await expect(page.locator('#fqNote')).toBeVisible();
-      await expect(page.locator('#fqConfirm')).toBeVisible();
+    await rejectBtn.click();
+    const modal = page.locator('#fqOverlay');
+    await expect(modal).toHaveClass(/open/);
+    await expect(page.locator('#fqTitle')).toContainText(/Reject batch/i);
+    await expect(page.locator('.fq-reason')).toHaveCount(4);
+    await expect(page.locator('#fqNote')).toBeVisible();
+    await expect(page.locator('#fqConfirm')).toBeVisible();
 
-      // Close modal
-      await page.locator('#fqCancel').click();
-      await expect(modal).not.toHaveClass(/open/);
-    }
+    await page.locator('#fqCancel').click();
+    await expect(modal).not.toHaveClass(/open/);
   });
 
   test('Workflow tabs switch active state and update displayed assets', async ({ page }) => {
+    execSync('php tests/e2e/helpers/seed-data.php media', { stdio: 'pipe' });
+
     await page.goto('/admin/photos');
 
     const tabs = page.locator('#wfTabs .wf-tab');
-    
-    // Switch to Needs review
+
     const reviewTab = tabs.filter({ hasText: /Needs review/i });
     await reviewTab.click();
     await expect(reviewTab).toHaveClass(/active/);
 
-    // Switch to In library
     const libTab = tabs.filter({ hasText: /In library/i });
     await libTab.click();
     await expect(libTab).toHaveClass(/active/);
 
-    // Switch to Packaged
     const pkgTab = tabs.filter({ hasText: /Packaged/i });
     await pkgTab.click();
     await expect(pkgTab).toHaveClass(/active/);
 
-    // Switch to Published
     const pubTab = tabs.filter({ hasText: /Published/i });
     await pubTab.click();
     await expect(pubTab).toHaveClass(/active/);
 
-    // Return to All assets
     const allTab = tabs.filter({ hasText: /All assets/i });
     await allTab.click();
     await expect(allTab).toHaveClass(/active/);
   });
 
   test('Toolbar filters and unattached toggle update photo list interactively', async ({ page }) => {
+    execSync('php tests/e2e/helpers/seed-data.php media', { stdio: 'pipe' });
+
     await page.goto('/admin/photos');
 
-    // Toggle unattached button
     const unattachedBtn = page.locator('#unattachedBtn');
     await expect(unattachedBtn).toHaveClass(/btn-outline/);
     await unattachedBtn.click();
@@ -193,12 +173,10 @@ test.describe('UNB Photo Manager & Field Intake Queue Faithful (M8-PHOTO-001 & M
     await unattachedBtn.click();
     await expect(unattachedBtn).toHaveClass(/btn-outline/);
 
-    // Filter by sort dropdown
     const sortSelect = page.locator('#damSort');
     await sortSelect.selectOption('dl');
     await page.waitForTimeout(300);
 
-    // Filter by search input
     const searchInput = page.locator('#damSearch');
     await searchInput.fill('Dhaka');
     await page.waitForTimeout(500);
@@ -206,67 +184,71 @@ test.describe('UNB Photo Manager & Field Intake Queue Faithful (M8-PHOTO-001 & M
     const damGrid = page.locator('#damGrid');
     await expect(damGrid).toBeVisible();
 
-    // Clear search
     await searchInput.fill('');
     await page.waitForTimeout(400);
   });
 
-  test('Inspector metadata form allows editing and saving updates', async ({ page }) => {
+  test('Inspector metadata form allows editing and saving updates the DB', async ({ page }) => {
+    execSync('php tests/e2e/helpers/seed-data.php media', { stdio: 'pipe' });
+
     await page.goto('/admin/photos');
+    await page.locator('#damGrid .dam-item').first().click();
 
-    const damGrid = page.locator('#damGrid');
-    const items = damGrid.locator('.dam-item');
+    const inspPanel = page.locator('#inspPanel');
+    await expect(inspPanel).toBeVisible({ timeout: 5000 });
 
-    if (await items.count() > 0) {
-      await items.first().click();
+    const captionField = page.locator('#iCap');
+    const originalValue = await captionField.inputValue();
+    const newCaption = originalValue + ' [Updated Test]';
+    await captionField.fill(newCaption);
 
-      const inspPanel = page.locator('#inspPanel');
-      await expect(inspPanel).toBeVisible({ timeout: 5000 });
+    await page.locator('#iSave').click();
+    await expect(page.locator('.toast-msg')).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('.toast-msg')).toContainText(/saved/i);
 
-      // Edit caption and save
-      const captionField = page.locator('#iCap');
-      const originalValue = await captionField.inputValue();
-      await captionField.fill(originalValue + ' [Updated Test]');
+    // Server truth: the MediaAsset row holds the new caption.
+    const firstId = execSync(
+      `php artisan tinker --execute="echo \\App\\Models\\MediaAsset::whereNotNull('caption')->orderBy('id')->value('id');" 2>/dev/null`,
+      { encoding: 'utf8' }
+    ).trim();
+    const stored = execSync(
+      `php artisan tinker --execute="echo \\App\\Models\\MediaAsset::find(${firstId})?->caption;" 2>/dev/null`,
+      { encoding: 'utf8' }
+    ).trim();
+    expect(stored).toBe(newCaption);
 
-      await page.locator('#iSave').click();
-      await expect(page.locator('.toast-msg')).toBeVisible({ timeout: 3000 });
-      await expect(page.locator('.toast-msg')).toContainText(/saved/i);
+    // Restore
+    await captionField.fill(originalValue);
+    await page.locator('#iSave').click();
+    await page.waitForTimeout(400);
 
-      // Restore
-      await captionField.fill(originalValue);
-      await page.locator('#iSave').click();
-      await page.waitForTimeout(400);
-
-      // Close inspector
-      await page.locator('#inspClose').click();
-      await expect(inspPanel).not.toBeVisible();
-    }
+    await page.locator('#inspClose').click();
+    await expect(inspPanel).not.toBeVisible();
   });
 
   test('Field intake re-edit modal allows radio selection and cancel dismissal', async ({ page }) => {
+    execSync('php tests/e2e/helpers/seed-data.php media', { stdio: 'pipe' });
+
     await page.goto('/admin/photos');
 
     const fieldTab = page.locator('#wfTabs .wf-tab').filter({ hasText: /Field intake/i });
     await fieldTab.click();
 
     const reeditBtn = page.locator('.fq-btn.warn').first();
-    if (await reeditBtn.isVisible().catch(() => false)) {
-      await reeditBtn.click();
+    await expect(reeditBtn).toBeVisible({ timeout: 10000 });
+    await reeditBtn.click();
 
-      const modal = page.locator('#fqOverlay');
-      await expect(modal).toHaveClass(/open/);
-      await expect(page.locator('#fqTitle')).toContainText(/Request re-edit/i);
+    const modal = page.locator('#fqOverlay');
+    await expect(modal).toHaveClass(/open/);
+    await expect(page.locator('#fqTitle')).toContainText(/Request re-edit/i);
 
-      // Radio reasons selectable
-      const reasons = page.locator('.fq-reason');
-      await expect(reasons).toHaveCount(4);
-      await reasons.nth(1).click();
-      await expect(reasons.nth(1)).toHaveClass(/sel/);
+    const reasons = page.locator('.fq-reason');
+    await expect(reasons).toHaveCount(4);
+    await reasons.nth(1).click();
+    await expect(reasons.nth(1)).toHaveClass(/sel/);
 
-      // Dismiss with X
-      await page.locator('#fqClose').click();
-      await expect(modal).not.toHaveClass(/open/);
-    }
+    await page.locator('#fqClose').click();
+    await expect(modal).not.toHaveClass(/open/);
   });
 });
 

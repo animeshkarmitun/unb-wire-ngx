@@ -185,34 +185,32 @@ test.describe('Clients Manager Faithful (M8-CLIENT-001)', () => {
     await expect(page.locator('#clList')).toBeVisible();
   });
 
-  test('Drawer channels toggles and deactivate client modal cancel lifecycle', async ({ page }) => {
+  test('Drawer channels toggle and pause modal cancel lifecycle', async ({ page }) => {
     await page.goto('/admin/clients');
 
-    // Open first client drawer
-    const firstRow = page.locator('#clList .cl-row:not(.head)').first();
-    await firstRow.click();
+    // Open Daily Star drawer (guaranteed to exist via the seed).
+    const dailyRow = page.locator('#clList .cl-row:has-text("The Daily Star")').first();
+    await dailyRow.click();
     const drawer = page.locator('#drawer');
     await expect(drawer).toHaveClass(/open/);
 
-    // Switch to Channels tab
+    // Switch to Channels tab.
     await drawer.locator('.dr-tab[data-dtab="channels"]').click();
 
-    // Check channel rows exist
+    // Channel rows render.
     const chanRows = drawer.locator('.chan-row');
     await expect(chanRows.first()).toBeVisible();
 
-    // Test pause deliveries button opens pause modal
+    // The pause-deliveries action exists (every client in the seed has channels).
     const pauseBtn = drawer.locator('button[data-dact="pause"]');
-    if (await pauseBtn.isVisible().catch(() => false)) {
-      await pauseBtn.click();
-      const pauseModal = page.locator('#pauseOverlay');
-      await expect(pauseModal).toHaveClass(/open/);
-      // Cancel pause modal
-      await pauseModal.locator('.mo-close, button:has-text("Cancel")').first().click();
-      await expect(pauseModal).not.toHaveClass(/open/);
-    }
+    await expect(pauseBtn).toBeVisible();
+    await pauseBtn.click();
+    const pauseModal = page.locator('#pauseOverlay');
+    await expect(pauseModal).toHaveClass(/open/);
+    await pauseModal.locator('.mo-close, button:has-text("Cancel")').first().click();
+    await expect(pauseModal).not.toHaveClass(/open/);
 
-    // Close drawer via close button
+    // Close drawer.
     await drawer.locator('#drClose').click();
     await expect(drawer).not.toHaveClass(/open/);
   });

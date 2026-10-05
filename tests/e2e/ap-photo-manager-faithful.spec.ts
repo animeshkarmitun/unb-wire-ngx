@@ -119,22 +119,25 @@ test.describe('AP Photo Manager Faithful (M8-PHOTO-003)', () => {
   test('Card attach button shows instant attached state and Sync Log modal opens', async ({ page }) => {
     await page.goto('/admin/ap-photos');
 
-    // Attach button on card
-    const firstAttachBtn = page.locator('#apGrid .ap-card .attach-btn').first();
+    // The AP grid is a hardcoded prototype list — assert at least one card is present.
+    const firstCard = page.locator('#apGrid .ap-card').first();
+    await expect(firstCard).toBeVisible();
+
+    // Attach button on the first card.
+    const firstAttachBtn = firstCard.locator('.attach-btn');
+    await expect(firstAttachBtn).toBeVisible();
     await firstAttachBtn.click();
     await expect(firstAttachBtn).toHaveClass(/done/);
     await expect(firstAttachBtn).toContainText('✓ Attached');
 
-    // Sync log modal
+    // Sync log modal opens with the expected AP branding copy.
     await page.getByRole('button', { name: 'Sync log' }).click();
     await expect(page.getByRole('heading', { name: 'AP Wire Sync Log' })).toBeVisible();
     await expect(page.locator('table')).toContainText('AP Associated Press Media API v1');
 
-    // Close sync log modal
     await page.getByRole('button', { name: 'Close' }).click();
     await expect(page.getByRole('heading', { name: 'AP Wire Sync Log' })).not.toBeVisible();
 
-    // Sync now button feedback
     await page.locator('#syncBtn').click();
     await expect(page.locator('.sync-note')).toBeVisible();
   });

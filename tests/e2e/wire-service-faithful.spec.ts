@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { execSync } from 'child_process';
 
 test.describe('Wire Service Frontpage Faithful (M8-SERV-001 / english-service.html + bn parity)', () => {
   test.beforeEach(async ({ page }) => {
@@ -9,7 +10,13 @@ test.describe('Wire Service Frontpage Faithful (M8-SERV-001 / english-service.ht
     await page.waitForURL('**/admin**', { timeout: 10000 }).catch(() => {});
   });
 
-  test('Navigates to English Wire Service frontpage and verifies faithful prototype structure', async ({ page }) => {
+  test('Navigates to English Wire Service frontpage and verifies faithful prototype structure', async ({ page, request }) => {
+    // Seed a published English story so the hero is guaranteed present.
+    const seedHeadline = `E2E Wire Service ${Date.now()}`;
+    execSync(
+      `php artisan tinker --execute="\\$u = \\App\\Models\\User::first(); \\$c = \\App\\Models\\Category::first(); \\$s = app(\\App\\Services\\StoryService::class)->createDraft(['language' => 'en', 'headline' => '${seedHeadline}', 'brief' => 'b', 'body_html' => '<p>x</p>', 'category_id' => \\$c->id], \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'in_review', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'approved', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'published', \\$u);" 2>/dev/null`
+    );
+
     await page.goto('/admin/service/en');
 
     const serviceWrap = page.locator('.wire-service-wrap');
@@ -45,16 +52,15 @@ test.describe('Wire Service Frontpage Faithful (M8-SERV-001 / english-service.ht
     // 5. Home grid layout (left main + right rail)
     await expect(page.locator('.home-grid')).toBeVisible();
 
-    // Hero story
-    const heroStory = page.locator('.hero');
-    if (await heroStory.count() > 0) {
-      await expect(heroStory).toBeVisible();
-      await expect(heroStory.locator('.hero-img')).toBeVisible();
-      await expect(heroStory.locator('.hero-overlay')).toBeVisible();
-      await expect(heroStory.locator('.hero-cat')).toBeVisible();
-      await expect(heroStory.locator('.hero-head')).toBeVisible();
-      await expect(heroStory.locator('.hero-meta')).toBeVisible();
-    }
+    // Hero story — guaranteed by the seeded story above.
+    const heroStory = page.locator('.hero').first();
+    await expect(heroStory).toBeVisible();
+    await expect(heroStory.locator('.hero-img')).toBeVisible();
+    await expect(heroStory.locator('.hero-overlay')).toBeVisible();
+    await expect(heroStory.locator('.hero-cat')).toBeVisible();
+    await expect(heroStory.locator('.hero-head')).toBeVisible();
+    await expect(heroStory.locator('.hero-meta')).toBeVisible();
+    await expect(heroStory).toContainText(seedHeadline);
 
     // Right Rail
     const rail = page.locator('.rail');
@@ -76,13 +82,11 @@ test.describe('Wire Service Frontpage Faithful (M8-SERV-001 / english-service.ht
 
     const catButtons = page.locator('#wsCatNav button');
     await expect(catButtons.first()).toBeVisible({ timeout: 10000 });
-    const count = await catButtons.count();
-
-    if (count > 1) {
-      const secondBtn = catButtons.nth(1);
-      await secondBtn.click();
-      await expect(secondBtn).toHaveClass(/active/, { timeout: 5000 });
-    }
+    // Seeded categories guarantee at least two nav buttons.
+    await expect(catButtons).toHaveCount(3, { timeout: 10000 });
+    const secondBtn = catButtons.nth(1);
+    await secondBtn.click();
+    await expect(secondBtn).toHaveClass(/active/, { timeout: 5000 });
   });
 
   test('Rail tabs switch between Latest and Popular dispatches', async ({ page }) => {
@@ -99,7 +103,7 @@ test.describe('Wire Service Frontpage Faithful (M8-SERV-001 / english-service.ht
     await expect(latestTab).toHaveClass(/active/);
   });
 
-  test('Wire service settings modal opens, supports editing/toggles, cancel, and save lifecycle', async ({ page }) => {
+  test('Wire service settings modal opens, supports editing/toggles, cancel, and save lifecycle', async ({ page, request }) => {
     await page.goto('/admin/service/en');
 
     const settingsBtn = page.locator('button.admin-chip', { hasText: 'Settings' });
@@ -124,10 +128,18 @@ test.describe('Wire Service Frontpage Faithful (M8-SERV-001 / english-service.ht
     // 2. Re-open modal and test Save Changes
     await settingsBtn.click();
     await expect(modalInput).toBeVisible({ timeout: 5000 });
-    await modalInput.fill('UNB Premium English Wire');
+    const newName = `UNB Premium English Wire ${Date.now()}`;
+    await modalInput.fill(newName);
     await descTextarea.fill('Real-time national and international dispatches.');
     await page.click('button[type="submit"]:has-text("Save Changes")');
     await expect(modalInput).toBeHidden({ timeout: 5000 });
+
+    // Server truth: the wire_service_settings row holds the new name.
+    const stored = execSync(
+      `php artisan tinker --execute="echo \\DB::table('wire_service_settings')->where('language', 'en')->value('wire_name');" 2>/dev/null`,
+      { encoding: 'utf8' }
+    ).trim();
+    expect(stored).toBe(newName);
 
     // 3. Re-open modal and test close '×' button
     await settingsBtn.click();
@@ -138,29 +150,27 @@ test.describe('Wire Service Frontpage Faithful (M8-SERV-001 / english-service.ht
   });
 
   test('Masthead search input filters dispatches and story links navigate to reader', async ({ page }) => {
-    await page.goto('/admin/service/en');
+    // Seed a unique story so the search filter has a known match to assert.
+    const seedHeadline = `E2E Wire Service Search ${Date.now()}`;
+    execSync(
+      `php artisan tinker --execute="\\$u = \\App\\Models\\User::first(); \\$c = \\App\\Models\\Category::first(); \\$s = app(\\App\\Services\\StoryService::class)->createDraft(['language' => 'en', 'headline' => '${seedHeadline}', 'brief' => 'b', 'body_html' => '<p>x</p>', 'category_id' => \\$c->id], \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'in_review', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'approved', \\$u); app(\\App\\Services\\StoryService::class)->transition(\\$s, 'published', \\$u);" 2>/dev/null`
+    );
 
-    // Masthead search
+    await page.goto('/admin/service/en');
     const searchInput = page.locator('.mast-search input');
     await expect(searchInput).toBeVisible();
-    await searchInput.fill('NonexistentHeadlineX999');
-    await page.waitForTimeout(600); // Livewire debounce
 
-    // Clear search
+    await searchInput.fill(seedHeadline);
+    await page.waitForResponse((r) => r.url().includes('/livewire/update') && r.status() === 200);
+    await expect(page.locator(`.hero .hero-head:has-text("${seedHeadline}"), .rail-item:has-text("${seedHeadline}")`).first()).toBeVisible({ timeout: 10000 });
+
     await searchInput.fill('');
-    await page.waitForTimeout(600);
+    await page.waitForResponse((r) => r.url().includes('/livewire/update') && r.status() === 200);
 
-    // Hero or grid story links
+    // The hero or a rail item now points to a real story reader.
     const storyLink = page.locator('a.story-card, a.hero, a.rail-item').first();
-    if (await storyLink.isVisible().catch(() => false)) {
-      await expect(storyLink).toHaveAttribute('href', /.*admin\/story\/.*/);
-    }
-
-    // Section view all link
-    const viewAllLink = page.locator('a.sec-more').first();
-    if (await viewAllLink.isVisible().catch(() => false)) {
-      await expect(viewAllLink).toHaveAttribute('href', /.*admin\/news.*/);
-    }
+    await expect(storyLink).toBeVisible();
+    await expect(storyLink).toHaveAttribute('href', /.*admin\/story\/.*/);
   });
 
   test('Bangla Wire Service frontpage renders with Bangla branding and typography', async ({ page }) => {
