@@ -43,7 +43,7 @@ class PortalProfileController extends Controller
 
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:120'],
-            'email' => ['sometimes', 'email', Rule::unique('client_users')->ignore($user->id)],
+            'email' => ['sometimes', 'email', Rule::unique('client_users', 'email')->ignore($user->id, $user->getKeyName())],
         ]);
 
         $user->update($validated);
