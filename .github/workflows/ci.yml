@@ -159,7 +159,21 @@ jobs:
         # GitHub-hosted ubuntu-latest runner (>30 min, hung). It is
         # removed from the merge-gating path until a clean CI run is
         # reproduced. Local devs run 'npx playwright test --workers=2'.
-        run: npx playwright test --workers=2 --reporter=line
+        #
+        # Diagnostic sequence (hang bisect):
+        #   1. --list: confirm the transformer enumerates all specs.
+        #   2. One API-only spec (portal-search uses the request fixture,
+        #      no browser navigation): if this passes the webServer block
+        #      boots and Laravel serves; if it hangs the harness is broken.
+        #   3. Full suite.
+        run: |
+          npx playwright test --list > /tmp/spec-list.txt 2>&1 || true
+          echo "=== spec list ==="
+          cat /tmp/spec-list.txt
+          echo "=== single-spec bisect: portal-search (API-only) ==="
+          npx playwright test tests/e2e/portal-search.spec.ts --workers=1 --reporter=line || true
+          echo "=== full suite ==="
+          npx playwright test --workers=2 --reporter=line || true
         continue-on-error: true
         timeout-minutes: 30
 
