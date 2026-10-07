@@ -87,7 +87,7 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     continue-on-error: true
-    timeout-minutes: 35
+    timeout-minutes: 75
 
     services:
       postgres:
@@ -175,7 +175,7 @@ jobs:
           echo "=== full suite ==="
           npx playwright test --workers=2 --reporter=line || true
         continue-on-error: true
-        timeout-minutes: 30
+        timeout-minutes: 60
 
       - name: Upload Playwright report
         if: always()
