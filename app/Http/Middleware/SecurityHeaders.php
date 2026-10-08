@@ -24,8 +24,15 @@ class SecurityHeaders
             "frame-ancestors 'none'",
             "base-uri 'self'",
             "object-src 'none'",
-            "script-src 'self' 'nonce-{$nonce}' https://cdn.jsdelivr.net",
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
+            // 'unsafe-eval' is REQUIRED by Alpine.js (bundled with Livewire): it
+            // evaluates directive expressions (x-show, @click, x-data) via
+            // new Function(), which CSP blocks without it. Without 'unsafe-eval'
+            // every Alpine directive silently dies — dropdowns render permanently
+            // open, clicks do nothing, x-data scopes stay empty. The CSP-build of
+            // Alpine (@alpinejs/csp) avoids this but Livewire ships its own
+            // bundled Alpine, so it cannot be swapped without forking Livewire.
+            "script-src 'self' 'nonce-{$nonce}' 'unsafe-eval' https://cdn.jsdelivr.net",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.bunny.net https://cdn.jsdelivr.net",
             "img-src 'self' data: blob:",
             "font-src 'self' data: https://fonts.gstatic.com",
             "connect-src 'self' ws: wss:",

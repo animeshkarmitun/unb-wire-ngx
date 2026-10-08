@@ -23,6 +23,11 @@ class SecurityHeadersTest extends TestCase
         $this->assertStringContainsString("base-uri 'self'", $csp);
         $this->assertStringContainsString("object-src 'none'", $csp);
         $this->assertStringContainsString("script-src 'self' 'nonce-", $csp);
+        // Alpine.js (bundled with Livewire) evaluates x-data/x-show/@click
+        // expressions via new Function(), which CSP blocks without
+        // 'unsafe-eval'. Without it every Alpine directive on the admin panel
+        // silently dies — dropdowns render permanently open, clicks do nothing.
+        $this->assertStringContainsString("'unsafe-eval'", $csp);
         $this->assertStringContainsString('https://cdn.jsdelivr.net', $csp);
         $this->assertStringContainsString("img-src 'self' data: blob:", $csp);
         $this->assertStringContainsString("connect-src 'self' ws: wss:", $csp);

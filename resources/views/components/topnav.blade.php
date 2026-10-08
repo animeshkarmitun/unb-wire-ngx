@@ -9,7 +9,7 @@
         <kbd class="text-[11px] text-muted-2 border border-border rounded-[5px] px-[7px] py-px bg-white">/</kbd>
     </div>
 
-    <div class="ml-auto flex items-center gap-[13px]">
+    <div class="ml-auto flex items-center gap-[13px]" x-data="{ openMenu: null }" id="topnavActions">
         {{-- Live Dhaka clock --}}
         <div class="hidden lg:flex items-center gap-2 whitespace-nowrap text-[12.5px] text-muted font-medium">
             <span class="w-[7px] h-[7px] rounded-full bg-green shadow-[0_0_0_3px_#e5f6ec]"></span>
@@ -23,12 +23,12 @@
 
         {{-- Notifications --}}
         @php $notifs = Auth::user()->notifications()->latest()->limit(5)->get(); $unread = Auth::user()->unreadNotifications()->count(); @endphp
-        <div class="relative" x-data="{ open: false }" @click.outside="open = false">
-            <button type="button" @click="open = !open" title="Notifications" aria-label="Notifications" class="relative w-[38px] h-[38px] rounded-[10px] border border-border bg-white text-[#4b4e5c] flex items-center justify-center transition-colors hover:border-navy-800 hover:text-navy-800">
+        <div class="relative">
+            <button type="button" @click="openMenu = openMenu === 'notif' ? null : 'notif'" title="Notifications" aria-label="Notifications" class="relative w-[38px] h-[38px] rounded-[10px] border border-border bg-white text-[#4b4e5c] flex items-center justify-center transition-colors hover:border-navy-800 hover:text-navy-800">
                 <x-lucide-bell class="w-[17px] h-[17px]" stroke-width="1.8" />
                 @if($unread>0)<span class="absolute -top-[5px] -right-[5px] min-w-[17px] h-[17px] px-1 rounded-full bg-crimson text-white text-[10px] font-bold flex items-center justify-center border-2 border-white">{{ $unread }}</span>@endif
             </button>
-            <div x-show="open" x-transition.opacity.duration.150ms x-cloak class="absolute right-0 top-[calc(100%+8px)] w-[320px] bg-white border border-border rounded-xl shadow-[0_14px_34px_rgba(15,23,48,0.14)] p-1.5 z-[60]">
+            <div x-show="openMenu === 'notif'" x-transition.opacity.duration.150ms x-cloak class="absolute right-0 top-[calc(100%+8px)] w-[320px] bg-white border border-border rounded-xl shadow-[0_14px_34px_rgba(15,23,48,0.14)] p-1.5 z-[60]">
                 <div class="text-[11px] uppercase tracking-[0.07em] text-muted-2 font-semibold px-[11px] pt-2 pb-[5px]">Notifications @if($unread>0)<span class="bg-crimson text-white px-1.5 rounded-full text-[10px]">{{ $unread }} new</span>@endif</div>
                 @forelse($notifs as $n)
                 @php $nData = $n->data['data'] ?? []; $nEvent = $n->data['event'] ?? ''; @endphp
@@ -48,8 +48,8 @@
         </div>
 
         {{-- User --}}
-        <div class="relative" x-data="{ open: false }" @click.outside="open = false">
-            <button type="button" @click="open = !open" aria-label="User menu" class="flex items-center gap-2.5 border border-border bg-white rounded-[11px] pl-1.5 pr-3 py-[5px] transition-colors hover:border-navy-800">
+        <div class="relative">
+            <button type="button" @click="openMenu = openMenu === 'user' ? null : 'user'" aria-label="User menu" class="flex items-center gap-2.5 border border-border bg-white rounded-[11px] pl-1.5 pr-3 py-[5px] transition-colors hover:border-navy-800">
                 <span class="w-[30px] h-[30px] rounded-lg bg-navy-800 text-white text-[11px] font-bold flex items-center justify-center">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}{{ strtoupper(substr(strrpos(Auth::user()->name, ' ') !== false ? substr(Auth::user()->name, strrpos(Auth::user()->name, ' ') + 1) : '', 0, 1)) }}</span>
                 <span class="hidden lg:block text-left leading-[1.25]">
                     <span class="block text-[13px] font-semibold text-ink">{{ Auth::user()->name }}</span>
@@ -57,7 +57,7 @@
                 </span>
                 <x-lucide-chevron-down class="w-3 h-3 text-muted-2" stroke-width="2" />
             </button>
-            <div x-show="open" x-transition.opacity.duration.150ms x-cloak class="absolute right-0 top-[calc(100%+8px)] w-[230px] bg-white border border-border rounded-xl shadow-[0_14px_34px_rgba(15,23,48,0.14)] p-1.5 z-[60]">
+            <div x-show="openMenu === 'user'" x-transition.opacity.duration.150ms x-cloak class="absolute right-0 top-[calc(100%+8px)] w-[230px] bg-white border border-border rounded-xl shadow-[0_14px_34px_rgba(15,23,48,0.14)] p-1.5 z-[60]">
                 <a href="{{ route('profile.edit') }}" class="flex gap-2.5 items-center px-[11px] py-[9px] rounded-lg text-[13px] text-ink hover:bg-paper">
                     <x-lucide-user class="w-[15px] h-[15px] shrink-0 text-[#4b4e5c]" stroke-width="1.8" />
                     My profile
@@ -100,6 +100,18 @@
                     document.getElementById('topnavSearch')?.focus();
                 }
             });
+
+            // Close the topnav dropdowns (notification bell + user menu) on any
+            // click outside the actions container. Plain DOM listener — does not
+            // depend on the Alpine @click.outside modifier, which was observed
+            // not firing on this page. Shared openMenu state means only one
+            // dropdown can be open at a time.
+            document.addEventListener('click', function (e) {
+                const wrap = document.getElementById('topnavActions');
+                if (!wrap || wrap.contains(e.target)) return;
+                const root = window.Alpine && window.Alpine.$data(wrap);
+                if (root && root.openMenu) root.openMenu = null;
+            }, true);
         })();
     </script>
 @endonce
