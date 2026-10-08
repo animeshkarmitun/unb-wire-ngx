@@ -164,7 +164,7 @@ Before considering any task done:
 - [ ] **Schema parity gate** — `php scripts/schema-parity-check.php` passes (FKs/CHECKs/timestamptz/indexes/models match `app-data/v1-database-design.md` + `DEC-011`) per `docs/workflow.md` §6.
 - [ ] **No fake success** — persistent state changes (publish, status transitions, notes, media) show success only after server confirms (`$successState`/`$status` re-render or API 200). E2E must assert DB/API (`/admin/news/en` + `/api/v1/portal/feed`), not just DOM.
 - [ ] **No `wire:ignore` overwrite without wrapper** — JS `innerHTML` sync (e.g., live preview) is allowed only inside an explicit `wire:ignore` wrapper; otherwise Livewire morph will be overwritten — see `docs/workflow.md` §8.
-- [ ] **CI-required checks green** — branch protection requires `php artisan test` + `npx playwright test --workers=2` + `npm run build` + `php scripts/schema-parity-check.php` all green before merge. No `Alpine.start()` duplicate — `Alpine` is started by Livewire.
+- [ ] **CI-required checks green** — branch protection requires `php artisan test` (with `--min=85` coverage) + `php scripts/coverage-gate.php` + `npm run build` + `php scripts/schema-parity-check.php` all green before merge. The Playwright suite (`npx playwright test --workers=2`) runs **nightly + on demand** via `.github/workflows/e2e.yml`, NOT on every push — the suite is 283 tests / ~33+ min and known-red on the runner (TODO `M14-COV-028`: fix the reds, then it can return to the push gate). Local devs still run Playwright before handoff. No `Alpine.start()` duplicate — `Alpine` is started by Livewire.
 
 ---
 

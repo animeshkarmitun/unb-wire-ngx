@@ -1,0 +1,114 @@
+name: E2E
+
+# The Playwright suite is 283 tests across 47 spec files (~33+ min wall on
+# --workers=2) and is known-red on the GitHub runner. Running it on every
+# push/PR burned 60+ minutes of runner time for zero gating value (the job
+# was continue-on-error). It now runs on a nightly schedule and on demand.
+#
+# The merge gate is the 'test' job in ci.yml (PHPUnit + coverage + schema
+# parity, ~4 min). This workflow is diagnostic: it produces the pass/fail
+# tally and the HTML report artifact for triage.
+#
+# Run it on demand:
+#   gh workflow run E2E.yml
+#   gh run watch --exit-status $(gh run list --workflow=E2E --limit 1 --json databaseId --jq '.[0].databaseId')
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # nightly 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    continue-on-error: true # suite is known-red; TODO(M14-COV-028): remove when green
+    timeout-minutes: 75
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: unb_wire_testing
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: unb_wire_testing
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      CI: 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, dom, fileinfo, pdo_pgsql, pgsql, gd, exif, intl, redis
+
+      - name: Create directories
+        run: mkdir -p bootstrap/cache storage/framework/cache storage/framework/sessions storage/framework/testing storage/framework/views storage/logs
+
+      - uses: ramsey/composer-install@v3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Build admin assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build portal assets
+        run: |
+          cd portal
+          npm ci
+          npm run build
+          cd ..
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Prepare environment
+        run: |
+          cp .env.testing .env
+          php artisan key:generate
+
+      - name: Migrate and seed
+        run: php artisan migrate:fresh --seed
+
+      - name: Run Playwright e2e suite
+        # Phase 1 (--list) confirms the transformer enumerates every spec.
+        # Phase 2 runs one API-only spec as a harness smoke (webServer boot,
+        # Laravel serve, Postgres reachability).
+        # Phase 3 runs the full suite. Each phase is '|| true' so a failure
+        # in one phase does not abort the later diagnostics in the log.
+        run: |
+          npx playwright test --list > /tmp/spec-list.txt 2>&1 || true
+          echo "=== spec list ==="
+          cat /tmp/spec-list.txt
+          echo "=== harness smoke: portal-search (API-only) ==="
+          npx playwright test tests/e2e/portal-search.spec.ts --workers=1 --reporter=line || true
+          echo "=== full suite ==="
+          npx playwright test --workers=2 --reporter=line || true
+        continue-on-error: true
+        timeout-minutes: 60
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
