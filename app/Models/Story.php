@@ -133,6 +133,11 @@ class Story extends Model
         return $this->belongsToMany(MediaAsset::class, 'story_media', 'story_id', 'asset_id')->withPivot(['role', 'sort_order', 'caption_override']);
     }
 
+    public function featuredMedia(): BelongsToMany
+    {
+        return $this->media()->wherePivot('role', 'featured');
+    }
+
     public function getSafeBodyHtmlAttribute(): string
     {
         return HtmlSanitizer::clean($this->body_html ?? '');

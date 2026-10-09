@@ -139,8 +139,8 @@
 
                     <a class="hero" href="{{ route('admin.story', $heroStory->public_id) }}" title="Read dispatch">
                         <div class="hero-img {{ $heroMedia ? '' : $heroGradient }}">
-                            @if($heroMedia && !empty($heroMedia->file_path))
-                                <img src="{{ asset('storage/' . $heroMedia->file_path) }}" alt="{{ $heroStory->headline }}">
+                            @if($heroMedia && !empty($heroMedia->original_path))
+                                <img src="{{ Storage::url($heroMedia->original_path) }}" alt="{{ $heroStory->headline }}">
                             @else
                                 <svg viewBox="0 0 24 24" fill="none" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
                                     <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -201,8 +201,8 @@
 
                                 <a class="story-card" href="{{ route('admin.story', $story->public_id) }}" title="{{ $story->headline }}">
                                     <div class="sc-img {{ $cardMedia ? '' : $cardGrad }}">
-                                        @if($cardMedia && !empty($cardMedia->file_path))
-                                            <img src="{{ asset('storage/' . $cardMedia->file_path) }}" alt="{{ $story->headline }}">
+                                        @if($cardMedia && !empty($cardMedia->original_path))
+                                            <img src="{{ Storage::url($cardMedia->original_path) }}" alt="{{ $story->headline }}">
                                         @else
                                             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
                                                 <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -258,8 +258,8 @@
 
                             <a class="rail-item" href="{{ route('admin.story', $rStory->public_id) }}">
                                 <div class="rail-thumb {{ $rMedia ? '' : $rGrad }}">
-                                    @if($rMedia && !empty($rMedia->file_path))
-                                        <img src="{{ asset('storage/' . $rMedia->file_path) }}" alt="{{ $rStory->headline }}">
+                                    @if($rMedia && !empty($rMedia->original_path))
+                                        <img src="{{ Storage::url($rMedia->original_path) }}" alt="{{ $rStory->headline }}">
                                     @else
                                         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                             <rect x="3" y="3" width="18" height="18" rx="2"/>

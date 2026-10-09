@@ -385,7 +385,7 @@
                 </div>
             </div>
             <div class="story-featured-caption">
-                {{ $feat?->caption ?: ($story->brief ?: 'UNB wire photo coverage and news dispatch.') }}
+                {{ $feat?->pivot?->caption_override ?: ($feat?->caption ?: ($story->brief ?: 'UNB wire photo coverage and news dispatch.')) }}
                 <strong>— Photo: {{ $feat?->credit_line ?: 'UNB' }}</strong>
             </div>
 
