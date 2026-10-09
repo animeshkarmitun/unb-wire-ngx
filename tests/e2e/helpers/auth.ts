@@ -70,3 +70,13 @@ export async function waitForToast(page: Page, text?: string) {
     await expect(toast).toContainText(text);
   }
 }
+
+// The "Start with AI" panel on /admin/add-news is collapsed on page load
+// (x-data open:false). Tests that drive #aiRaw must reveal it first.
+export async function openAiPanel(page: Page) {
+  const aiRaw = page.locator('#aiRaw');
+  if (!(await aiRaw.isVisible().catch(() => false))) {
+    await page.locator('#aiStartToggle').click();
+    await expect(aiRaw).toBeVisible({ timeout: 3000 });
+  }
+}

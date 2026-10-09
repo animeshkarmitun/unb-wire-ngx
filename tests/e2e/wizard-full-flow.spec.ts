@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openAiPanel } from './helpers/auth';
 
 test.describe('Add News Wizard — Full Rebuilt Flow & Interaction Contracts', () => {
   test.beforeEach(async ({ page }) => {
@@ -60,30 +61,24 @@ test.describe('Add News Wizard — Full Rebuilt Flow & Interaction Contracts', (
     await page.goto('/admin/add-news');
     await page.waitForLoadState('networkidle');
 
-    // 1. Initial state: AI start box is expanded, toggle text is 'Hide'
+    // 1. Initial state: AI start box is COLLAPSED on first load, toggle text is 'Show'
     const toggleBtn = page.locator('#aiStartToggle');
     const aiBody = page.locator('#aiStartBody');
-    await expect(toggleBtn).toHaveText('Hide');
-    await expect(aiBody).toBeVisible();
-
-    // 2. Click 'Hide' -> body becomes hidden, toggle text changes to 'Show'
-    await toggleBtn.click();
-    await page.waitForTimeout(200);
     await expect(toggleBtn).toHaveText('Show');
     await expect(aiBody).toBeHidden();
 
-    // 3. Click 'Show' -> body becomes visible again, toggle text changes to 'Hide'
+    // 2. Click 'Show' -> body becomes visible, toggle text changes to 'Hide'
     await toggleBtn.click();
     await page.waitForTimeout(200);
     await expect(toggleBtn).toHaveText('Hide');
     await expect(aiBody).toBeVisible();
 
-    // 4. Fill raw notes in textarea
+    // 3. Fill raw notes in textarea
     const aiRaw = page.locator('#aiRaw');
     await aiRaw.fill('Press release from Finance Ministry: Annual tax revenue growth reaches 14% year over year.');
     await expect(aiRaw).toHaveValue(/Finance Ministry/);
 
-    // 5. Language toggle switches between English and Bangla
+    // 4. Language toggle switches between English and Bangla
     const bnLangBtn = page.getByRole('button', { name: 'বাংলা (bn)' });
     const enLangBtn = page.getByRole('button', { name: 'English (en)' });
     await expect(enLangBtn).toHaveClass(/bg-navy-800/);

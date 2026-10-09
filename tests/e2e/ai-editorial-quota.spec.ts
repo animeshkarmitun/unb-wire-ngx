@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
-import { loginAs } from './helpers/auth';
+﻿import { test, expect } from '@playwright/test';
+import { loginAs, openAiPanel } from './helpers/auth';
 import { execSync } from 'child_process';
 
 test.describe('AI Editorial Assistant, Token Quota & Guardrail Flow (M8-AI)', () => {
@@ -15,6 +15,7 @@ test.describe('AI Editorial Assistant, Token Quota & Guardrail Flow (M8-AI)', ()
   test('Start with AI generation in Add News drafts headline, brief, category, and tags into suggestion drawer', async ({ page }) => {
     await page.goto('/admin/add-news');
     await page.waitForLoadState('networkidle');
+    await openAiPanel(page);
 
     const rawTextarea = page.locator('#aiRaw');
     await expect(rawTextarea).toBeVisible();
@@ -36,6 +37,7 @@ test.describe('AI Editorial Assistant, Token Quota & Guardrail Flow (M8-AI)', ()
   test('Applying AI suggestions populates form fields, marks them with ai-touched styling, and human edit clears marker', async ({ page }) => {
     await page.goto('/admin/add-news');
     await page.waitForLoadState('networkidle');
+    await openAiPanel(page);
 
     await page.locator('#aiRaw').fill('Padma bridge rail link freight service starts tomorrow');
     await page.locator('#aiGenerateBtn').click();
@@ -67,6 +69,7 @@ test.describe('AI Editorial Assistant, Token Quota & Guardrail Flow (M8-AI)', ()
   test('AI Publish Gate prevents routine story with unreviewed AI changes from publishing, but allows breaking stories', async ({ page }) => {
     await page.goto('/admin/add-news');
     await page.waitForLoadState('networkidle');
+    await openAiPanel(page);
 
     // Fill raw and apply AI suggestions without human edits
     await page.locator('#aiRaw').fill('Severe cyclonic storm approaching coastal districts');
@@ -116,6 +119,7 @@ test.describe('AI Editorial Assistant, Token Quota & Guardrail Flow (M8-AI)', ()
     // Generate AI draft in Add News
     await page.goto('/admin/add-news');
     await page.waitForLoadState('networkidle');
+    await openAiPanel(page);
 
     await page.locator('#aiRaw').fill('Dhaka international trade fair schedule announced');
     await page.locator('#aiGenerateBtn').click();
@@ -137,6 +141,7 @@ test.describe('AI Editorial Assistant, Token Quota & Guardrail Flow (M8-AI)', ()
 
     await page.goto('/admin/add-news');
     await page.waitForLoadState('networkidle');
+    await openAiPanel(page);
 
     await page.locator('#aiRaw').fill('Attempt generation while kill switch is on');
     await page.locator('#aiGenerateBtn').click();

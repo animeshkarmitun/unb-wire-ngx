@@ -28,14 +28,14 @@
             </div>
           @endif
 
-          <!-- Start with AI -->
-          <div class="ai-start" id="aiStart" x-data="{ open: true }">
+          <!-- Start with AI — collapsed on first load; the toggle reveals it -->
+          <div class="ai-start" id="aiStart" x-data="{ open: false }">
             <div class="ai-start-head">
               <span class="ai-label">✦ Start with AI</span>
               <span class="ai-note">Paste raw notes, a press release or field copy — AI drafts the headline, brief, body, category &amp; tags. <strong>Nothing is applied without your click.</strong></span>
-              <button type="button" class="ai-start-toggle" id="aiStartToggle" @click="open = !open" x-text="open ? 'Hide' : 'Show'">Hide</button>
+              <button type="button" class="ai-start-toggle" id="aiStartToggle" @click="open = !open" x-text="open ? 'Hide' : 'Show'">Show</button>
             </div>
-            <div class="ai-start-body" id="aiStartBody" x-show="open" :hidden="!open">
+            <div class="ai-start-body" id="aiStartBody" x-show="open" x-cloak :hidden="!open">
               <textarea class="ai-raw" id="aiRaw" wire:model.live.debounce.300ms="aiRawText" placeholder="Paste notes, press release, bullet points, rough quotes, or field copy here…"></textarea>
               <div class="ai-start-foot">
                 <span class="ai-note">AI drafts headline, brief, polished wire body, category and tags for your review</span>
