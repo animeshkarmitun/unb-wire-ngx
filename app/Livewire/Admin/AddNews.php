@@ -107,6 +107,13 @@ class AddNews extends Component
 
     public string $ownerRole = '';
 
+    public bool $previewCollapsed = true; // prototype contract: live preview starts collapsed
+
+    public function togglePreview(): void
+    {
+        $this->previewCollapsed = ! $this->previewCollapsed;
+    }
+
     public function mount(?int $id = null): void
     {
         $user = auth()->user();
@@ -186,9 +193,9 @@ class AddNews extends Component
     public function go(int $stepNumber): void
     {
         if ($stepNumber >= 1 && $stepNumber <= 4) {
-            if ($stepNumber > $this->step) {
-                $this->validateStep();
-            }
+            // Stepper circles navigate freely, matching the app-data prototype
+            // (app-data/add-news.html showStep). Step-1 field integrity is still
+            // enforced at the two action gates: next() and publish().
             $this->step = $stepNumber;
             $this->autosave();
         }
@@ -348,6 +355,36 @@ class AddNews extends Component
         $this->attachedMedia = [];
         $this->featuredMediaId = null;
         $this->featuredCaption = '';
+        $this->dispatch('story-updated');
+        $this->autosave();
+    }
+
+    public function updateAttachedMedia(int $index, string $caption, string $rights = 'story'): void
+    {
+        if (! isset($this->attachedMedia[$index])) {
+            return;
+        }
+        $this->attachedMedia[$index]['cap'] = $caption;
+        $this->attachedMedia[$index]['rights'] = $rights;
+
+        // If this item is the featured image, sync the featured caption too
+        if ($this->attachedMedia[$index]['id'] === $this->featuredMediaId) {
+            $this->featuredCaption = $caption;
+        }
+
+        $this->dispatch('story-updated');
+        $this->autosave();
+    }
+
+    public function promoteToFeatured(int $index): void
+    {
+        if (! isset($this->attachedMedia[$index])) {
+            return;
+        }
+        $item = $this->attachedMedia[$index];
+        $this->featuredMediaId = $item['id'];
+        $this->featuredCaption = $item['cap'];
+        $this->dispatch('toast', message: 'Promoted to featured image');
         $this->dispatch('story-updated');
         $this->autosave();
     }

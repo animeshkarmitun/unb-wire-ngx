@@ -146,11 +146,10 @@
     document.addEventListener('click', (e) => {
       const stp = e.target.closest('.stp');
       if (stp && document.getElementById('addNewsApp')?.contains(stp)) {
+        // Free navigation between steps via the stepper circles (prototype
+        // contract); field errors surface at the next()/publish() gates.
         const target = +stp.dataset.go;
-        const cur = getCurrentStep();
-        if (target && (target <= cur || validateStep(cur))) {
-          showStep(target);
-        }
+        if (target) showStep(target);
         return;
       }
 
@@ -858,6 +857,91 @@ const addMediaAfter = document.getElementById('addMediaAfter');
       }
     });
 
+    // Edit Media Modal
+    const editOverlay = document.getElementById('editOverlay');
+    const editCaption = document.getElementById('editCaption');
+    const editRights = document.getElementById('editRights');
+    const editMeta = document.getElementById('editMeta');
+    const editStage = document.getElementById('editStage');
+    let editIndex = -1;
+
+    function getWireComponent() {
+      const app = document.getElementById('addNewsApp');
+      const wireEl = app ? app.closest('[wire\\:id]') : null;
+      return wireEl && window.Livewire ? window.Livewire.find(wireEl.getAttribute('wire:id')) : null;
+    }
+
+    function openEditModal(idx) {
+      const wc = getWireComponent();
+      if (!wc) return;
+      const media = wc.get('attachedMedia');
+      if (!media || !media[idx]) return;
+      const item = media[idx];
+      editIndex = idx;
+      if (editCaption) editCaption.value = item.cap || '';
+      if (editRights) editRights.value = item.rights || 'story';
+      if (editMeta) editMeta.textContent = (item.type === 'video' ? 'Video' : 'Photo') + ' · item ' + (idx + 1) + ' of ' + media.length;
+      if (editStage) {
+        editStage.innerHTML = '<div class="' + (item.grad || 'g1') + '" style="width:100%;height:280px;border-radius:8px;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:48px;height:48px"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>';
+      }
+      editOverlay?.classList.add('open');
+    }
+
+    document.addEventListener('click', (e) => {
+      const thumb = e.target.closest('.attach-thumb');
+      if (thumb && document.getElementById('addNewsApp')?.contains(thumb)) {
+        const idx = thumb.dataset.i;
+        if (idx !== undefined) openEditModal(+idx);
+        return;
+      }
+
+      const removeBtn = e.target.closest('.attach-remove');
+      if (removeBtn && document.getElementById('addNewsApp')?.contains(removeBtn)) {
+        const idx = +removeBtn.dataset.i;
+        const wc = getWireComponent();
+        if (!wc) return;
+        const media = wc.get('attachedMedia');
+        if (media && media[idx]) {
+          wc.toggleMedia(media[idx].id);
+        }
+        return;
+      }
+    });
+
+    const closeEdit = document.getElementById('closeEdit');
+    if (closeEdit) closeEdit.onclick = () => editOverlay?.classList.remove('open');
+    const cancelEdit = document.getElementById('cancelEdit');
+    if (cancelEdit) cancelEdit.onclick = () => editOverlay?.classList.remove('open');
+
+    const applyEdit = document.getElementById('applyEdit');
+    if (applyEdit) {
+      applyEdit.onclick = () => {
+        if (editIndex < 0) return;
+        const wc = getWireComponent();
+        if (!wc) return;
+        const cap = editCaption ? editCaption.value : '';
+        const rights = editRights ? editRights.value : 'story';
+        wc.updateAttachedMedia(editIndex, cap, rights);
+        editOverlay?.classList.remove('open');
+        miniToast('Media details updated');
+      };
+    }
+
+    const promoteBtn = document.getElementById('promoteToFeatured');
+    if (promoteBtn) {
+      promoteBtn.onclick = () => {
+        if (editIndex < 0) return;
+        const wc = getWireComponent();
+        if (!wc) return;
+        // Also save any caption/rights edits before promoting
+        const cap = editCaption ? editCaption.value : '';
+        const rights = editRights ? editRights.value : 'story';
+        wc.updateAttachedMedia(editIndex, cap, rights);
+        wc.promoteToFeatured(editIndex);
+        editOverlay?.classList.remove('open');
+      };
+    }
+
     // Tags Autocomplete
     const tagBox = document.getElementById('tagBox');
     const tagInput = document.getElementById('tagInput');
@@ -949,27 +1033,10 @@ const addMediaAfter = document.getElementById('addMediaAfter');
       };
     });
 
-    // Live Preview Collapsing & Fullscreen Focus
-    const addGrid = document.getElementById('addGrid');
-    const pvToggleBtn = document.getElementById('pvToggleBtn');
-    const pvStrip = document.getElementById('pvStrip');
-
-    function setPvCollapsed(collapsed) {
-      if (!addGrid) return;
-      addGrid.classList.toggle('pv-collapsed', collapsed);
-      if (pvToggleBtn) pvToggleBtn.classList.toggle('off', collapsed);
-      try { localStorage.setItem('unb_pv_collapsed', collapsed ? '1' : '0'); } catch (e) {}
-    }
-
-    let pvCollapsed = true;
-    try {
-      const savedPv = localStorage.getItem('unb_pv_collapsed');
-      if (savedPv !== null) pvCollapsed = savedPv === '1';
-    } catch (e) {}
-    setPvCollapsed(pvCollapsed);
-
-    if (pvToggleBtn) pvToggleBtn.onclick = () => setPvCollapsed(!addGrid.classList.contains('pv-collapsed'));
-    if (pvStrip) pvStrip.onclick = () => setPvCollapsed(false);
+    // Live Preview collapse is owned by Livewire state (AddNews::$previewCollapsed /
+    // togglePreview) so the server-rendered pv-collapsed class survives morphs.
+    // #pvStrip, #pvToggleBtn and #pvClose are wire:click="togglePreview".
+    // Only the fullscreen focus overlay stays here.
 
     const pvOverlay = document.getElementById('pvOverlay');
     const pvFocus = document.getElementById('pvFocus');

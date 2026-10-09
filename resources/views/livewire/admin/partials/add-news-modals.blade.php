@@ -110,8 +110,11 @@
         </div>
       </div>
       <div class="mm-footer">
-        <button type="button" class="btn btn-outline" id="cancelEdit">Cancel</button>
-        <button type="button" class="btn btn-primary" id="applyEdit">Save changes</button>
+        <button type="button" class="btn btn-outline" id="promoteToFeatured" title="Set this media item as the featured image">★ Set as featured</button>
+        <div class="mm-footer-btns">
+          <button type="button" class="btn btn-outline" id="cancelEdit">Cancel</button>
+          <button type="button" class="btn btn-primary" id="applyEdit">Save changes</button>
+        </div>
       </div>
     </div>
   </div>
