@@ -147,12 +147,26 @@
 .insp-actions .btn { flex: 1; justify-content: center; }
 
 /* drag-drop overlay */
+/* Base display is flex: visibility is driven by Alpine x-show
+   (dragDepth > 0) which toggles the inline display between none and ''
+   — the '' restore must resolve to a visible value, and [x-cloak]
+   covers the pre-Alpine paint. A `display: none` base class would
+   make the x-show restore resolve to none and the overlay could
+   never appear. */
 .dam-drop {
-  position: fixed; inset: 0; z-index: 200; display: none;
+  position: fixed; inset: 0; z-index: 200; display: flex;
   align-items: center; justify-content: center; text-align: center;
   background: rgba(15,23,48,0.55); backdrop-filter: blur(3px);
 }
-.dam-drop.show { display: flex; }
+.dam-drop-close {
+  position: absolute; top: 18px; right: 18px;
+  width: 30px; height: 30px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.55); background: rgba(15,23,48,0.35);
+  color: #fff; font-size: 14px; line-height: 1; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: border-color .15s, color .15s, background .15s;
+}
+.dam-drop-close:hover { border-color: var(--crimson, #e5484d); color: var(--crimson, #e5484d); background: #fff; }
 .dam-drop-box {
   border: 2.5px dashed #fff; border-radius: 20px; padding: 46px 60px; color: #fff;
   font-family: var(--serif, Georgia, serif); font-size: 22px; font-weight: 600;

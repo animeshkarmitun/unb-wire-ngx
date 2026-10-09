@@ -11,13 +11,14 @@
 }"
 @toast.window="showToast($event.detail.message)"
 @dragenter.window="dragDepth++;"
-@dragleave.window="dragDepth = Math.max(0, dragDepth - 1);"
+@dragleave.window="if (!$event.relatedTarget) { dragDepth = 0; } else { dragDepth = Math.max(0, dragDepth - 1); }"
 @dragover.prevent
 @drop.prevent="dragDepth = 0; if ($event.dataTransfer.files.length) { $refs.uploadInput.files = $event.dataTransfer.files; $refs.uploadInput.dispatchEvent(new Event('change', { bubbles: true })); }"
 class="relative">
 
     <!-- Drag & drop full-screen overlay -->
-    <div x-show="dragDepth > 0" x-cloak class="dam-drop show">
+    <div x-show="dragDepth > 0" x-cloak class="dam-drop" @click.self="dragDepth = 0" @keydown.escape.window="dragDepth = 0">
+        <button type="button" class="dam-drop-close" @click.stop="dragDepth = 0" aria-label="Close">✕</button>
         <div class="dam-drop-box">
             Drop photos to upload
             <span>They will land in “Needs review” for the photo editor</span>
