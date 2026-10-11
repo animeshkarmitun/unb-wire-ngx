@@ -3,6 +3,7 @@
 use App\Console\Scheduling\LiftEmbargoedStories;
 use App\Console\Scheduling\PruneUploadSessions;
 use App\Console\Scheduling\SweepArchivedStories;
+use App\Console\Scheduling\SweepDeliveryPartitions;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -24,6 +25,12 @@ Schedule::call(fn () => app(LiftEmbargoedStories::class)->handle())
 Schedule::call(fn () => app(SweepArchivedStories::class)->handle())
     ->daily()
     ->name('archive-sweep')
+    ->withoutOverlapping();
+
+Schedule::command('partitions:ensure')->daily()->withoutOverlapping()->name('partitions-ensure');
+Schedule::call(fn () => app(SweepDeliveryPartitions::class)->handle())
+    ->daily()
+    ->name('delivery-partition-sweep')
     ->withoutOverlapping();
 
 Schedule::command('monitor:outbox-lag')->everyFiveMinutes()->withoutOverlapping();

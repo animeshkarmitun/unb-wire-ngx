@@ -73,6 +73,14 @@ repositories never cache.
   recorded per attempt.
 - **Scheduler (defined in Dhaka wall-clock, executed as UTC instants):** embargo
   lifts (±60s), archival sweep, digests, backup drills.
+- **Deliveries partition ops (DEC-018):** `partitions:ensure` (daily) creates the
+  current + next month's `deliveries_YYYYMM` RANGE partitions (UTC bounds,
+  default-partition-safe attach); `SweepDeliveryPartitions` (daily) detaches whole
+  months older than 12 months into the `archive` schema. `deliveries_default` is
+  the insert safety net so month rollover never blocks fan-out.
+- **Production deploy reference configs** (M15-SCALE-002): `deploy/` carries
+  PgBouncer (transaction pools), PG16 OLTC GUCs, PHP-FPM/OPcache references, and
+  the CDN edge policy — tune per server, see `deploy/README.md`.
 - **Database backups (M13-OPS-001):** `backup:run` daily at `BACKUP_SCHEDULE`
   (default 02:00) — pg_dump → gzip → `backups/db-YYYYMMDD-HHMMSS.sql.gz` on the
   local disk, optional copy to `BACKUP_DISK` (e.g. S3 offsite). Rotation keeps
@@ -81,7 +89,16 @@ repositories never cache.
   `BackupFailed` to `BACKUP_ALERT_EMAIL` and exit 1.
 - **Search sync:** `index_outbox` → indexer workers → Meilisearch `main`/`archive`;
   lag budget ≤5s after publish; full reindex from Postgres must stay a tested,
-  scripted operation.
+  scripted operation. A third **`staff`** index (all statuses) feeds the admin
+  newsroom archive (`StaffSearchService`, M15-SCALE-004) — server-side master-key
+  only, never tenant-token-reachable; staff upserts enqueue on every draft save
+  + transition via `App\Support\IndexOutbox::enqueue` (pending-row dedupe
+  collapses autosave bursts). Admin search falls back to trgm-assisted SQL LIKE
+  when the engine is unavailable (NFR §5 graceful degradation).
+- **Feed payload split (M15-SCALE-005):** list endpoints (`/api/v1/portal/feed`)
+  return brief-only (no `body_html`); `/api/v1/portal/story/{id}` carries the
+  full body under epoch-keyed `Cache::flexible` — the portal lazy-fetches it on
+  first card expand (`ensureStoryBody`).
 
 ---
 

@@ -1,6 +1,6 @@
 # Scale & Performance Optimization Research — 1,000 Concurrent Portal Users + ~50 Concurrent Admins
 
-> **Status:** research only — no code/infra changes made (per request).
+> **Status:** research → implemented. Shipped: M15-SCALE-001 (feed-cache epoch + SWR, Redis sessions, admin/trgm indexes, autovacuum, Horizon split — PR #50), M15-SCALE-002 (`deploy/` reference configs), M15-SCALE-003 (`deliveries` partitioning + partition ops — DEC-018), M15-SCALE-004 (admin search → Meilisearch `staff` index), M15-SCALE-005 (feed payload slim + portal lazy-expand). All five tasks complete as of 2026-10-11.
 > **Scope:** app-level, query-level, and DB-level optimizations for UNB Wire under the load model:
 > ~1,000 concurrent client-facing (portal/API) users, ~50 concurrent admin/editorial users on the Livewire panel.
 > **Date:** 2026-10-11

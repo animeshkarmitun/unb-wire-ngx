@@ -10,6 +10,7 @@ use App\Models\StoryNote;
 use App\Models\User;
 use App\Repositories\AuditLogRepository;
 use App\Support\FeedCache;
+use App\Support\IndexOutbox;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -63,6 +64,8 @@ class StoryService
             GenerateEnTags::dispatch($story->id, $actor->id);
         }
 
+        IndexOutbox::enqueue('staff', $story->public_id);
+
         return $story;
     }
 
@@ -90,17 +93,12 @@ class StoryService
         });
 
         if ($story->status === 'published') {
-            DB::table('index_outbox')->insert([
-                'index_name' => 'main',
-                'op' => 'upsert',
-                'document_id' => $story->public_id,
-                'status' => 'pending',
-                'attempts' => 0,
-                'created_at' => now(),
-            ]);
+            IndexOutbox::enqueue('main', $story->public_id);
             dispatch(new FanoutStory($story->id))->afterResponse();
             FeedCache::bump();
         }
+
+        IndexOutbox::enqueue('staff', $story->public_id);
 
         return $story;
     }
@@ -240,6 +238,8 @@ class StoryService
         if (in_array($to, ['published', 'killed', 'archived'], true)) {
             FeedCache::bump();
         }
+
+        IndexOutbox::enqueue('staff', $story->public_id);
 
         return $updated;
     }

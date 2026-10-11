@@ -198,7 +198,8 @@ class PortalApiTest extends TestCase
         $this->assertEquals($story->public_id, $item['public_id']);
         $this->assertEquals('Test headline', $item['headline']);
         $this->assertEquals('Test brief', $item['brief']);
-        $this->assertEquals('<p>Body content</p>', $item['body_html']);
+        // M15-SCALE-005: feed lists are brief-only — body_html lives on the story detail endpoint
+        $this->assertArrayNotHasKey('body_html', $item);
         $this->assertEquals('Politics', $item['category']);
         $this->assertEquals('en', $item['language']);
         $this->assertTrue($item['is_breaking']);

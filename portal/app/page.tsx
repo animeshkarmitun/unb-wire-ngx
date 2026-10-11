@@ -71,6 +71,29 @@ export default function ClientPortal() {
   const [expandedGrid, setExpandedGrid] = useState<Set<number | string>>(new Set());
   const [expandedTable, setExpandedTable] = useState<Set<number | string>>(new Set());
 
+  // M15-SCALE-005: feed lists are brief-only — lazy-fetch the full body on first expand
+  const storyBodyCache = useRef<Map<string, string>>(new Map());
+  const ensureStoryBody = useCallback(async (s: WireStory) => {
+    if (storyBodyCache.current.has(s.public_id)) return;
+    storyBodyCache.current.set(s.public_id, "");
+    try {
+      const base = process.env.NEXT_PUBLIC_LARAVEL_URL ?? "http://localhost:8000";
+      const res = await fetch(`${base}/api/v1/portal/story/${s.public_id}`, {
+        headers: { ...authHeaders() },
+      });
+      if (res.ok) {
+        const j = await res.json();
+        const body = j?.data?.body_html ?? "";
+        storyBodyCache.current.set(s.public_id, body);
+        setStories((prev) =>
+          prev.map((st) => (st.public_id === s.public_id ? { ...st, body_html: body } : st))
+        );
+      }
+    } catch {
+      // keep the brief fallback
+    }
+  }, []);
+
   // Table terminal specifics
   const [twDensity, setTwDensity] = useState<"cozy" | "compact">("cozy");
   const [twSort, setTwSort] = useState<"time" | "cat" | null>(null);
@@ -352,6 +375,7 @@ export default function ClientPortal() {
         } else if (e.key === "Enter" && twActiveIdx >= 0) {
           const s = filteredStories[twActiveIdx];
           if (s && s.ex !== "other") {
+            if (!expandedTable.has(s.id)) void ensureStoryBody(s);
             setExpandedTable((prev) => {
               const next = new Set(prev);
               next.has(s.id) ? next.delete(s.id) : next.add(s.id);
@@ -1330,6 +1354,7 @@ export default function ClientPortal() {
                           className="st-head"
                           onClick={() => {
                             if (!isLocked) {
+                              if (!expandedCards.has(s.id)) void ensureStoryBody(s);
                               setExpandedCards((prev) => {
                                 const next = new Set(prev);
                                 next.has(s.id) ? next.delete(s.id) : next.add(s.id);
@@ -1435,6 +1460,7 @@ export default function ClientPortal() {
                                 className="st-btn preview"
                                 type="button"
                                 onClick={() => {
+                                  if (!expandedCards.has(s.id)) void ensureStoryBody(s);
                                   setExpandedCards((prev) => {
                                     const next = new Set(prev);
                                     next.has(s.id) ? next.delete(s.id) : next.add(s.id);
@@ -1695,6 +1721,7 @@ export default function ClientPortal() {
                           className="wg-head"
                           onClick={() => {
                             if (!isLocked) {
+                              if (!expandedGrid.has(s.id)) void ensureStoryBody(s);
                               setExpandedGrid((prev) => {
                                 const next = new Set(prev);
                                 next.has(s.id) ? next.delete(s.id) : next.add(s.id);
@@ -1780,6 +1807,7 @@ export default function ClientPortal() {
                                 className="wg-read"
                                 type="button"
                                 onClick={() => {
+                                  if (!expandedGrid.has(s.id)) void ensureStoryBody(s);
                                   setExpandedGrid((prev) => {
                                     const next = new Set(prev);
                                     next.has(s.id) ? next.delete(s.id) : next.add(s.id);
@@ -1979,6 +2007,7 @@ export default function ClientPortal() {
                                 }${isRowActive ? " tw-active" : ""}${isFresh ? " fresh" : ""}`}
                                 onClick={() => {
                                   if (!isLocked) {
+                                    if (!expandedTable.has(s.id)) void ensureStoryBody(s);
                                     setTwActiveIdx(idx);
                                     setExpandedTable((prev) => {
                                       const next = new Set(prev);

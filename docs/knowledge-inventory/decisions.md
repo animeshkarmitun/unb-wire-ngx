@@ -326,9 +326,47 @@ Scale research (`docs/research/scale-performance-optimization-research.md` P0-5/
 - Feed entries cache via `Cache::flexible([30, 120])` (stale-while-revalidate, lock-guarded single regenerator) — epoch bumps make freshness event-driven, TTLs bound drift and stampedes.
 - **Sessions → Redis** on a dedicated `session` connection (DB 2, own prefix; `SESSION_DRIVER=redis`, `SESSION_CONNECTION=session`) — Postgres leaves the per-request path.
 - Bump sites stay client-visibility-scoped (draft→in_review does NOT bump — it changed per-transition before, wastefully).
-
 ### Consequences
+
 - Publish → feed visible on the **next request** (seconds), not ≤ 60s; kill tombstones likewise.
 - Old-epoch entries expire naturally (≤120s stale TTL) — no SCAN loops over clients.
 - `.env.example` defaults `REDIS_CLIENT=phpredis` (ext required in production; local dev without the ext keeps `predis`).
 - `deliveries` monthly partitioning (DEC-011 revisit) remains deferred to its own schema task.
+
+---
+
+## `DEC-018`: `deliveries` monthly RANGE partitioning live (DEC-011 revisit, M15-SCALE-003)
+
+### Context
+
+DEC-011 deferred partitioning to ~5M rows. Scale research (`docs/research/scale-performance-optimization-research.md` P1-3): at NFR volume (300–600 stories/day × 50–200 clients × channels) `deliveries` crosses 5M rows in **~55 days** (~33M/yr) — the trigger hits almost immediately in production, while the table is still small enough to convert cheaply. `v1-database-design.md` §7 already specced `RANGE (created_at)` monthly partitions + 12-month detach-to-archive.
+
+### Decision
+
+- `deliveries` is `PARTITION BY RANGE (created_at)` (migration `2026_10_11_000400`): PK becomes **`(id, created_at)`** (PG requires the partition key in the PK); FKs/CHECKs/append-only REVOKE preserved; indexes recreated on the partitioned parent (`(client_id, created_at)`, `(deliverable_type, deliverable_id)`, partial `(status, created_at) WHERE failed`).
+- **Idempotency**: global `UNIQUE(idempotency_key)` is impossible on a partitioned table → replaced by `UNIQUE(idempotency_key, created_at)` + the existing app-level check-then-insert in `FanoutStory` (keys are `sha256(story-channel-version)`; realistic duplicate races are same-month only, which the composite unique still blocks).
+- **Partition ops**: `partitions:ensure` (daily; current + next month, default-partition-safe attach via `App\Support\DeliveryPartitions`) + `SweepDeliveryPartitions` (daily; detaches partitions whose whole month is > 12 months old into the `archive` schema). `deliveries_default` is the safety net so month rollover never blocks inserts.
+
+### Consequences
+
+- Distribution log UI + idempotency lookups stay lean on the hot window; partition-pruned when date filters are present (`DeliveryRepository::paginateWithFilters`).
+- Detached partitions leave the hot parent automatically (NFR §4); archived data stays queryable in the `archive` schema.
+- Repository/job code untouched — all reads/writes go through the parent table.
+
+---
+
+## `DEC-019`: `index_outbox.index_name` CHECK extended with `staff` (M15-SCALE-004)
+
+### Context
+
+M15-SCALE-004 routes admin newsroom search through a new Meilisearch **`staff`** index (all story statuses, NFR §1 surface #1) fed via `index_outbox`. The pgsql-only CHECK constraint `index_outbox_index_name_check` allowed only `('main','archive','media')` — `'staff'` inserts violate it. sqlite tests don't create the pgsql CHECK (raw-SQL guard), so the bug surfaced only in live smoke on the pgsql dev DB — not in the 910-test sqlite suite.
+
+### Decision
+
+- Migration `2026_10_11_000500`: extend the enum to `('main','archive','media','staff')` (DROP + re-ADD constraint, pgsql-only; `down()` restores the original). `v1-database-design.md` §8 `index_outbox.index_name` ratifies the enum addition in the same PR.
+- Staff index semantics: server-side master-key queries only (`StaffSearchService`) — never tenant-token-reachable (`TenantTokenIssuer` rules cover `main`/`archive`/`media` only); upserts enqueue on every draft save + transition via `App\Support\IndexOutbox::enqueue` (pending-row dedupe).
+
+### Consequences
+
+- Staff rows pass the CHECK; `ProcessIndexOutbox` builds staff payloads (same field set as main).
+- **Process note:** pgsql-guarded CHECK/CHECK-enum migrations must be verified against a pgsql DB (feature suite is sqlite) — extend the pgsql verification habit to new outbox/search writes.
