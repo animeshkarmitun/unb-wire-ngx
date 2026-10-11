@@ -70,7 +70,7 @@ class PortalController extends Controller
             }
             $limit = min(100, max(1, (int) $request->query('limit', 50)));
 
-            return $q->orderByDesc('published_at')->orderByDesc('id')->limit($limit)->get()->map(fn ($s) => self::formatStory($s));
+            return $q->orderByDesc('published_at')->orderByDesc('id')->limit($limit)->get()->map(fn ($s) => self::formatStoryList($s));
         });
 
         return response()->json(['data' => $stories])->header('Cache-Control', 'public, max-age=60');
@@ -119,24 +119,34 @@ class PortalController extends Controller
 
     public function show(Request $request, string $publicId): JsonResponse
     {
-        $s = $this->stories->findPublishedByPublicId($publicId);
-
-        if (! $s) {
-            return response()->json(['error' => 'Story not found'], 404);
-        }
-
         $client = $request->attributes->get('client');
-        if ($client) {
-            $ent = $this->entitlementResolver->forClient($client);
-            if (! empty($ent['languages']) && ! in_array($s->language, $ent['languages'], true)) {
-                return response()->json(['error' => 'Story not found'], 404);
-            }
-            if (! empty($ent['category_ids']) && ! in_array($s->category_id, $ent['category_ids'])) {
-                return response()->json(['error' => 'Story not found'], 404);
-            }
-        }
+        $clientId = $client?->id ?? 'guest';
+        $key = 'portal:story:'.FeedCache::epoch().':'.$clientId.':'.$publicId;
 
-        return response()->json(['data' => self::formatStory($s)]);
+        $payload = Cache::flexible($key, [FeedCache::FRESH, FeedCache::STALE], function () use ($publicId, $client) {
+            $s = $this->stories->findPublishedByPublicId($publicId);
+
+            if (! $s) {
+                return ['error' => 'Story not found', 'status' => 404];
+            }
+
+            if ($client) {
+                $ent = $this->entitlementResolver->forClient($client);
+                if (! empty($ent['languages']) && ! in_array($s->language, $ent['languages'], true)) {
+                    return ['error' => 'Story not found', 'status' => 404];
+                }
+                if (! empty($ent['category_ids']) && ! in_array($s->category_id, $ent['category_ids'])) {
+                    return ['error' => 'Story not found', 'status' => 404];
+                }
+            }
+
+            return ['data' => self::formatStoryDetail($s), 'status' => 200];
+        });
+
+        return response()->json(
+            isset($payload['data']) ? ['data' => $payload['data']] : ['error' => $payload['error'] ?? 'Story not found'],
+            $payload['status'] ?? 404
+        )->header('Cache-Control', 'public, max-age=60');
     }
 
     public function download(Request $request, string $publicId, DownloadGateService $gateService): Response
@@ -169,14 +179,13 @@ class PortalController extends Controller
         }
     }
 
-    private static function formatStory($s): array
+    private static function formatStoryList($s): array
     {
         return [
             'public_id' => $s->public_id,
             'headline' => $s->headline,
             'sub_head' => $s->sub_head,
             'brief' => $s->brief,
-            'body_html' => $s->body_html,
             'category' => $s->category->name_en ?? 'General',
             'language' => $s->language,
             'published_at' => $s->published_at?->toIso8601String(),
@@ -193,5 +202,12 @@ class PortalController extends Controller
             ])->values()->all(),
             'has_video' => $s->media->reject(fn ($m) => $m->isEmbargoed())->where('kind', 'video')->isNotEmpty(),
         ];
+    }
+
+    private static function formatStoryDetail($s): array
+    {
+        return array_merge(self::formatStoryList($s), [
+            'body_html' => $s->body_html,
+        ]);
     }
 }

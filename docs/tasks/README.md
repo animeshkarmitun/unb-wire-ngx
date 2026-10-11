@@ -370,8 +370,8 @@ Build order: `002`–`015` can run in parallel with `001`. E2E tasks start after
 | `M15-SCALE-001` | Feed-cache epoch versioning + stampede guard, Redis sessions, admin-list + trgm indexes, autovacuum, Horizon split (DEC-017) | `M14-COV-*`, `M13-PERF-001` | ✅ | PR #50 | 2026-10-11 |
 | `M15-SCALE-002` | Deploy reference configs: PgBouncer + PG16 GUCs + PHP-FPM/OPcache + CDN policy (`deploy/`) | `M15-SCALE-001` | ✅ | — | 2026-10-11 |
 | `M15-SCALE-003` | `deliveries` monthly RANGE partitioning + `partitions:ensure` + sweep-to-archive (DEC-011 revisit → DEC-018) | `M15-SCALE-001` | ✅ | — | 2026-10-11 |
-| `M15-SCALE-004` | Admin/newsroom search → Meilisearch staff index (all statuses) — design options in task file | `M15-SCALE-001` | ⏳ | — | — |
-| `M15-SCALE-005` | Feed payload slim (`body_html` out of lists, portal lazy-expand) — design options in task file | `M15-SCALE-001` | ⏳ | — | — |
+| `M15-SCALE-004` | Admin/newsroom search → Meilisearch staff index (all statuses, Option A) | `M15-SCALE-001` | ✅ | — | 2026-10-11 |
+| `M15-SCALE-005` | Feed payload slim (`body_html` out of lists, portal lazy-expand, Option A) | `M15-SCALE-001` | ✅ | — | 2026-10-11 |
 
 ---
 

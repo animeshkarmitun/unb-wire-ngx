@@ -89,7 +89,16 @@ repositories never cache.
   `BackupFailed` to `BACKUP_ALERT_EMAIL` and exit 1.
 - **Search sync:** `index_outbox` → indexer workers → Meilisearch `main`/`archive`;
   lag budget ≤5s after publish; full reindex from Postgres must stay a tested,
-  scripted operation.
+  scripted operation. A third **`staff`** index (all statuses) feeds the admin
+  newsroom archive (`StaffSearchService`, M15-SCALE-004) — server-side master-key
+  only, never tenant-token-reachable; staff upserts enqueue on every draft save
+  + transition via `App\Support\IndexOutbox::enqueue` (pending-row dedupe
+  collapses autosave bursts). Admin search falls back to trgm-assisted SQL LIKE
+  when the engine is unavailable (NFR §5 graceful degradation).
+- **Feed payload split (M15-SCALE-005):** list endpoints (`/api/v1/portal/feed`)
+  return brief-only (no `body_html`); `/api/v1/portal/story/{id}` carries the
+  full body under epoch-keyed `Cache::flexible` — the portal lazy-fetches it on
+  first card expand (`ensureStoryBody`).
 
 ---
 
