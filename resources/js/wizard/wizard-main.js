@@ -694,6 +694,46 @@ const addMediaAfter = document.getElementById('addMediaAfter');
     const cancelHis = document.getElementById('cancelHis');
     if (cancelHis) cancelHis.onclick = () => hisOverlay?.classList.remove('open');
 
+    // Featured image drag & drop (image files only → triggers the Livewire upload)
+    const featuredPreview = document.getElementById('featuredPreview');
+    const fileInput = document.getElementById('fileInput');
+    if (featuredPreview && fileInput) {
+      ['dragenter', 'dragover'].forEach(ev =>
+        featuredPreview.addEventListener(ev, e => {
+          e.preventDefault();
+          if (featuredPreview.classList.contains('has-photo')) return;
+          featuredPreview.classList.add('drag');
+        }));
+      ['dragleave', 'drop'].forEach(ev =>
+        featuredPreview.addEventListener(ev, e => {
+          e.preventDefault();
+          featuredPreview.classList.remove('drag');
+        }));
+      featuredPreview.addEventListener('drop', e => {
+        e.preventDefault();
+        const files = e.dataTransfer && e.dataTransfer.files;
+        if (!files || !files.length || featuredPreview.classList.contains('has-photo')) return;
+        const img = [...files].find(f => f.type.startsWith('image/'));
+        if (!img) {
+          miniToast('Featured image needs a JPG / PNG / WEBP file');
+          return;
+        }
+        const dt = new DataTransfer();
+        dt.items.add(img);
+        fileInput.files = dt.files;
+        const wc = getWireComponent();
+        if (wc) wc.uploadMode = 'featured';
+        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      // Keep the click-to-open behaviour alongside drag & drop
+      featuredPreview.addEventListener('click', e => {
+        if (featuredPreview.classList.contains('has-photo')) return;
+        const wc = getWireComponent();
+        if (wc) wc.uploadMode = 'featured';
+        fileInput.click();
+      });
+    }
+
     // ===== Local autosave (stays in this browser) + restore banner =====
     const efSaved = document.getElementById('efSaved');
     const efSavedTxt = document.getElementById('efSavedTxt');

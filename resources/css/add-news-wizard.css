@@ -460,6 +460,7 @@
 /* ---- featured image ---- */
 .featured-preview {
   aspect-ratio: 1200 / 630;
+  max-width: 720px;
   border: 1.5px dashed #d8d5cd;
   border-radius: 12px;
   background: #fcfbf8;
@@ -472,7 +473,16 @@
   overflow: hidden;
   margin-bottom: 14px;
   position: relative;
+  cursor: pointer;
 }
+.featured-preview.drag {
+  border-color: var(--navy-800, #16204a);
+  border-style: solid;
+  background: #eef1fb;
+  color: var(--navy-800, #16204a);
+}
+.featured-preview.drag .fp-text::after,
+.featured-preview.drag .fp-text::before { content: ""; }
 .featured-preview svg {
   width: 34px;
   height: 34px;
