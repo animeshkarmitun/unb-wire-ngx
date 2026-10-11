@@ -768,6 +768,17 @@ class AddNewsTest extends TestCase
         ]);
     }
 
+    public function test_send_to_editor_button_is_hidden_for_publish_capable_roles(): void
+    {
+        // Editor/Admin can publish themselves — the Send-to-editor handoff is noise
+        $this->actingAs($this->editor);
+        Livewire::test(AddNews::class)->assertDontSee('wfSendBtn');
+
+        // Uploaders hand off via the editor gate
+        $this->actingAs($this->uploader);
+        Livewire::test(AddNews::class)->assertSee('wfSendBtn');
+    }
+
     // ─── Edit Existing Story ───────────────────────────────────────
 
     public function test_mount_with_existing_story_loads_state(): void
