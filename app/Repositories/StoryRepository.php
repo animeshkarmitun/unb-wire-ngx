@@ -8,6 +8,7 @@ use App\Models\StoryEvent;
 use App\Models\StoryNote;
 use App\Models\StoryVersion;
 use App\Models\Tag;
+use App\Services\Search\StaffSearchService;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -381,10 +382,19 @@ class StoryRepository
             }
         }
         if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->where('headline', 'like', '%'.$search.'%')
-                    ->orWhere('brief', 'like', '%'.$search.'%');
-            });
+            $ids = app(StaffSearchService::class)
+                ->searchIds($search, $language, $status, $category);
+
+            if ($ids !== null) {
+                // Meilisearch staff index (all statuses) — ids are authoritative
+                $query->whereIn('public_id', $ids);
+            } else {
+                // Engine unavailable — trgm-assisted SQL fallback (M15-SCALE-001)
+                $query->where(function ($q) use ($search) {
+                    $q->where('headline', 'like', '%'.$search.'%')
+                        ->orWhere('brief', 'like', '%'.$search.'%');
+                });
+            }
         }
 
         return $query;

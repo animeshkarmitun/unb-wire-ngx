@@ -5,6 +5,7 @@ namespace App\Console\Scheduling;
 use App\Jobs\ProcessIndexOutbox;
 use App\Models\Story;
 use App\Support\FeedCache;
+use App\Support\IndexOutbox;
 use Illuminate\Support\Facades\DB;
 
 class SweepArchivedStories
@@ -40,6 +41,7 @@ class SweepArchivedStories
                         ]);
                     });
                     $archived[] = $s->public_id;
+                    IndexOutbox::enqueue('staff', $s->public_id);
                 }
                 ProcessIndexOutbox::dispatch();
             });

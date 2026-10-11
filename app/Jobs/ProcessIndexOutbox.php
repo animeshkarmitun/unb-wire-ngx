@@ -59,7 +59,7 @@ class ProcessIndexOutbox implements ShouldQueue
 
     private function buildPayload(object $row, ?Story $story): ?array
     {
-        if (! in_array($row->index_name, ['main', 'archive']) || ! $story) {
+        if (! in_array($row->index_name, ['main', 'archive', 'staff']) || ! $story) {
             return null;
         }
 

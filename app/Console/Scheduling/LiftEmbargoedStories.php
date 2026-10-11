@@ -6,6 +6,7 @@ use App\Jobs\FanoutStory;
 use App\Jobs\ProcessIndexOutbox;
 use App\Models\Story;
 use App\Support\FeedCache;
+use App\Support\IndexOutbox;
 use Illuminate\Support\Facades\DB;
 
 class LiftEmbargoedStories
@@ -36,6 +37,7 @@ class LiftEmbargoedStories
 
                 FanoutStory::dispatch($s->id);
                 ProcessIndexOutbox::dispatch();
+                IndexOutbox::enqueue('staff', $s->public_id);
 
                 $lifted[] = $s->public_id;
             });
