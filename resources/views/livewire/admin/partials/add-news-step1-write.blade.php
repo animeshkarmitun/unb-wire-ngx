@@ -164,7 +164,7 @@
                 <span class="ef-sep">·</span>
                 <span id="efRead">~{{ max(1, round(str_word_count(strip_tags($bodyHtml)) / 200)) }} min read</span>
                 <span class="ef-sep">·</span>
-                <span class="ef-saved" id="efSaved"><span class="ef-saved-dot"></span><span id="efSavedTxt">Autosave on</span></span>
+                <span class="ef-saved" id="efSaved"><span class="ef-saved-dot"></span><span id="efSavedTxt">Autosave on — stays in this browser</span></span>
                 <span class="ef-right">Tips: use Dateline, Pull quote, and Table buttons above</span>
               </div>
             </div>

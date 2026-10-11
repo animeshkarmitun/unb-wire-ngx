@@ -143,6 +143,11 @@
       });
     }
 
+    // Local autosave triggers on headline / subhead / brief edits (body hooks into quill text-change)
+    [headlineInput, document.getElementById('subheadInput'), briefInput].forEach(el => {
+      if (el) el.addEventListener('input', scheduleAutosave);
+    });
+
     document.addEventListener('click', (e) => {
       const stp = e.target.closest('.stp');
       if (stp && document.getElementById('addNewsApp')?.contains(stp)) {
@@ -202,7 +207,7 @@
               ? row('Headline', esc(headlineInput.value), { serif: true })
               : row('Headline', 'Missing — required', { missing: true })) +
             row('Sub head', esc(document.getElementById('subheadInput')?.value) || '—') +
-            row('Brief', briefVal.length + ' / 280 characters') +
+            row('Brief', briefVal.length ? briefVal.length + ' / 280 characters' : 'Missing — required', { missing: !briefVal.length }) +
             row('Body', words ? words.toLocaleString() + ' words' : 'Empty', { missing: !words }) +
 
             '<div class="rv-group-title">Media <button type="button" class="rv-edit" data-goto="2">Edit</button></div>' +
@@ -306,6 +311,7 @@ const addMediaAfter = document.getElementById('addMediaAfter');
         quill.on('text-change', (delta, oldDelta, source) => {
           updateEditorStats();
           syncPreview();
+          scheduleAutosave();
           if (source === 'user') {
             const html = quill.root.innerHTML;
             const app = document.getElementById('addNewsApp');
@@ -674,6 +680,107 @@ const addMediaAfter = document.getElementById('addMediaAfter');
     if (closeHis) closeHis.onclick = () => hisOverlay?.classList.remove('open');
     const cancelHis = document.getElementById('cancelHis');
     if (cancelHis) cancelHis.onclick = () => hisOverlay?.classList.remove('open');
+
+    // ===== Local autosave (stays in this browser) + restore banner =====
+    const efSaved = document.getElementById('efSaved');
+    const efSavedTxt = document.getElementById('efSavedTxt');
+    const AUTOSAVE_KEY = 'unb_draft_v1';
+    const AUTOSAVE_IDLE_LABEL = 'Autosave on — stays in this browser';
+
+    function fmtTime(ts) {
+      return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date(ts));
+    }
+
+    let asTimer = null;
+    function scheduleAutosave() {
+      clearTimeout(asTimer);
+      if (efSaved) efSaved.classList.add('saving');
+      if (efSavedTxt) efSavedTxt.textContent = 'Saving…';
+      asTimer = setTimeout(saveDraftLocal, 1200);
+    }
+
+    function saveDraftLocal() {
+      const data = {
+        t: Date.now(),
+        headline: headlineInput ? headlineInput.value : '',
+        subhead: document.getElementById('subheadInput')?.value || '',
+        brief: briefInput ? briefInput.value : '',
+        delta: quill ? quill.getContents() : null
+      };
+      const hasBody = data.delta && (data.delta.ops || []).some(o => typeof o.insert === 'string' && o.insert.trim());
+      if (!data.headline.trim() && !hasBody) {
+        if (efSaved) efSaved.classList.remove('saving');
+        if (efSavedTxt) efSavedTxt.textContent = AUTOSAVE_IDLE_LABEL;
+        return;
+      }
+      try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data)); } catch (e) {}
+      if (efSaved) efSaved.classList.remove('saving');
+      if (efSavedTxt) efSavedTxt.textContent = 'Saved ' + fmtTime(data.t);
+    }
+
+    // Restore banner when an unsaved draft sits in this browser (max 7 days old)
+    (function checkSavedDraft() {
+      let d = null;
+      try { d = JSON.parse(localStorage.getItem(AUTOSAVE_KEY) || 'null'); } catch (e) { d = null; }
+      if (!d) return;
+      const hasBody = d.delta && (d.delta.ops || []).some(o => typeof o.insert === 'string' && o.insert.trim());
+      if (!d.headline && !hasBody) return;
+      if (Date.now() - d.t > 7 * 864e5) return;
+      const banner = document.getElementById('draftBanner');
+      const bannerText = document.getElementById('draftBannerText');
+      if (!banner || !bannerText) return;
+      bannerText.textContent =
+        'Unsaved draft from ' + fmtDateTime(d.t) +
+        (d.headline ? ' — "' + (d.headline.length > 48 ? d.headline.slice(0, 48) + '…' : d.headline) + '"' : '') +
+        ' was autosaved in this browser.';
+      banner.hidden = false;
+
+      const restoreBtn = document.getElementById('draftRestore');
+      if (restoreBtn) {
+        restoreBtn.onclick = () => {
+          if (headlineInput) {
+            headlineInput.value = d.headline || '';
+            headlineInput.dispatchEvent(new Event('input'));
+          }
+          const subEl = document.getElementById('subheadInput');
+          if (subEl) {
+            subEl.value = d.subhead || '';
+            subEl.dispatchEvent(new Event('input'));
+          }
+          if (briefInput) {
+            briefInput.value = d.brief || '';
+            briefInput.dispatchEvent(new Event('input'));
+          }
+          if (briefCount) briefCount.textContent = String((d.brief || '').length);
+          if (quill && d.delta) {
+            quill.setContents(d.delta, 'silent');
+            const wc = getWireComponent();
+            if (wc) wc.syncBody(quill.root.innerHTML);
+          }
+          banner.hidden = true;
+          updateEditorStats();
+          syncPreview();
+          miniToast('Draft restored');
+        };
+      }
+      const discardBtn = document.getElementById('draftDiscard');
+      if (discardBtn) {
+        discardBtn.onclick = () => {
+          try { localStorage.removeItem(AUTOSAVE_KEY); } catch (e) {}
+          banner.hidden = true;
+        };
+      }
+    })();
+
+    // Server-side "Save draft" confirmation → footer status + toast
+    if (window.Livewire) {
+      window.Livewire.on('draft-autosaved', (e) => {
+        const time = e && e.time ? e.time : fmtTime(Date.now());
+        if (efSaved) efSaved.classList.remove('saving');
+        if (efSavedTxt) efSavedTxt.textContent = 'Saved ' + time;
+        miniToast('Draft saved');
+      });
+    }
 
     // Document Importer (.docx / .txt)
     const docOverlay = document.getElementById('docOverlay');

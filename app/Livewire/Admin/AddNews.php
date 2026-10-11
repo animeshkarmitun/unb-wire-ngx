@@ -19,6 +19,7 @@ use App\Support\DisplayPrefs;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -729,11 +730,22 @@ class AddNews extends Component
 
         $rbac->assertCan(auth()->user(), 'stories', 'publish');
 
-        $this->validate([
-            'headline' => 'required',
-            'brief' => 'required',
-            'categoryId' => 'required',
-        ]);
+        try {
+            $this->validate([
+                'headline' => 'required',
+                'brief' => 'required',
+                'categoryId' => 'required',
+            ]);
+        } catch (ValidationException $e) {
+            foreach ($e->errors() as $field => $msgs) {
+                $this->addError($field, $msgs[0] ?? 'This field is required');
+            }
+            $labels = ['headline' => 'Headline', 'brief' => 'Brief / intro', 'categoryId' => 'Category'];
+            $missing = collect(array_keys($e->errors()))->map(fn ($f) => $labels[$f] ?? $f)->implode(', ');
+            $this->dispatch('toast', message: 'Publish blocked — required fields missing: '.$missing.'. Switch to Step 1 / Step 3 to fill them.');
+
+            return;
+        }
 
         $this->autosave($rbac, $svc);
         $s = app(StoryRepository::class)->findOrFail($this->storyId);
