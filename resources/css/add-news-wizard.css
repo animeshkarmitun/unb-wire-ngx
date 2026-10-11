@@ -2770,3 +2770,34 @@
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* ---- media edit modal & cropper ---- */
+.edit-modal { width: min(700px, 100%); }
+.edit-stage {
+  background: var(--navy-900, #0f1730);
+  max-height: 46vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.edit-stage img { display: block; max-width: 100%; }
+.edit-stage video { max-width: 100%; max-height: 46vh; }
+.edit-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 24px;
+  border-top: 1px solid var(--border, #eceae5);
+}
+.edit-tools-sep { width: 1px; height: 22px; background: var(--border, #eceae5); margin: 0 4px; }
+.edit-tool-btn {
+  min-width: 34px; height: 34px; padding: 0 10px;
+  border: 1px solid #e3e1da; border-radius: 8px; background: #fff;
+  font-size: 14px; color: #4b4e5c; cursor: pointer; font-family: var(--sans, sans-serif);
+  transition: all 0.12s ease;
+}
+.edit-tool-btn:hover { border-color: var(--navy-800, #16204a); color: var(--navy-800, #16204a); }
+.edit-fields { padding: 16px 24px 4px; }
+

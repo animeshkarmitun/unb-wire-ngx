@@ -17,11 +17,15 @@ use App\Services\RevisionService;
 use App\Services\StoryService;
 use App\Support\DisplayPrefs;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class AddNews extends Component
 {
+    use WithFileUploads;
+
     public bool $showServerHistory = false;
 
     public int $restoreTarget = 0;
@@ -66,6 +70,8 @@ class AddNews extends Component
     public array $attachedMedia = []; // Array of ['id' => int, 'cap' => string, 'role' => string, 'rights' => string, 'type' => string, 'grad' => string, 'src' => ?string]
 
     public array $selectedMediaIds = [];
+
+    public $mediaUpload; // Livewire temporary upload
 
     // Step 3: Organize & Access fields
     public string $categoryId = '';
@@ -155,6 +161,7 @@ class AddNews extends Component
             $mediaRows = $repo->getAttachedMedia($s->id);
 
             foreach ($mediaRows as $m) {
+                $src = ! empty($m->original_path) ? Storage::url($m->original_path) : null;
                 $item = [
                     'id' => (int) $m->id,
                     'cap' => $m->caption_override ?: ($m->caption ?: $m->title),
@@ -162,7 +169,7 @@ class AddNews extends Component
                     'rights' => 'story',
                     'type' => $m->kind === 'video' ? 'video' : 'photo',
                     'grad' => 'g'.(($m->id % 8) + 1),
-                    'src' => null,
+                    'src' => $src,
                 ];
                 if ($m->role === 'featured') {
                     $this->featuredMediaId = (int) $m->id;
@@ -271,6 +278,17 @@ class AddNews extends Component
         $this->dispatch('story-updated');
     }
 
+    public function updatedMediaUpload(): void
+    {
+        if (! $this->mediaUpload) {
+            return;
+        }
+        // Default to 'attach' — JS dispatches 'upload-mode' with the correct mode
+        $this->uploadMedia($this->uploadMode ?? 'attach');
+    }
+
+    public string $uploadMode = 'attach';
+
     public function syncBody(string $html): void
     {
         $this->bodyHtml = HtmlSanitizer::clean($html);
@@ -312,19 +330,54 @@ class AddNews extends Component
         $this->autosave();
     }
 
-    public function setFeatured(int $assetId, string $caption = ''): void
+    public function setFeatured(int $assetId, string $caption = '', ?string $src = null): void
     {
         $this->featuredMediaId = $assetId;
         $this->featuredCaption = $caption;
         if (! in_array($assetId, $this->selectedMediaIds, true)) {
             $this->selectedMediaIds[] = $assetId;
         }
+
+        if (! $src) {
+            $asset = MediaAsset::find($assetId);
+            $src = $asset?->original_path ? Storage::url($asset->original_path) : null;
+        }
+
+        $found = false;
+        foreach ($this->attachedMedia as &$item) {
+            if ($item['id'] === $assetId) {
+                $item['role'] = 'featured';
+                if ($src) {
+                    $item['src'] = $src;
+                }
+                if ($caption) {
+                    $item['cap'] = $caption;
+                }
+                $found = true;
+                break;
+            }
+        }
+        unset($item);
+
+        if (! $found) {
+            $asset = $asset ?? MediaAsset::find($assetId);
+            $this->attachedMedia[] = [
+                'id' => $assetId,
+                'cap' => $caption ?: ($asset?->caption ?: 'Featured #'.$assetId),
+                'role' => 'featured',
+                'rights' => 'story',
+                'type' => ($asset?->kind === 'video') ? 'video' : 'photo',
+                'grad' => 'g'.(($assetId % 8) + 1),
+                'src' => $src,
+            ];
+        }
+
         $this->dispatch('toast', message: 'Featured image set');
         $this->dispatch('story-updated');
         $this->autosave();
     }
 
-    public function toggleMedia(int $id, string $caption = '', string $kind = 'photo'): void
+    public function toggleMedia(int $id, string $caption = '', string $kind = 'photo', ?string $src = null): void
     {
         if (in_array($id, $this->selectedMediaIds, true)) {
             $this->selectedMediaIds = array_values(array_diff($this->selectedMediaIds, [$id]));
@@ -335,6 +388,10 @@ class AddNews extends Component
             }
         } else {
             $this->selectedMediaIds[] = $id;
+            if (! $src) {
+                $asset = MediaAsset::find($id);
+                $src = $asset?->original_path ? Storage::url($asset->original_path) : null;
+            }
             $this->attachedMedia[] = [
                 'id' => $id,
                 'cap' => $caption ?: 'Photo #'.$id,
@@ -342,7 +399,7 @@ class AddNews extends Component
                 'rights' => 'story',
                 'type' => $kind === 'video' ? 'video' : 'photo',
                 'grad' => 'g'.(($id % 8) + 1),
-                'src' => null,
+                'src' => $src,
             ];
         }
         $this->dispatch('story-updated');
@@ -387,6 +444,69 @@ class AddNews extends Component
         $this->dispatch('toast', message: 'Promoted to featured image');
         $this->dispatch('story-updated');
         $this->autosave();
+    }
+
+    public function uploadMedia(string $mode = 'featured'): void
+    {
+        $this->validate([
+            'mediaUpload' => 'required|file|mimes:jpg,jpeg,png,webp,mp4|max:204800',
+        ]);
+
+        $file = $this->mediaUpload;
+        $isVideo = str_starts_with($file->getMimeType(), 'video/');
+        $path = $file->store('media/originals', 'public');
+
+        $asset = MediaAsset::create([
+            'kind' => $isVideo ? 'video' : 'photo',
+            'status' => 'library',
+            'title' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+            'caption' => '',
+            'credit_line' => 'UNB',
+            'mime' => $file->getMimeType(),
+            'size_bytes' => $file->getSize(),
+            'checksum' => hash_file('sha256', $file->getRealPath()) ?: hash('sha256', $file->getClientOriginalName().time()),
+            'storage_disk' => 'public',
+            'original_path' => $path,
+            'uploaded_by' => auth()->id(),
+        ]);
+
+        if ($mode === 'featured') {
+            $this->featuredMediaId = $asset->id;
+            $this->featuredCaption = $asset->title;
+            $this->dispatch('toast', message: 'Featured image uploaded');
+        } else {
+            $this->dispatch('toast', message: 'Media attached');
+        }
+
+        $this->selectedMediaIds[] = $asset->id;
+        $this->attachedMedia[] = [
+            'id' => $asset->id,
+            'cap' => $asset->title,
+            'role' => $mode === 'featured' ? 'featured' : 'inline',
+            'rights' => 'story',
+            'type' => $isVideo ? 'video' : 'photo',
+            'grad' => 'g'.(($asset->id % 8) + 1),
+            'src' => Storage::url($path),
+        ];
+
+        $this->mediaUpload = null;
+        $this->dispatch('story-updated');
+        $this->dispatch('media-uploaded');
+        $this->autosave();
+    }
+
+    public function reorderMedia(array $order): void
+    {
+        $reordered = [];
+        foreach ($order as $idx) {
+            if (isset($this->attachedMedia[$idx])) {
+                $reordered[] = $this->attachedMedia[$idx];
+            }
+        }
+        if (count($reordered) === count($this->attachedMedia)) {
+            $this->attachedMedia = $reordered;
+            $this->autosave();
+        }
     }
 
     public function closeAiDrawer(): void

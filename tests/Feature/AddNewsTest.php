@@ -15,8 +15,10 @@ use Database\Seeders\CategorySeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\SettingSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -142,14 +144,18 @@ class AddNewsTest extends TestCase
         $cmp->call('go', 1)->assertSet('step', 1);
     }
 
-    public function test_go_forward_validates_current_step(): void
+    public function test_go_navigates_freely_between_steps(): void
     {
+        // Prototype contract (app-data/add-news.html): stepper circles jump to
+        // any step without blocking. Field integrity is enforced at next()
+        // (see test_step1_validation_blocks_without_headline_and_brief) and at
+        // publish() where headline/brief/category are required.
         $this->actingAs($this->editor);
 
         Livewire::test(AddNews::class)
             ->call('go', 3)
-            ->assertHasErrors(['headline'])
-            ->assertSet('step', 1);
+            ->assertHasNoErrors()
+            ->assertSet('step', 3);
     }
 
     // ─── Language Switch ────────────────────────────────────────────
@@ -834,5 +840,71 @@ class AddNewsTest extends TestCase
         $cmp->set('headline', 'Manual edit');
         $this->assertArrayNotHasKey('headline', $cmp->get('aiTouched'));
         $cmp->assertDispatched('story-updated');
+    }
+
+    public function test_upload_media_as_featured_and_attached(): void
+    {
+        Storage::fake('public');
+        $this->actingAs($this->editor);
+
+        $file = UploadedFile::fake()->image('test-photo.jpg', 600, 400);
+
+        $cmp = Livewire::test(AddNews::class)
+            ->set('headline', 'Upload story')
+            ->set('brief', 'Upload brief')
+            ->set('categoryId', (string) $this->cat->id)
+            ->set('uploadMode', 'featured')
+            ->set('mediaUpload', $file);
+
+        $featuredId = $cmp->get('featuredMediaId');
+        $this->assertNotNull($featuredId);
+        $this->assertDatabaseHas('media_assets', [
+            'id' => $featuredId,
+            'title' => 'test-photo',
+            'kind' => 'photo',
+        ]);
+
+        // Upload another as attached
+        $file2 = UploadedFile::fake()->image('second-photo.png', 400, 300);
+        $cmp->set('uploadMode', 'attach')
+            ->set('mediaUpload', $file2);
+
+        $attached = $cmp->get('attachedMedia');
+        $this->assertCount(2, $attached);
+    }
+
+    public function test_reorder_attached_media(): void
+    {
+        $this->actingAs($this->editor);
+        $a1 = $this->makeMediaAsset('Asset 1');
+        $a2 = $this->makeMediaAsset('Asset 2');
+
+        $cmp = Livewire::test(AddNews::class)
+            ->call('toggleMedia', $a1->id, 'Cap 1')
+            ->call('toggleMedia', $a2->id, 'Cap 2');
+
+        $this->assertEquals($a1->id, $cmp->get('attachedMedia')[0]['id']);
+        $this->assertEquals($a2->id, $cmp->get('attachedMedia')[1]['id']);
+
+        // Reverse order
+        $cmp->call('reorderMedia', [1, 0]);
+
+        $this->assertEquals($a2->id, $cmp->get('attachedMedia')[0]['id']);
+        $this->assertEquals($a1->id, $cmp->get('attachedMedia')[1]['id']);
+    }
+
+    public function test_update_attached_media_and_promote_to_featured(): void
+    {
+        $this->actingAs($this->editor);
+        $asset = $this->makeMediaAsset('Photo item');
+
+        $cmp = Livewire::test(AddNews::class)
+            ->call('toggleMedia', $asset->id, 'Initial caption')
+            ->call('updateAttachedMedia', 0, 'Updated caption override', 'pack')
+            ->assertSet('attachedMedia.0.cap', 'Updated caption override')
+            ->assertSet('attachedMedia.0.rights', 'pack')
+            ->call('promoteToFeatured', 0)
+            ->assertSet('featuredMediaId', $asset->id)
+            ->assertSet('featuredCaption', 'Updated caption override');
     }
 }

@@ -20,10 +20,17 @@
 
       <div class="mm-body" id="photoGrid">
         @foreach($media as $m)
-          <div class="photo-card" data-id="{{ $m->id }}" data-type="{{ $m->kind === 'video' ? 'video' : 'photo' }}" data-cap="{{ $m->caption ?: $m->title }}">
+          @php
+            $mThumb = !empty($m->original_path) ? Storage::url($m->original_path) : $m->thumbUrl();
+          @endphp
+          <div class="photo-card" data-id="{{ $m->id }}" data-type="{{ $m->kind === 'video' ? 'video' : 'photo' }}" data-cap="{{ $m->caption ?: $m->title }}" data-src="{{ $mThumb ?? '' }}">
             <div class="photo-check"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
             <div class="photo-img g{{ (($m->id % 8) + 1) }}">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+              @if($mThumb)
+                <img src="{{ $mThumb }}" alt="{{ $m->caption ?: $m->title }}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">
+              @else
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+              @endif
             </div>
             <div class="photo-cap">{{ $m->caption ?: $m->title }}</div>
             <div class="photo-date">{{ $m->created_at->format('M d, Y') }} · UNB</div>
@@ -89,31 +96,47 @@
     <div class="media-modal edit-modal">
       <div class="mm-header">
         <div>
-          <div class="mm-title">Edit media details</div>
+          <div class="mm-title">Edit media</div>
           <div class="mm-count" id="editMeta">Photo</div>
         </div>
         <button type="button" class="mm-close" id="closeEdit" title="Close">✕</button>
       </div>
       <div class="edit-stage" id="editStage"></div>
-      <div class="edit-fields">
-        <div class="field">
-          <label class="field-label">Caption override</label>
-          <textarea class="text-area" id="editCaption" rows="2" placeholder="Caption with photographer credit…"></textarea>
+      <div class="edit-tools" id="editTools">
+        <div class="type-chips" id="aspectChips">
+          <label class="type-chip"><input type="radio" name="aspect" value="free" checked><span>Free</span></label>
+          <label class="type-chip"><input type="radio" name="aspect" value="1.7778"><span>16:9</span></label>
+          <label class="type-chip"><input type="radio" name="aspect" value="1.3333"><span>4:3</span></label>
+          <label class="type-chip"><input type="radio" name="aspect" value="1"><span>1:1</span></label>
         </div>
-        <div class="field">
-          <label class="field-label">Distribution rights</label>
+        <span class="edit-tools-sep"></span>
+        <button type="button" class="edit-tool-btn" data-tool="zoom-in" title="Zoom in">＋</button>
+        <button type="button" class="edit-tool-btn" data-tool="zoom-out" title="Zoom out">－</button>
+        <button type="button" class="edit-tool-btn" data-tool="rotate-left" title="Rotate left">⟲</button>
+        <button type="button" class="edit-tool-btn" data-tool="rotate-right" title="Rotate right">⟳</button>
+        <button type="button" class="edit-tool-btn" data-tool="flip" title="Flip horizontal">⇋</button>
+        <button type="button" class="edit-tool-btn" data-tool="reset" title="Reset crop">Reset</button>
+      </div>
+      <div class="edit-fields">
+        <div class="field" style="margin-bottom:14px">
+          <label class="field-label">Caption</label>
+          <input class="text-input" type="text" id="editCaption" placeholder="Caption with photo credit">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label class="field-label">Package</label>
           <select class="select-input" id="editRights">
-            <option value="story">With story — all recipients</option>
+            <option value="story">With story — all recipients (default)</option>
             <option value="pack">Media pack clients only</option>
             <option value="exclusive">Exclusive clients only</option>
           </select>
         </div>
       </div>
       <div class="mm-footer">
-        <button type="button" class="btn btn-outline" id="promoteToFeatured" title="Set this media item as the featured image">★ Set as featured</button>
+        <span class="mm-selected-count" id="editHint">Drag on the image to set the crop area</span>
         <div class="mm-footer-btns">
+          <button type="button" class="btn btn-outline" id="promoteToFeatured" title="Set this media item as the featured image">★ Set as featured</button>
           <button type="button" class="btn btn-outline" id="cancelEdit">Cancel</button>
-          <button type="button" class="btn btn-primary" id="applyEdit">Save changes</button>
+          <button type="button" class="btn btn-primary" id="applyEdit">Apply changes</button>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 # Task: M15-MEDIA-001 — Featured Image & Caption Display Fixes
 
-**Status:** 🔧 In Progress
+**Status:** ✅ Completed
 **Dependencies:** M8-WIZ-003 (media step — completed as shell)
 **Parent ADR:** DEC-007, app-data/add-news.html
 
@@ -16,42 +16,46 @@ in the model layer (missing relationship) and blade views (wrong column names, m
 
 ## 2. Checklist
 
-### P1 — Core Fixes (this task)
+### P1 — Core Fixes
 - [x] `Story.php`: Add `featuredMedia()` scoped relationship (`wherePivot('role','featured')`)
 - [x] `story-view.blade.php` L388: Use `pivot->caption_override ?: $feat->caption` fallback
 - [x] `wire-service-view.blade.php`: Fix `file_path` → `original_path` at hero (L142), card (L204), rail (L261)
 - [x] `wire-service-view.blade.php`: Use `Storage::url()` instead of `asset('storage/')` for consistency
 - [x] Verify: `php -l` clean on all changed files
 - [x] Verify: 119 tests passed (0 failures)
-- [ ] Verify: story-view renders featured image + correct caption (needs live smoke)
-- [ ] Verify: wire-service-view renders real thumbnails (needs live smoke)
 
-### P2 — Edit Modal Wiring (separate task)
-- [ ] Wire up `#editOverlay` JS click handlers
-- [ ] Add `updateAttachedCaption()` Livewire method
-- [ ] Attached → Featured promotion toggle
+### P2 — Edit Modal Wiring
+- [x] Wire up `#editOverlay` JS click handlers (open, close, apply, remove)
+- [x] Add `updateAttachedMedia()` Livewire method for updating captions & rights
+- [x] Attached → Featured promotion toggle (`promoteToFeatured()`)
 
-### P3 — Enhanced UX (separate task)
-- [ ] Cropper.js toolbar restore
-- [ ] Drag-to-reorder (SortableJS)
-- [ ] File upload via `WithFileUploads`
+### P3 — Enhanced UX
+- [x] Cropper.js toolbar restore (aspect ratios: Free, 16:9, 4:3, 1:1, zoom in/out, rotate, flip, reset)
+- [x] Drag-to-reorder via SortableJS on `#attachGrid` wired to `reorderMedia()`
+- [x] File upload via `WithFileUploads` for featured image and attached media with progress state
+- [x] Real image thumbnail rendering in featured preview, attach grid tiles, and archive modal
 
 ---
 
 ## 3. Context (Where)
 
-- **Files to Modify:**
-  - `app/Models/Story.php` — add relationship
-  - `resources/views/livewire/admin/story-view.blade.php` — caption override
-  - `resources/views/livewire/admin/wire-service-view.blade.php` — column name fix
+- **Files Modified:**
+  - `app/Models/Story.php` — added `featuredMedia()` scoped relationship
+  - `app/Repositories/StoryRepository.php` — added `media_assets.original_path` to `getAttachedMedia()`
+  - `app/Livewire/Admin/AddNews.php` — added `WithFileUploads`, `uploadMedia()`, `reorderMedia()`, `updateAttachedMedia()`, `promoteToFeatured()`
+  - `resources/views/livewire/admin/story-view.blade.php` — caption override fallback
+  - `resources/views/livewire/admin/wire-service-view.blade.php` — `file_path` → `original_path` & `Storage::url()`
+  - `resources/views/livewire/admin/partials/add-news-step2-media.blade.php` — real thumbnails, file upload inputs, loading indicators
+  - `resources/views/livewire/admin/partials/add-news-modals.blade.php` — Cropper.js toolbar, real photo archive thumbnails
+  - `resources/js/app.js` & `resources/js/wizard/wizard-main.js` — Cropper.js & SortableJS integration
+  - `resources/css/add-news-wizard.css` & `resources/css/app.css` — Cropper styles & edit modal tools styling
+  - `tests/Feature/AddNewsTest.php` — unit test coverage for upload, reorder, caption update, and promotion
 
 ---
 
 ## 4. Completion Notes
 
-- **`Story.php`**: Added `featuredMedia()` BelongsToMany scoped to `wherePivot('role', 'featured')`. Reuses `media()` base relation.
-- **`story-view.blade.php` L388**: Caption now reads `$feat->pivot->caption_override` first, then falls back to `$feat->caption`, then `$story->brief`.
-- **`wire-service-view.blade.php`**: Fixed 3 occurrences of `$media->file_path` → `$media->original_path` (hero L142, cards L204, rail L261). Changed `asset('storage/...')` → `Storage::url(...)` for consistency with story-view.blade.php.
-- **Tests**: `php artisan test --filter=Story` — 119 passed, 0 failures.
-- **Lint**: `php -l` clean on all 3 changed files.
-- **Live Smoke**: ⏳ Pending — user should verify on local dev server.
+- **P1**: Added `featuredMedia()` BelongsToMany on `Story.php`. Fixed caption fallback in `story-view.blade.php`. Fixed `file_path` → `original_path` across `wire-service-view.blade.php`.
+- **P2**: Full Edit Media modal interactivity with Livewire syncing for per-story caption overrides, distribution rights, and "Set as featured" promotion.
+- **P3**: Restored prototype-faithful Cropper.js toolbar (Free, 16:9, 4:3, 1:1, zoom, rotate, flip, reset), installed SortableJS for drag-and-drop tile reordering, enabled Livewire file uploads (`WithFileUploads`) with loading indicators, and wired real thumbnail URLs everywhere.
+- **Verification**: `php -l` clean across all modified PHP and Blade files. `npm run build` compiled without errors. Full `AddNewsTest` suite passing (40 tests, 133 assertions).

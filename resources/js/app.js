@@ -1,4 +1,10 @@
 import './bootstrap';
+import Cropper from 'cropperjs';
+import Sortable from 'sortablejs';
+
+window.Cropper = Cropper;
+window.Sortable = Sortable;
+
 import './wizard/wizard-main';
 
 // Alpine is started by Livewire automatically — don't start it manually

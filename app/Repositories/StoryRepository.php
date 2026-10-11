@@ -355,7 +355,7 @@ class StoryRepository
             ->join('media_assets', 'media_assets.id', '=', 'story_media.asset_id')
             ->where('story_media.story_id', $storyId)
             ->orderBy('story_media.sort_order')
-            ->select('media_assets.id', 'media_assets.title', 'media_assets.caption', 'media_assets.kind', 'story_media.role', 'story_media.caption_override')
+            ->select('media_assets.id', 'media_assets.title', 'media_assets.caption', 'media_assets.kind', 'media_assets.original_path', 'story_media.role', 'story_media.caption_override')
             ->get();
     }
 

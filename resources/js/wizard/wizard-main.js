@@ -839,31 +839,55 @@ const addMediaAfter = document.getElementById('addMediaAfter');
           const c = sel[0];
           const id = +c.dataset.id;
           const cap = c.dataset.cap;
+          const src = c.dataset.src || null;
           const fp = document.getElementById('featuredPreview');
           if (fp) {
             fp.className = 'featured-preview has-photo';
-            fp.innerHTML = '<div class="fp-photo g' + ((id % 8) + 1) + '"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><div class="fp-cap">' + esc(cap) + '</div>';
+            if (src) {
+              fp.innerHTML = '<div class="fp-photo g' + ((id % 8) + 1) + '"><img src="' + esc(src) + '" alt="' + esc(cap) + '" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"></div><div class="fp-cap">' + esc(cap) + '</div>';
+            } else {
+              fp.innerHTML = '<div class="fp-photo g' + ((id % 8) + 1) + '"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><div class="fp-cap">' + esc(cap) + '</div>';
+            }
           }
-          if (wireComponent) wireComponent.setFeatured(id, cap);
+          if (wireComponent) wireComponent.setFeatured(id, cap, src);
         } else {
           sel.forEach(c => {
             const id = +c.dataset.id;
             const cap = c.dataset.cap;
             const kind = c.dataset.type || 'photo';
-            if (wireComponent) wireComponent.toggleMedia(id, cap, kind);
+            const src = c.dataset.src || null;
+            if (wireComponent) wireComponent.toggleMedia(id, cap, kind, src);
           });
         }
         mediaOverlay?.classList.remove('open');
       }
     });
 
-    // Edit Media Modal
+    // Edit Media Modal & Cropper.js
     const editOverlay = document.getElementById('editOverlay');
     const editCaption = document.getElementById('editCaption');
     const editRights = document.getElementById('editRights');
     const editMeta = document.getElementById('editMeta');
     const editStage = document.getElementById('editStage');
+    let cropper = null;
     let editIndex = -1;
+    let flipX = 1;
+
+    const GRAD_COLORS = {
+      g1: ['#3b6fe0', '#16204a'], g2: ['#e5484d', '#7a1f2b'], g3: ['#16a34a', '#0b3d24'],
+      g4: ['#f0a832', '#8a5410'], g5: ['#7c3aed', '#2e1065'], g6: ['#0ea5e9', '#0c4a6e'],
+      g7: ['#db2777', '#831843'], g8: ['#64748b', '#1e293b']
+    };
+    function gradientImage(grad, w, h) {
+      w = w || 800; h = h || 500;
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      const cols = GRAD_COLORS[grad] || GRAD_COLORS.g1;
+      const g = ctx.createLinearGradient(0, 0, w, h);
+      g.addColorStop(0, cols[0]); g.addColorStop(1, cols[1]);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+      return c.toDataURL('image/jpeg', 0.92);
+    }
 
     function getWireComponent() {
       const app = document.getElementById('addNewsApp');
@@ -878,13 +902,54 @@ const addMediaAfter = document.getElementById('addMediaAfter');
       if (!media || !media[idx]) return;
       const item = media[idx];
       editIndex = idx;
+      flipX = 1;
+
       if (editCaption) editCaption.value = item.cap || '';
       if (editRights) editRights.value = item.rights || 'story';
       if (editMeta) editMeta.textContent = (item.type === 'video' ? 'Video' : 'Photo') + ' · item ' + (idx + 1) + ' of ' + media.length;
+
+      const freeRadio = document.querySelector('#aspectChips input[value="free"]');
+      if (freeRadio) freeRadio.checked = true;
+
+      const isVideo = item.type === 'video';
+      const editTools = document.getElementById('editTools');
+      if (editTools) editTools.style.display = isVideo ? 'none' : '';
+      const editHint = document.getElementById('editHint');
+      if (editHint) {
+        editHint.textContent = isVideo
+          ? 'Video trimming is not available yet — you can still edit caption & package'
+          : 'Drag on the image to set the crop area';
+      }
+
       if (editStage) {
-        editStage.innerHTML = '<div class="' + (item.grad || 'g1') + '" style="width:100%;height:280px;border-radius:8px;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:48px;height:48px"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>';
+        editStage.innerHTML = '';
+        if (isVideo && item.src) {
+          const v = document.createElement('video');
+          v.src = item.src;
+          v.controls = true;
+          editStage.appendChild(v);
+        } else {
+          const imgSrc = item.src || gradientImage(item.grad || 'g1');
+          const img = document.createElement('img');
+          img.alt = item.cap || 'Photo';
+          img.src = imgSrc;
+          editStage.appendChild(img);
+          img.addEventListener('load', () => {
+            if (cropper) { cropper.destroy(); cropper = null; }
+            if (window.Cropper) {
+              cropper = new window.Cropper(img, { viewMode: 1, autoCropArea: 0.9, background: false });
+            }
+          }, { once: true });
+        }
       }
       editOverlay?.classList.add('open');
+    }
+
+    function closeEditModal() {
+      editOverlay?.classList.remove('open');
+      if (cropper) { cropper.destroy(); cropper = null; }
+      if (editStage) editStage.innerHTML = '';
+      editIndex = -1;
     }
 
     document.addEventListener('click', (e) => {
@@ -909,9 +974,31 @@ const addMediaAfter = document.getElementById('addMediaAfter');
     });
 
     const closeEdit = document.getElementById('closeEdit');
-    if (closeEdit) closeEdit.onclick = () => editOverlay?.classList.remove('open');
+    if (closeEdit) closeEdit.onclick = closeEditModal;
     const cancelEdit = document.getElementById('cancelEdit');
-    if (cancelEdit) cancelEdit.onclick = () => editOverlay?.classList.remove('open');
+    if (cancelEdit) cancelEdit.onclick = closeEditModal;
+
+    const aspectChips = document.getElementById('aspectChips');
+    if (aspectChips) {
+      aspectChips.addEventListener('change', e => {
+        if (!cropper) return;
+        const v = e.target.value;
+        cropper.setAspectRatio(v === 'free' ? NaN : parseFloat(v));
+      });
+    }
+
+    document.querySelectorAll('.edit-tool-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        if (!cropper) return;
+        const t = b.dataset.tool;
+        if (t === 'zoom-in') cropper.zoom(0.1);
+        else if (t === 'zoom-out') cropper.zoom(-0.1);
+        else if (t === 'rotate-left') cropper.rotate(-90);
+        else if (t === 'rotate-right') cropper.rotate(90);
+        else if (t === 'flip') { flipX = -flipX; cropper.scaleX(flipX); }
+        else if (t === 'reset') { flipX = 1; cropper.reset(); }
+      });
+    });
 
     const applyEdit = document.getElementById('applyEdit');
     if (applyEdit) {
@@ -922,7 +1009,7 @@ const addMediaAfter = document.getElementById('addMediaAfter');
         const cap = editCaption ? editCaption.value : '';
         const rights = editRights ? editRights.value : 'story';
         wc.updateAttachedMedia(editIndex, cap, rights);
-        editOverlay?.classList.remove('open');
+        closeEditModal();
         miniToast('Media details updated');
       };
     }
@@ -933,13 +1020,41 @@ const addMediaAfter = document.getElementById('addMediaAfter');
         if (editIndex < 0) return;
         const wc = getWireComponent();
         if (!wc) return;
-        // Also save any caption/rights edits before promoting
         const cap = editCaption ? editCaption.value : '';
         const rights = editRights ? editRights.value : 'story';
         wc.updateAttachedMedia(editIndex, cap, rights);
         wc.promoteToFeatured(editIndex);
-        editOverlay?.classList.remove('open');
+        closeEditModal();
       };
+    }
+
+    // SortableJS Drag-to-reorder for attached media
+    function initAttachGridSortable() {
+      const attachGrid = document.getElementById('attachGrid');
+      if (!attachGrid || !window.Sortable) return;
+      if (attachGrid._sortable) {
+        attachGrid._sortable.destroy();
+      }
+      attachGrid._sortable = new window.Sortable(attachGrid, {
+        animation: 150,
+        handle: '.attach-thumb',
+        onEnd: () => {
+          const tiles = attachGrid.querySelectorAll('.attach-tile');
+          const order = Array.from(tiles).map(t => {
+            const thumb = t.querySelector('.attach-thumb');
+            return thumb ? parseInt(thumb.dataset.i, 10) : -1;
+          }).filter(i => i >= 0);
+          const wc = getWireComponent();
+          if (wc && typeof wc.reorderMedia === 'function') {
+            wc.reorderMedia(order);
+          }
+        }
+      });
+    }
+
+    initAttachGridSortable();
+    if (window.Livewire) {
+      window.Livewire.hook('morph.updated', () => initAttachGridSortable());
     }
 
     // Tags Autocomplete

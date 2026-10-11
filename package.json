@@ -20,7 +20,9 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
+        "cropperjs": "^1.7.0",
         "laravel-echo": "^2.4.0",
-        "pusher-js": "^8.6.0"
+        "pusher-js": "^8.6.0",
+        "sortablejs": "^1.15.7"
     }
 }
