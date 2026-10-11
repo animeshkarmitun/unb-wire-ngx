@@ -2086,6 +2086,38 @@
   border-color: var(--navy-800, #16204a);
   color: var(--navy-800, #16204a);
 }
+/* ---- Page breadcrumb & topbar (prototype-faithful) ---- */
+.breadcrumb {
+  font-size: 12.5px;
+  color: var(--muted, #7c7f8c);
+  margin-bottom: 8px;
+}
+.breadcrumb a {
+  color: var(--crimson, #e5484d);
+  text-decoration: none;
+  font-weight: 500;
+}
+.breadcrumb a:hover { text-decoration: underline; }
+.breadcrumb .sep { color: #c9cdd8; margin: 0 2px; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+.topbar h1 {
+  font-family: var(--serif, "Fraunces", serif);
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  color: var(--ink, #1c1f2e);
+  margin: 0;
+}
+
 /* Prototype width: .main max-width 1420px (app-data/add-news.html) — the form + preview grid uses it */
 main:has(.add-grid) {
   max-width: 1520px;
