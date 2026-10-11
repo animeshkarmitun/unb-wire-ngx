@@ -4,9 +4,8 @@ namespace App\Console\Scheduling;
 
 use App\Jobs\FanoutStory;
 use App\Jobs\ProcessIndexOutbox;
-use App\Models\Client;
 use App\Models\Story;
-use Illuminate\Support\Facades\Cache;
+use App\Support\FeedCache;
 use Illuminate\Support\Facades\DB;
 
 class LiftEmbargoedStories
@@ -42,30 +41,9 @@ class LiftEmbargoedStories
             });
 
         if (! empty($lifted)) {
-            $this->invalidatePortalFeedCache();
+            FeedCache::bump();
         }
 
         return $lifted;
-    }
-
-    public function invalidatePortalFeedCache(): int
-    {
-        $cleared = 0;
-        $knownBases = [
-            url('/api/v1/feed'),
-            'http://localhost:8000/api/v1/feed',
-            'http://127.0.0.1:8000/api/v1/feed',
-        ];
-
-        Client::query()->where('status', 'active')->each(function (Client $client) use ($knownBases, &$cleared) {
-            foreach ($knownBases as $base) {
-                $key = 'feed:v1:'.$client->id.':'.md5($base);
-                if (Cache::forget($key)) {
-                    $cleared++;
-                }
-            }
-        });
-
-        return $cleared;
     }
 }

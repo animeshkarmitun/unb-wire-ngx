@@ -16,6 +16,7 @@ use App\Models\Story;
 use App\Models\User;
 use App\Notifications\StoryNotification;
 use App\Services\StoryService;
+use App\Support\FeedCache;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -611,10 +612,7 @@ if ($action === 'wire_api') {
 
     Storage::disk('public')->put('media/test/budget-session.jpg', 'fake-jpeg-content');
 
-    Cache::forget('feed:v1:'.$clientDailyStar->id.':'.md5('http://localhost:8000/api/v1/feed'));
-    Cache::forget('feed:v1:'.$clientDailyStar->id.':'.md5('http://127.0.0.1:8000/api/v1/feed'));
-    Cache::forget('feed:v1:'.$clientProthomAlo->id.':'.md5('http://localhost:8000/api/v1/feed'));
-    Cache::forget('feed:v1:'.$clientProthomAlo->id.':'.md5('http://127.0.0.1:8000/api/v1/feed'));
+    FeedCache::bump();
 
     echo "wire_api seeded\n";
 }

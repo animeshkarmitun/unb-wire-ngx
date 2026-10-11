@@ -10,6 +10,7 @@ use App\Services\Billing\QuotaService;
 use App\Services\Download\DownloadGateService;
 use App\Services\Search\EntitlementResolver;
 use App\Services\Search\TenantTokenIssuer;
+use App\Support\FeedCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -37,9 +38,9 @@ class PortalController extends Controller
     {
         $client = $request->attributes->get('client');
         $clientId = $client?->id ?? 'guest';
-        $key = 'portal:feed:'.$clientId.':'.md5($request->fullUrl());
+        $key = FeedCache::portalKey($clientId, md5($request->fullUrl()));
 
-        $stories = Cache::remember($key, 60, function () use ($request, $client) {
+        $stories = Cache::flexible($key, [FeedCache::FRESH, FeedCache::STALE], function () use ($request, $client) {
             $q = Story::with(['category', 'tags', 'media'])->where('status', 'published');
 
             if ($client) {

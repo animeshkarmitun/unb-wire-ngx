@@ -4,6 +4,7 @@ namespace App\Console\Scheduling;
 
 use App\Jobs\ProcessIndexOutbox;
 use App\Models\Story;
+use App\Support\FeedCache;
 use Illuminate\Support\Facades\DB;
 
 class SweepArchivedStories
@@ -42,6 +43,10 @@ class SweepArchivedStories
                 }
                 ProcessIndexOutbox::dispatch();
             });
+
+        if (! empty($archived)) {
+            FeedCache::bump();
+        }
 
         return $archived;
     }
