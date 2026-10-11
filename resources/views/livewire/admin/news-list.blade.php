@@ -247,6 +247,11 @@
                 @endif
 
                 <button type="button" wire:click="nextPage" @disabled(!$stories->hasMorePages()) class="news-page-btn" title="Next page">›</button>
+
+                <span class="news-jump">
+                    <input type="number" min="1" class="news-jump-input" wire:model="gotoPageNum" placeholder="Jump to" title="Go to a specific page number" aria-label="Jump to page number">
+                    <button type="button" wire:click="gotoInput" class="news-page-btn" title="Go">Go</button>
+                </span>
             </div>
         @endif
 

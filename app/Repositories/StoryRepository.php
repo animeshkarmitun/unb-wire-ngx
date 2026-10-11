@@ -36,6 +36,11 @@ class StoryRepository
             ->toArray();
     }
 
+    public function filteredCount(string $language, string $status, string $category, string $search): int
+    {
+        return $this->buildFilterQuery($language, $status, $category, $search)->count();
+    }
+
     public function findWithDetails(int $id): ?Story
     {
         return Story::with([

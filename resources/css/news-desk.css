@@ -86,6 +86,27 @@
   white-space: nowrap;
 }
 
+.news-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 12px;
+}
+.news-jump-input {
+  width: 78px;
+  border: 1px solid #e3e1da;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12.5px;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.news-jump-input::-webkit-outer-spin-button,
+.news-jump-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.news-jump-input:focus {
+  border-color: #16204a;
+}
+
 .views {
   display: inline-flex;
   align-items: center;

@@ -40,6 +40,23 @@ class NewsList extends Component
 
     public ?int $selectedVersion = null;
 
+    public $gotoPageNum = null;
+
+    public function gotoInput(): void
+    {
+        $page = (int) ($this->gotoPageNum ?? 0);
+
+        if ($page < 1) {
+            return;
+        }
+
+        $total = app(StoryRepository::class)->filteredCount($this->language, $this->status, $this->category, $this->search);
+        $lastPage = max(1, (int) ceil($total / 15));
+
+        $this->gotoPage(min($page, $lastPage));
+        $this->gotoPageNum = null;
+    }
+
     public function mount(string $language = 'en'): void
     {
         $this->language = in_array($language, ['en', 'bn'], true) ? $language : 'en';
