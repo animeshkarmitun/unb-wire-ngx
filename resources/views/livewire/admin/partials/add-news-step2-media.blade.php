@@ -36,7 +36,7 @@
               Choose from photo archive
             </button>
           </div>
-          <div class="field-hint warn" id="fileHint">Recommended size: 1200 × 630 px · JPG or PNG, max 5 MB</div>
+          <div class="field-hint warn" id="fileHint">Recommended size: 1200 × 630 px · JPG or PNG, max 50 MB</div>
 
           <div class="field" style="margin-top:16px">
             <label class="field-label">Image caption</label>
@@ -102,6 +102,6 @@
               Add from photo archive
             </button>
           </div>
-          <div class="field-hint warn">Photos: JPG/PNG up to 5 MB · Videos: MP4 up to 200 MB</div>
+          <div class="field-hint warn">Photos: JPG/PNG up to 50 MB · Videos: MP4 up to 200 MB</div>
         </div>
       </section>

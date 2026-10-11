@@ -449,8 +449,11 @@ class AddNews extends Component
 
     public function uploadMedia(string $mode = 'featured'): void
     {
+        // Images: 50 MB max · Videos: 200 MB max (per FR-DST media kinds)
+        $maxKb = (int) ($this->mediaUpload && str_starts_with($this->mediaUpload->getMimeType() ?? '', 'video/') ? 204800 : 51200);
+
         $this->validate([
-            'mediaUpload' => 'required|file|mimes:jpg,jpeg,png,webp,mp4|max:204800',
+            'mediaUpload' => 'required|file|mimes:jpg,jpeg,png,webp,mp4|max:'.$maxKb,
         ]);
 
         $file = $this->mediaUpload;
