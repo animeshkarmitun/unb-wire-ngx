@@ -8,9 +8,11 @@ use App\Models\StoryEvent;
 use App\Models\StoryNote;
 use App\Models\StoryVersion;
 use App\Models\Tag;
-use App\Services\Search\StaffSearchService;
+use App\Services\StoryFilterService;
+use App\Support\StoryFilter;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -19,27 +21,25 @@ class StoryRepository
 {
     // ─── Read Methods ───────────────────────────────────────────
 
-    public function filteredList(string $language, string $status, string $category, string $search, int $perPage = 15): LengthAwarePaginator
+    public function filteredList(StoryFilter $f, int $perPage = 15): LengthAwarePaginator
     {
-        return $this->buildFilterQuery($language, $status, $category, $search)
+        return $this->sorted(app(StoryFilterService::class)->filter(Story::query(), $f), $f)
             ->with(['category', 'subCategory', 'owner.role', 'assignedEditor', 'lockedBy', 'notes.user.role'])
-            ->orderByDesc('updated_at')
             ->paginate($perPage);
     }
 
-    public function filteredIds(string $language, string $status, string $category, string $search, int $perPage = 15): array
+    public function filteredIds(StoryFilter $f, int $perPage = 15): array
     {
-        return $this->buildFilterQuery($language, $status, $category, $search)
-            ->orderByDesc('updated_at')
+        return $this->sorted(app(StoryFilterService::class)->filter(Story::query(), $f), $f)
             ->paginate($perPage)
             ->pluck('id')
             ->map(fn ($id) => (string) $id)
             ->toArray();
     }
 
-    public function filteredCount(string $language, string $status, string $category, string $search): int
+    public function filteredCount(StoryFilter $f): int
     {
-        return $this->buildFilterQuery($language, $status, $category, $search)->count();
+        return app(StoryFilterService::class)->filter(Story::query(), $f)->count();
     }
 
     public function findWithDetails(int $id): ?Story
@@ -191,11 +191,10 @@ class StoryRepository
             ->get();
     }
 
-    public function exportQuery(string $language, string $status, string $category, string $search): Collection
+    public function exportQuery(StoryFilter $f): Collection
     {
-        return $this->buildFilterQuery($language, $status, $category, $search)
+        return $this->sorted(app(StoryFilterService::class)->filter(Story::query(), $f), $f)
             ->with(['category', 'subCategory', 'owner'])
-            ->orderByDesc('updated_at')
             ->get();
     }
 
@@ -367,36 +366,32 @@ class StoryRepository
 
     // ─── Private Helpers ───────────────────────────────────────
 
-    private function buildFilterQuery(string $language, string $status, string $category, string $search)
+    private function sorted(Builder $query, StoryFilter $f)
     {
-        $query = Story::where('language', $language);
-
-        if ($status !== 'all') {
-            $query->where('status', $status);
-        }
-        if ($category !== 'all') {
-            if (is_numeric($category)) {
-                $query->where('category_id', (int) $category);
-            } else {
-                $query->whereHas('category', fn ($c) => $c->where('slug', $category));
-            }
-        }
-        if ($search !== '') {
-            $ids = app(StaffSearchService::class)
-                ->searchIds($search, $language, $status, $category);
-
-            if ($ids !== null) {
-                // Meilisearch staff index (all statuses) — ids are authoritative
-                $query->whereIn('public_id', $ids);
-            } else {
-                // Engine unavailable — trgm-assisted SQL fallback (M15-SCALE-001)
-                $query->where(function ($q) use ($search) {
-                    $q->where('headline', 'like', '%'.$search.'%')
-                        ->orWhere('brief', 'like', '%'.$search.'%');
-                });
-            }
+        $dir = $f->sortDir;
+        switch ($f->sortField) {
+            case 'title':
+                $query->orderBy('headline', $dir);
+                break;
+            case 'category':
+                $query->orderBy(
+                    Category::query()->select('name_en')->whereColumn('categories.id', 'stories.category_id'),
+                    $dir
+                );
+                break;
+            case 'published':
+                $query->orderByRaw('published_at IS NULL asc')->orderBy('published_at', $dir);
+                break;
+            case 'views':
+                $query->orderBy('view_count', $dir);
+                break;
+            case 'status':
+                $query->orderBy('status', $dir);
+                break;
+            default:
+                $query->orderByDesc('updated_at');
         }
 
-        return $query;
+        return $query->orderByDesc('id');
     }
 }

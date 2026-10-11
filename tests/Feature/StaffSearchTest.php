@@ -12,6 +12,7 @@ use App\Repositories\StoryRepository;
 use App\Services\Search\TenantTokenIssuer;
 use App\Services\StoryService;
 use App\Support\IndexOutbox;
+use App\Support\StoryFilter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -57,7 +58,9 @@ class StaffSearchTest extends TestCase
             '*/indexes/staff/search' => Http::response(['hits' => [['id' => $match->public_id]]]),
         ]);
 
-        $result = app(StoryRepository::class)->filteredList('en', 'all', 'all', 'needle body', 15);
+        $result = app(StoryRepository::class)->filteredList(StoryFilter::fromArray([
+            'language' => 'en', 'status' => 'all', 'category' => 'all', 'text' => 'needle body',
+        ]), 15);
 
         $this->assertTrue($result->contains($match->id));
         $this->assertFalse($result->contains($other->id));
@@ -77,7 +80,9 @@ class StaffSearchTest extends TestCase
             '*/indexes/staff/search' => Http::response(['hits' => []]),
         ]);
 
-        app(StoryRepository::class)->filteredList('en', 'draft', 'politics', 'needle', 15);
+        app(StoryRepository::class)->filteredList(StoryFilter::fromArray([
+            'language' => 'en', 'status' => 'draft', 'category' => 'politics', 'text' => 'needle',
+        ]), 15);
 
         Http::assertSent(function ($request) use ($cat) {
             if (! str_contains($request->url(), '/indexes/staff/search')) {
@@ -101,9 +106,66 @@ class StaffSearchTest extends TestCase
             '*/indexes/staff/search' => Http::response(['message' => 'boom'], 500),
         ]);
 
-        $result = app(StoryRepository::class)->filteredList('en', 'all', 'all', 'needle alert', 15);
+        $result = app(StoryRepository::class)->filteredList(StoryFilter::fromArray([
+            'language' => 'en', 'status' => 'all', 'category' => 'all', 'text' => 'needle alert',
+        ]), 15);
 
         $this->assertTrue($result->contains($match->id));
+    }
+
+    public function test_meili_ids_intersect_with_structured_filters(): void
+    {
+        Queue::fake();
+        $cat = Category::factory()->create();
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        $match = Story::factory()->create([
+            'language' => 'en', 'status' => 'published', 'category_id' => $cat->id,
+            'owner_id' => $userA->id, 'created_by' => $userA->id,
+        ]);
+        $other = Story::factory()->create([
+            'language' => 'en', 'status' => 'published', 'category_id' => $cat->id,
+            'owner_id' => $userB->id, 'created_by' => $userB->id,
+        ]);
+
+        // Engine "finds" both by text; the author filter must narrow to match only
+        Http::fake([
+            '*/indexes/staff/settings' => Http::response(['taskUid' => 1]),
+            '*/indexes/staff/search' => Http::response(['hits' => [
+                ['id' => $match->public_id], ['id' => $other->public_id],
+            ]]),
+        ]);
+
+        $f = StoryFilter::fromArray([
+            'language' => 'en', 'status' => 'published', 'category' => (string) $cat->id,
+            'text' => 'text match both', 'authorId' => $userA->id,
+        ]);
+        $result = app(StoryRepository::class)->filteredList($f, 15);
+
+        $this->assertTrue($result->contains($match->id));
+        $this->assertFalse($result->contains($other->id));
+    }
+
+    public function test_meili_path_applies_scope_attributes_to_search_on(): void
+    {
+        Queue::fake();
+        $this->draftWithHeadline('Scoped headline');
+
+        Http::fake([
+            '*/indexes/staff/settings' => Http::response(['taskUid' => 1]),
+            '*/indexes/staff/search' => Http::response(['hits' => []]),
+        ]);
+
+        app(StoryRepository::class)->filteredList(StoryFilter::fromArray([
+            'language' => 'en', 'status' => 'all', 'category' => 'all',
+            'text' => 'needle', 'scope' => 'brief',
+        ]), 15);
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), '/indexes/staff/search')
+                && $request->data()['attributesToSearchOn'] === ['brief'];
+        });
     }
 
     public function test_tenant_tokens_never_grant_staff_index_access(): void

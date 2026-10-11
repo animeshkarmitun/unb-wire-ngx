@@ -7,6 +7,7 @@ use App\Models\Story;
 use App\Models\Tag;
 use App\Models\User;
 use App\Repositories\StoryRepository;
+use App\Support\StoryFilter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Tests\TestCase;
@@ -29,6 +30,13 @@ class StoryRepositoryTest extends TestCase
         $this->cat = Category::factory()->create();
     }
 
+    private function filterFor(array $over = []): StoryFilter
+    {
+        return StoryFilter::fromArray(array_merge([
+            'language' => 'en', 'status' => 'all', 'category' => 'all', 'text' => '',
+        ], $over));
+    }
+
     private function createStory(array $over = []): Story
     {
         return Story::factory()->create(array_merge([
@@ -46,7 +54,7 @@ class StoryRepositoryTest extends TestCase
     {
         $this->createStory(['headline' => 'Test headline']);
 
-        $result = $this->repo->filteredList('en', 'all', 'all', '');
+        $result = $this->repo->filteredList($this->filterFor());
 
         $this->assertEquals(1, $result->total());
         $this->assertTrue($result->items()[0]->relationLoaded('category'));
@@ -58,7 +66,7 @@ class StoryRepositoryTest extends TestCase
         $this->createStory(['status' => 'draft']);
         $this->createStory(['status' => 'published']);
 
-        $result = $this->repo->filteredList('en', 'published', 'all', '');
+        $result = $this->repo->filteredList($this->filterFor(['status' => 'published']));
 
         $this->assertEquals(1, $result->total());
         $this->assertEquals('published', $result->items()[0]->status);
@@ -69,7 +77,7 @@ class StoryRepositoryTest extends TestCase
         $this->createStory(['headline' => 'Breaking news today']);
         $this->createStory(['headline' => 'Weather update']);
 
-        $result = $this->repo->filteredList('en', 'all', 'all', 'Breaking');
+        $result = $this->repo->filteredList($this->filterFor(['text' => 'Breaking']));
 
         $this->assertEquals(1, $result->total());
         $this->assertStringContainsString('Breaking', $result->items()[0]->headline);
@@ -79,9 +87,20 @@ class StoryRepositoryTest extends TestCase
     {
         $story = $this->createStory();
 
-        $ids = $this->repo->filteredIds('en', 'all', 'all', '');
+        $ids = $this->repo->filteredIds($this->filterFor());
 
         $this->assertContains((string) $story->id, $ids);
+    }
+
+    public function test_export_honors_filters(): void
+    {
+        $this->createStory(['headline' => 'Export me']);
+        $this->createStory(['headline' => 'Not exported', 'status' => 'published']);
+
+        $rows = $this->repo->exportQuery($this->filterFor(['status' => 'draft']));
+
+        $this->assertSame(1, $rows->count());
+        $this->assertSame('Export me', $rows->first()->headline);
     }
 
     public function test_find_with_details_eager_loads_relations(): void

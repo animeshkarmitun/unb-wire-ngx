@@ -84,6 +84,7 @@
 | `M8-DASH-001` | Dashboard faithful (KPIs + stories + clients + FAB) | M8-FOUND-002 | ✅ | — | 2026-08-29 |
 | `M8-NEWS-001` | News list faithful (en+bn) | M8-UI-002 | ✅ | — | 2026-08-29 |
 | `M8-NEWS-002` | Workflow drawer (status flow + take-over + notes) | M8-NEWS-001 | ✅ | — | 2026-08-29 |
+| `M8-NEWS-003` | Advanced story filters (author/tags/date/image/scope, StoryFilter DTO + service pipeline) | M8-NEWS-001, M15-SCALE-004 | ✅ | — | 2026-10-11 |
 | `M8-PHOTO-001` | UNB Photo Manager faithful | M8-UI-002 | ✅ | — | 2026-09-05 |
 | `M8-PHOTO-002` | Field intake approval queue | M8-PHOTO-001 | ✅ | — | 2026-09-05 |
 | `M8-PHOTO-003` | AP Photo Manager faithful | M8-UI-002, M8-PHOTO-001 | ✅ | — | 2026-09-05 |
