@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Category;
+use App\Models\Story;
 use App\Models\User;
 use App\Services\StoryService;
 use App\Support\FeedCache;
@@ -14,7 +15,7 @@ class FeedCacheInvalidationTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function publishedStory(string $headline): \App\Models\Story
+    private function publishedStory(string $headline): Story
     {
         $cat = Category::factory()->create();
         $user = User::factory()->create();
