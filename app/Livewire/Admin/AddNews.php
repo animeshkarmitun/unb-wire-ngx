@@ -121,9 +121,13 @@ class AddNews extends Component
         $this->previewCollapsed = ! $this->previewCollapsed;
     }
 
-    public function mount(?int $id = null): void
+    public function mount(?int $id = null, ?string $language = null): void
     {
         $user = auth()->user();
+        if ($language === 'bn' || $language === 'en') {
+            $this->language = $language;
+        }
+        $this->ownerId = $user?->id;
         $this->ownerId = $user?->id;
         $this->ownerName = $user?->name ?? 'Desk User';
         $this->ownerRole = $user?->role?->name ?? 'Staff';

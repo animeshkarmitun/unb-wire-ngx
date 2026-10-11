@@ -9,7 +9,7 @@
         </div>
         <div class="flex items-center gap-2">
             <button type="button" wire:click="export" class="btn btn-outline" title="Export current filtered stories to CSV">Export</button>
-            <a href="{{ route('admin.add-news') }}" class="btn btn-primary" style="text-decoration:none">+ Add News</a>
+            <a href="{{ route('admin.add-news', ['language' => $language]) }}" class="btn btn-primary" style="text-decoration:none">+ Add News</a>
         </div>
     </div>
 
