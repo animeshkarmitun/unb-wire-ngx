@@ -45,4 +45,55 @@
     .g6 { background: linear-gradient(135deg, #0ea5e9, #0c4a6e); }
     .g7 { background: linear-gradient(135deg, #db2777, #831843); }
     .g8 { background: linear-gradient(135deg, #64748b, #1e293b); }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: none;
+        border-radius: 9px;
+        padding: 9px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: all 0.13s ease;
+        background: transparent;
+        color: inherit;
+    }
+    .btn svg { display: block; }
+    .btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+    .btn-primary {
+        background: var(--crimson, #e5484d);
+        color: #fff;
+    }
+    .btn-primary:hover { background: var(--crimson-dark, #d13438); }
+    .btn-navy {
+        background: var(--navy-800, #16204a);
+        color: #fff;
+    }
+    .btn-navy:hover { background: var(--navy, #1c2a5e); }
+    .btn-outline {
+        background: #fff;
+        border: 1px solid var(--border, #eceae5);
+        color: #4b4e5c;
+    }
+    .btn-outline:hover {
+        border-color: var(--navy-800, #16204a);
+        color: var(--navy-800, #16204a);
+    }
+    .btn-ghost {
+        background: none;
+        color: #4b4e5c;
+    }
+    .btn-ghost:hover { background: var(--border, #eceae5); }
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 12px;
+        border-radius: 8px;
+    }
 }

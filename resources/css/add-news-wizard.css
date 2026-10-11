@@ -2224,6 +2224,40 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+.ai-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 6px 0 10px;
+}
+.ai-btn {
+  border: 1px solid var(--purple-bg, #f1eafe);
+  background: var(--purple-bg, #f1eafe);
+  color: var(--purple, #7c3aed);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--sans, "Inter", sans-serif);
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.ai-btn:hover {
+  border-color: var(--purple, #7c3aed);
+  background: #e9dcfd;
+}
+.ai-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.ai-btn.llm {
+  border-color: var(--purple, #7c3aed);
+}
+.ai-row .ai-note {
+  flex: 1;
+  min-width: 200px;
+}
 .ai-label {
   font-size: 11px;
   font-weight: 700;
