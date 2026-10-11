@@ -4,13 +4,17 @@ namespace Tests\Feature;
 
 use App\Livewire\Admin\NewsList;
 use App\Models\Category;
+use App\Models\MediaAsset;
 use App\Models\Role;
 use App\Models\Story;
 use App\Models\StoryNote;
+use App\Models\Tag;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -250,6 +254,233 @@ class NewsListTest extends TestCase
         ]);
 
         $cmp = Livewire::test(NewsList::class, ['language' => 'en']);
+        $cmp->call('export')->assertFileDownloaded();
+    }
+
+    // ─── Advanced Filters (M8-NEWS-003) ────────────────────────
+
+    public function test_advanced_filter_by_author_narrows_results(): void
+    {
+        $this->actingAs($this->editor);
+
+        Story::factory()->create([
+            'headline' => 'Owned by editor',
+            'language' => 'en',
+            'category_id' => $this->category->id,
+            'owner_id' => $this->editor->id,
+            'created_by' => $this->editor->id,
+        ]);
+        Story::factory()->create([
+            'headline' => 'Owned by shohel',
+            'language' => 'en',
+            'category_id' => $this->category->id,
+            'owner_id' => $this->otherUser->id,
+            'created_by' => $this->otherUser->id,
+        ]);
+
+        $cmp = Livewire::test(NewsList::class, ['language' => 'en']);
+        $cmp->set('authorId', (string) $this->editor->id);
+        $cmp->assertSee('Owned by editor');
+        $cmp->assertDontSee('Owned by shohel');
+    }
+
+    public function test_advanced_filter_by_tags_narrows_results(): void
+    {
+        $this->actingAs($this->editor);
+
+        $economy = Tag::factory()->create(['name' => 'economy']);
+
+        $tagged = Story::factory()->create([
+            'headline' => 'Tagged story',
+            'language' => 'en',
+            'category_id' => $this->category->id,
+            'owner_id' => $this->editor->id,
+            'created_by' => $this->editor->id,
+        ]);
+        $tagged->tags()->attach($economy->id);
+
+        Story::factory()->create([
+            'headline' => 'Untagged story',
+            'language' => 'en',
+            'category_id' => $this->category->id,
+            'owner_id' => $this->editor->id,
+            'created_by' => $this->editor->id,
+        ]);
+
+        $cmp = Livewire::test(NewsList::class, ['language' => 'en']);
+        $cmp->call('toggleTag', $economy->id);
+        $cmp->assertSee('Tagged story');
+        $cmp->assertDontSee('Untagged story');
+
+        $cmp->call('toggleTag', $economy->id);
+        $cmp->assertSee('Untagged story');
+    }
+
+    public function test_advanced_filter_image_presence(): void
+    {
+        $this->actingAs($this->editor);
+
+        $with = Story::factory()->create([
+            'headline' => 'With media',
+            'language' => 'en',
+            'category_id' => $this->category->id,
+            'owner_id' => $this->editor->id,
+            'created_by' => $this->editor->id,
+        ]);
+        $asset = MediaAsset::factory()->create();
+        DB::table('story_media')->insert([
+            'story_id' => $with->id, 'asset_id' => $asset->id, 'role' => 'featured',
+            'sort_order' => 0, 'caption_override' => 'President at memorial',
+        ]);
+
+        Story::factory()->create([
+            'headline' => 'No media here',
+            'language' => 'en',
+            'category_id' => $this->category->id,
+            'owner_id' => $this->editor->id,
+            'created_by' => $this->editor->id,
+        ]);
+
+        $cmp = Livewire::test(NewsList::class, ['language' => 'en']);
+        $cmp->set('hasImage', 'with');
+        $cmp->assertSee('With media');
+        $cmp->assertDontSee('No media here');
+
+        $cmp->set('hasImage', 'without');
+        $cmp->assertSee('No media here');
+        $cmp->assertDontSee('With media');
+    }
+
+    public function test_advanced_filter_today_computes_dhaka_day_window(): void
+    {
+        $this->actingAs($this->editor);
+
+        Carbon::setTestNow(Carbon::parse('2026-10-11 14:00', 'Asia/Dhaka'));
+
+        Story::factory()->create([
+            'headline' => 'Published this morning',
+            'language' => 'en',
+            'status' => 'published',
+            'category_id' => $this->category->id,
+            'owner_id' => $this->editor->id,
+            'created_by' => $this->editor->id,
+            'published_at' => Carbon::parse('2026-10-11 09:00', 'Asia/Dhaka'),
+        ]);
+        Story::factory()->create([
+            'headline' => 'Published last night',
+            'language' => 'en',
+            'status' => 'published',
+            'category_id' => $this->category->id,
+            'owner_id' => $this->editor->id,
+            'created_by' => $this->editor->id,
+            'published_at' => Carbon::parse('2026-10-10 23:30', 'Asia/Dhaka'),
+        ]);
+
+        $cmp = Livewire::test(NewsList::class, ['language' => 'en']);
+        $cmp->set('dateField', 'published');
+        $cmp->set('dateMode', 'today');
+        $cmp->assertSee('Published this morning');
+        $cmp->assertDontSee('Published last night');
+
+        // Picking Today/Range without touching the field select defaults to Published
+        $cmp->set('dateField', 'any');
+        $cmp->set('dateMode', 'any');
+        $cmp->set('dateMode', 'today');
+        $cmp->assertSet('dateField', 'published');
+        $cmp->assertSee('Published this morning');
+        $cmp->assertDontSee('Published last night');
+
+        Carbon::setTestNow();
+    }
+
+    public function test_search_scope_caption_finds_story_by_media_caption(): void
+    {
+        $this->actingAs($this->editor);
+
+        $with = Story::factory()->create([
+            'headline' => 'Caption boat story',
+            'language' => 'en',
+            'category_id' => $this->category->id,
+            'owner_id' => $this->editor->id,
+            'created_by' => $this->editor->id,
+        ]);
+        $asset = MediaAsset::factory()->create(['caption' => 'Riverside residences on the Bishkhali']);
+        DB::table('story_media')->insert([
+            'story_id' => $with->id, 'asset_id' => $asset->id, 'role' => 'featured',
+            'sort_order' => 0, 'caption_override' => null,
+        ]);
+
+        Story::factory()->create([
+            'headline' => 'Other unrelated',
+            'language' => 'en',
+            'category_id' => $this->category->id,
+            'owner_id' => $this->editor->id,
+            'created_by' => $this->editor->id,
+        ]);
+
+        $cmp = Livewire::test(NewsList::class, ['language' => 'en']);
+        $cmp->set('searchScope', 'caption');
+        $cmp->set('search', 'Bishkhali');
+        $cmp->assertSee('Caption boat story');
+        $cmp->assertDontSee('Other unrelated');
+    }
+
+    public function test_search_scope_body_falls_back_to_sql_when_engine_unavailable(): void
+    {
+        $this->actingAs($this->editor);
+
+        Story::factory()->create([
+            'headline' => 'Headline one',
+            'language' => 'en',
+            'category_id' => $this->category->id,
+            'owner_id' => $this->editor->id,
+            'created_by' => $this->editor->id,
+            'brief' => 'plain brief',
+            'body_text' => 'The needle phrase lives deep in the body copy.',
+        ]);
+        Story::factory()->create([
+            'headline' => 'Headline two',
+            'language' => 'en',
+            'category_id' => $this->category->id,
+            'owner_id' => $this->editor->id,
+            'created_by' => $this->editor->id,
+            'brief' => 'another brief',
+            'body_text' => 'Nothing relevant in here.',
+        ]);
+
+        $cmp = Livewire::test(NewsList::class, ['language' => 'en']);
+        $cmp->set('searchScope', 'body');
+        $cmp->set('search', 'needle phrase');
+        $cmp->assertSee('Headline one');
+        $cmp->assertDontSee('Headline two');
+    }
+
+    public function test_select_all_and_export_honor_advanced_filters(): void
+    {
+        $this->actingAs($this->editor);
+
+        $mine = Story::factory()->create([
+            'headline' => 'Mine for select all',
+            'language' => 'en',
+            'category_id' => $this->category->id,
+            'owner_id' => $this->editor->id,
+            'created_by' => $this->editor->id,
+        ]);
+        Story::factory()->create([
+            'headline' => 'Not mine for select all',
+            'language' => 'en',
+            'category_id' => $this->category->id,
+            'owner_id' => $this->otherUser->id,
+            'created_by' => $this->otherUser->id,
+        ]);
+
+        $cmp = Livewire::test(NewsList::class, ['language' => 'en']);
+        $cmp->set('authorId', (string) $this->editor->id);
+        $cmp->set('selectAll', true);
+
+        $this->assertSame([(string) $mine->id], $cmp->get('selectedStories'));
+
+        // CSV export still streams with the same filter composition applied
         $cmp->call('export')->assertFileDownloaded();
     }
 }

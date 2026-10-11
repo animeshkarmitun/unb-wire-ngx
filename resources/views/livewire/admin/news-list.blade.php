@@ -41,6 +41,14 @@
         <div class="flex gap-2.5 p-[18px_22px] border-b border-border flex-wrap items-center">
             <input wire:model.live.debounce.300ms="search" class="search-input" type="text" placeholder="Search headlines, keywords…">
 
+            <select wire:model.live="searchScope" class="filter-select" title="Search within: all fields, article brief, full body text, or photo captions">
+                <option value="all">All fields</option>
+                <option value="headline">Headline</option>
+                <option value="brief">Brief</option>
+                <option value="body">Body text</option>
+                <option value="caption">Image caption</option>
+            </select>
+
             <select wire:model.live="category" class="filter-select">
                 <option value="all">All categories</option>
                 @foreach($categories as $cat)
@@ -56,8 +64,133 @@
                 <option value="changes_requested">Needs work</option>
             </select>
 
-            <button type="button" wire:click="$refresh" class="btn btn-navy">Search</button>
+            @php
+                $advCount = ($searchScope !== 'all' ? 1 : 0)
+                    + ($authorId !== 'any' ? 1 : 0)
+                    + count($tagIds)
+                    + ($dateMode !== 'any' ? 1 : 0)
+                    + ($hasImage !== 'any' ? 1 : 0);
+            @endphp
+
+            <button type="button" class="filter-select filter-toggle {{ $showFilters || $advCount > 0 ? 'on' : '' }}" wire:click="$toggle('showFilters')">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg>
+                Filters @if($advCount > 0) ({{ $advCount }}) @endif
+            </button>
         </div>
+
+        @php
+            $activeAuthor = collect($authors)->firstWhere('id', (int) $authorId);
+            $activeTags = collect($tags)->filter(fn ($t) => in_array((string) $t->id, array_map(strval(...), $tagIds)));
+        @endphp
+
+        @if($showFilters)
+            <!-- Advanced Filters Panel -->
+            <div class="adv-panel">
+                <div class="adv-grid">
+                    <div class="adv-field">
+                        <label>Author</label>
+                        <select wire:model.live="authorId" class="filter-select">
+                            <option value="any">Any author</option>
+                            @foreach($authors as $a)
+                                <option value="{{ $a->id }}">{{ $a->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="adv-field">
+                        <label>Date</label>
+                        <div class="seg">
+                            <button type="button" class="seg-btn {{ $dateMode === 'any' ? 'on' : '' }}" wire:click="$set('dateMode', 'any')">Any</button>
+                            <button type="button" class="seg-btn {{ $dateMode === 'today' ? 'on' : '' }}" wire:click="$set('dateMode', 'today')">Today</button>
+                            <button type="button" class="seg-btn {{ $dateMode === 'range' ? 'on' : '' }}" wire:click="$set('dateMode', 'range')">Range</button>
+                        </div>
+                        @if($dateMode !== 'any')
+                            <div class="adv-date-row">
+                                <select wire:model.live="dateField" class="filter-select" aria-label="Date field to filter on">
+                                    <option value="published">Published date</option>
+                                    <option value="created">Created date</option>
+                                </select>
+                            </div>
+                        @endif
+                    </div>
+
+                    @if($dateMode === 'range')
+                        <div class="adv-field">
+                            <label>From → To (inclusive)</label>
+                            <div class="adv-range">
+                                <input wire:model.live="dateFrom" type="date" class="filter-input" aria-label="From date (inclusive)">
+                                <input wire:model.live="dateTo" type="date" class="filter-input" aria-label="To date (inclusive)">
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="adv-field">
+                        <label>Image</label>
+                        <div class="seg">
+                            <button type="button" class="seg-btn {{ $hasImage === 'any' ? 'on' : '' }}" wire:click="$set('hasImage', 'any')">Any</button>
+                            <button type="button" class="seg-btn {{ $hasImage === 'with' ? 'on' : '' }}" wire:click="$set('hasImage', 'with')">With image</button>
+                            <button type="button" class="seg-btn {{ $hasImage === 'without' ? 'on' : '' }}" wire:click="$set('hasImage', 'without')">Without image</button>
+                        </div>
+                    </div>
+
+                    <div class="adv-field adv-field-wide">
+                        <label>Tags</label>
+                        <div class="tag-chip-row">
+                            @forelse($tags as $tag)
+                                <button type="button" class="tag-chip {{ in_array((string) $tag->id, array_map(strval(...), $tagIds)) ? 'on' : '' }}" wire:click="toggleTag({{ $tag->id }})">{{ $tag->name }}</button>
+                            @empty
+                                <span class="tag-empty">No tags yet — add tags from the editor</span>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+
+                @if($advCount > 0)
+                    <div class="adv-clear">
+                        <button type="button" wire:click="clearFilters" class="btn btn-outline">Clear all</button>
+                    </div>
+                @endif
+            </div>
+        @endif
+
+        @if($advCount > 0)
+            <!-- Active Filter Chips -->
+            <div class="chip-bar">
+                <span class="chip-label">Filters:</span>
+                @if($authorId !== 'any')
+                    <button type="button" class="chip" wire:click="$set('authorId', 'any')" title="Remove author filter">
+                        Author: {{ $activeAuthor->name ?? '#' . $authorId }} <span class="chip-x">×</span>
+                    </button>
+                @endif
+                @if($dateMode !== 'any')
+                    <button type="button" class="chip" wire:click="$set('dateMode', 'any')" title="Remove date filter">
+                        {{ $dateField === 'created' ? 'Created' : 'Published' }}:
+                        @if($dateMode === 'today')
+                            Today
+                        @else
+                            {{ $dateFrom ?: '…' }} → {{ $dateTo ?: 'now' }}
+                        @endif
+                        <span class="chip-x">×</span>
+                    </button>
+                @endif
+                @if($hasImage !== 'any')
+                    <button type="button" class="chip" wire:click="$set('hasImage', 'any')" title="Remove image filter">
+                        {{ $hasImage === 'with' ? 'With image' : 'Without image' }} <span class="chip-x">×</span>
+                    </button>
+                @endif
+                @foreach($activeTags as $tag)
+                    <button type="button" class="chip" wire:click="toggleTag({{ $tag->id }})" title="Remove tag filter">
+                        #{{ $tag->name }} <span class="chip-x">×</span>
+                    </button>
+                @endforeach
+                @if($searchScope !== 'all')
+                    <button type="button" class="chip" wire:click="$set('searchScope', 'all')" title="Reset search scope">
+                        Search in: {{ ['headline' => 'Headline', 'brief' => 'Brief', 'body' => 'Body text', 'caption' => 'Image caption'][$searchScope] }} <span class="chip-x">×</span>
+                    </button>
+                @endif
+                <button type="button" wire:click="clearFilters" class="chip chip-clear">Clear all</button>
+            </div>
+        @endif
 
         <!-- Bulk Action Bar -->
         @if(count($selectedStories) > 0)
@@ -82,19 +215,17 @@
                 <thead>
                     <tr>
                         <th style="width:36px"><input type="checkbox" wire:model.live="selectAll"></th>
-                        <th>Title</th>
-                        <th style="width:140px">Category</th>
-                        <th style="width:110px">Published</th>
-                        <th style="width:80px">Views</th>
-                        <th style="width:130px">Status</th>
+                        <th><button type="button" class="sort-btn {{ $sortField === 'title' ? ($sortDir === 'asc' ? 'sort-asc' : 'sort-desc') : '' }}" wire:click="sortBy('title')">Title</button></th>
+                        <th style="width:140px"><button type="button" class="sort-btn {{ $sortField === 'category' ? ($sortDir === 'asc' ? 'sort-asc' : 'sort-desc') : '' }}" wire:click="sortBy('category')">Category</button></th>
+                        <th style="width:110px"><button type="button" class="sort-btn {{ $sortField === 'published' ? ($sortDir === 'asc' ? 'sort-asc' : 'sort-desc') : '' }}" wire:click="sortBy('published')">Published</button></th>
+                        <th style="width:80px"><button type="button" class="sort-btn {{ $sortField === 'views' ? ($sortDir === 'asc' ? 'sort-asc' : 'sort-desc') : '' }}" wire:click="sortBy('views')">Views</button></th>
+                        <th style="width:130px"><button type="button" class="sort-btn {{ $sortField === 'status' ? ($sortDir === 'asc' ? 'sort-asc' : 'sort-desc') : '' }}" wire:click="sortBy('status')">Status</button></th>
                         <th style="width:110px">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($stories as $s)
                         @php
-                            $tints = ['t-blue', 't-green', 't-purple', 't-amber'];
-                            $tint = $tints[$s->id % 4];
                             $catRaw = $s->category?->name_en ?? 'general';
                             $catSlug = strtolower(preg_replace('/[^a-zA-Z]/', '', $catRaw));
                             if (!in_array($catSlug, ['bangladesh', 'sports', 'world', 'business'], true)) {
@@ -107,11 +238,6 @@
                             </td>
                             <td>
                                 <div class="title-cell">
-                                    <div class="thumb {{ $tint }}">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/>
-                                        </svg>
-                                    </div>
                                     <div class="min-w-0">
                                         <div class="news-title hover:text-navy-800 cursor-pointer" wire:click="openDrawer({{ $s->id }})">
                                             {{ $s->headline }}

@@ -95,6 +95,17 @@ repositories never cache.
   + transition via `App\Support\IndexOutbox::enqueue` (pending-row dedupe
   collapses autosave bursts). Admin search falls back to trgm-assisted SQL LIKE
   when the engine is unavailable (NFR §5 graceful degradation).
+- **Story filter pipeline (M8-NEWS-003):** the news-list filter set is a single
+  validated value object `App\Support\StoryFilter` (whitelist-backed — Livewire
+  state can never inject engine strings). `StoryFilterService::filter` composes
+  structured clauses (author/tags/date-window/image); free text is scope-aware:
+  `caption` is SQL-only (absent from the staff index) via a `story_media ⋈
+  media_assets` ILIKE subquery, other scopes restrict Meili per-query via
+  `attributesToSearchOn` with the trgm SQL fallback. Repository signatures
+  (`filteredList/filteredIds/filteredCount/exportQuery`) take the DTO, so
+  pagination, select-all and CSV export share one dataset definition. Date
+  windows (`today`/`range`) compute inbound Dhaka day boundaries into UTC with
+  an exclusive upper edge.
 - **Feed payload split (M15-SCALE-005):** list endpoints (`/api/v1/portal/feed`)
   return brief-only (no `body_html`); `/api/v1/portal/story/{id}` carries the
   full body under epoch-keyed `Cache::flexible` — the portal lazy-fetches it on

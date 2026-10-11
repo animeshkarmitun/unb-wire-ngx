@@ -8,8 +8,11 @@ use App\Repositories\CategoryRepository;
 use App\Repositories\StoryRepository;
 use App\Services\NoteService;
 use App\Services\RbacService;
+use App\Services\StoryFilterService;
 use App\Services\StoryService;
+use App\Support\StoryFilter;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -26,6 +29,28 @@ class NewsList extends Component
     public string $category = 'all';
 
     public string $search = '';
+
+    public string $searchScope = 'all';
+
+    public string $authorId = 'any';
+
+    public array $tagIds = [];
+
+    public string $dateField = 'any';
+
+    public string $dateMode = 'any';
+
+    public string $dateFrom = '';
+
+    public string $dateTo = '';
+
+    public string $hasImage = 'any';
+
+    public bool $showFilters = false;
+
+    public string $sortField = 'updated_at';
+
+    public string $sortDir = 'desc';
 
     public ?int $selectedId = null;
 
@@ -50,7 +75,7 @@ class NewsList extends Component
             return;
         }
 
-        $total = app(StoryRepository::class)->filteredCount($this->language, $this->status, $this->category, $this->search);
+        $total = app(StoryRepository::class)->filteredCount($this->filter());
         $lastPage = max(1, (int) ceil($total / 15));
 
         $this->gotoPage(min($page, $lastPage));
@@ -62,29 +87,85 @@ class NewsList extends Component
         $this->language = in_array($language, ['en', 'bn'], true) ? $language : 'en';
     }
 
-    public function updatedSearch(): void
+    public function updated(string $name, $value): void
     {
-        $this->resetPage();
+        $prop = Str::before($name, '.');
+
+        if (Str::startsWith($name, 'dateMode')
+            && in_array($value, ['today', 'range'], true)
+            && $this->dateField === 'any') {
+            $this->dateField = 'published';
+        }
+
+        if (in_array($prop, [
+            'search', 'status', 'category', 'searchScope', 'authorId', 'tagIds',
+            'dateField', 'dateMode', 'dateFrom', 'dateTo', 'hasImage',
+        ], true)) {
+            $this->resetPage();
+        }
     }
 
-    public function updatedStatus(): void
+    public function sortBy(string $field): void
     {
-        $this->resetPage();
-    }
-
-    public function updatedCategory(): void
-    {
+        if ($this->sortField === $field) {
+            $this->sortDir = $this->sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortField = $field;
+            $this->sortDir = in_array($field, ['published', 'views'], true) ? 'desc' : 'asc';
+        }
         $this->resetPage();
     }
 
     public function updatedSelectAll(bool $value): void
     {
         if ($value) {
-            $this->selectedStories = app(StoryRepository::class)
-                ->filteredIds($this->language, $this->status, $this->category, $this->search);
+            $this->selectedStories = app(StoryRepository::class)->filteredIds($this->filter());
         } else {
             $this->selectedStories = [];
         }
+    }
+
+    public function toggleTag(int $tagId): void
+    {
+        if (in_array($tagId, $this->tagIds, true)) {
+            $this->tagIds = array_values(array_diff($this->tagIds, [$tagId]));
+        } else {
+            $this->tagIds[] = $tagId;
+        }
+        $this->resetPage();
+    }
+
+    public function clearFilters(): void
+    {
+        $this->searchScope = 'all';
+        $this->authorId = 'any';
+        $this->tagIds = [];
+        $this->dateField = 'any';
+        $this->dateMode = 'any';
+        $this->dateFrom = '';
+        $this->dateTo = '';
+        $this->hasImage = 'any';
+        $this->resetPage();
+    }
+
+    private function filter(): StoryFilter
+    {
+        return StoryFilter::fromArray([
+            'language' => $this->language,
+            'status' => $this->status,
+            'category' => $this->category,
+            'text' => $this->search,
+            'scope' => $this->searchScope,
+            'authorId' => $this->authorId,
+            'tagIds' => $this->tagIds,
+            'dateField' => $this->dateField,
+            'dateMode' => $this->dateMode,
+            'dateFrom' => $this->dateFrom,
+            'dateTo' => $this->dateTo,
+            'hasImage' => $this->hasImage,
+            'sortField' => $this->sortField,
+            'sortDir' => $this->sortDir,
+        ]);
     }
 
     public function select(int $id): void
@@ -259,8 +340,7 @@ class NewsList extends Component
 
     public function export(): StreamedResponse
     {
-        $stories = app(StoryRepository::class)
-            ->exportQuery($this->language, $this->status, $this->category, $this->search);
+        $stories = app(StoryRepository::class)->exportQuery($this->filter());
         $fileName = 'unb-stories-'.$this->language.'-'.now()->format('Ymd-His').'.csv';
 
         return Response::streamDownload(function () use ($stories) {
@@ -288,11 +368,13 @@ class NewsList extends Component
     {
         $repo = app(StoryRepository::class);
 
-        $stories = $repo->filteredList($this->language, $this->status, $this->category, $this->search);
+        $stories = $repo->filteredList($this->filter(), 15);
         $categories = app(CategoryRepository::class)->categoriesTree();
         $selected = $this->selectedId ? $repo->findWithDetails($this->selectedId) : null;
         $counts = $repo->statusCounts($this->language);
+        $authors = StoryFilterService::authorOptions($this->language);
+        $tags = StoryFilterService::tagOptions();
 
-        return view('livewire.admin.news-list', compact('stories', 'categories', 'selected', 'counts'));
+        return view('livewire.admin.news-list', compact('stories', 'categories', 'selected', 'counts', 'authors', 'tags'));
     }
 }
