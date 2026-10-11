@@ -5,7 +5,7 @@
         <div class="card" id="featuredCard">
           <div class="card-title">Featured image</div>
 
-          <div class="featured-preview {{ $featuredMediaId ? 'has-photo' : '' }}" id="featuredPreview">
+          <div class="featured-preview {{ $featuredMediaId ? 'has-photo' : '' }}" id="featuredPreview" title="Drag & drop an image here, or use the buttons below">
             @if($featuredMediaId)
               @php
                 $featuredItem = collect($attachedMedia)->firstWhere('id', $featuredMediaId);
@@ -21,7 +21,7 @@
               <div class="fp-cap">{{ $featuredCaption ?: 'Featured image #'.$featuredMediaId }}</div>
             @else
               <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-              <span class="fp-text">No photo selected yet</span>
+              <span class="fp-text">No photo selected yet — drag &amp; drop here</span>
             @endif
           </div>
 
@@ -36,7 +36,7 @@
               Choose from photo archive
             </button>
           </div>
-          <div class="field-hint warn" id="fileHint">Recommended size: 1200 × 630 px · JPG or PNG, max 5 MB</div>
+          <div class="field-hint warn" id="fileHint">Recommended size: 1200 × 630 px · JPG or PNG, max 50 MB</div>
 
           <div class="field" style="margin-top:16px">
             <label class="field-label">Image caption</label>
@@ -102,6 +102,6 @@
               Add from photo archive
             </button>
           </div>
-          <div class="field-hint warn">Photos: JPG/PNG up to 5 MB · Videos: MP4 up to 200 MB</div>
+          <div class="field-hint warn">Photos: JPG/PNG up to 50 MB · Videos: MP4 up to 200 MB</div>
         </div>
       </section>

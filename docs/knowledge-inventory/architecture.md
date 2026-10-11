@@ -90,11 +90,26 @@ repositories never cache.
 - Read path: PostgreSQL read replica + Redis hot feed + CDN for media; published
   stories are immutable → aggressive cache, versioned derivative URLs with infinite
   TTL.
-- `CacheAside` get-or-load with tag-based invalidation on publish/update (in the
-  service layer).
+- `CacheAside` get-or-load; feed caches use **epoch-versioned keys** (DEC-017):
+  `feed:v1:{epoch}:{clientId}:{urlHash}` / `portal:feed:{epoch}:{clientId}:{urlHash}`
+  via `App\Support\FeedCache` — publish/kill/archive/embargo-lift/published-re-edit
+  `INCR feed:epoch`, making every feed entry unreachable instantly (no key
+  enumeration). Feed entries ride `Cache::flexible([30, 120])` —
+  stale-while-revalidate with a lock-guarded single regenerator (stampede guard).
+- **Sessions** live in Redis (dedicated `session` connection, DB 2, own prefix) —
+  no per-request session I/O on Postgres (M15-SCALE-001). Queue stays on the
+  `default` Redis connection.
+- Horizon runs two supervisor pools (M15-SCALE-001): `supervisor-quick`
+  (default/outbox/notifications/billing, timeout 90s) and `supervisor-fanout`
+  (fanout/derivatives, timeout 300s, more memory) so FTP/email bursts can't
+  starve latency-sensitive queues.
 - Dashboard KPI aggregates (`DashboardService`) ride a 60s `Cache::remember`
   (M13-PERF-001); lists stay fresh. Query hot paths are indexed (FK/pivot
-  indexes added 2026-09-22); `index_outbox` processing batch-prefetches stories.
+  indexes added 2026-09-22; admin-list `(language,status,updated_at)` +
+  pg_trgm GIN on headline/brief added 2026-10-11, M15-SCALE-001);
+  `index_outbox` processing batch-prefetches stories. Append-heavy tables
+  (`deliveries`, `downloads`, `notifications`, `audit_logs`, `story_events`,
+  `index_outbox`) carry per-table autovacuum scale factor 0.02.
 - Latency budgets (NFR §1/§5): feed API p95 < 200ms; portal/admin search p95
   < 300ms; publish → client feed visible within 60s.
 

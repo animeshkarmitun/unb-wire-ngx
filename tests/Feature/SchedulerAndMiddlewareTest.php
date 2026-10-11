@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Services\ApiKeyService;
 use App\Services\Media\PresignedUrlService;
 use App\Services\StoryService;
+use App\Support\FeedCache;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -134,16 +135,30 @@ class SchedulerAndMiddlewareTest extends TestCase
         Queue::assertPushed(ProcessIndexOutbox::class);
     }
 
-    public function test_embargo_lift_invalidates_real_feed_cache_keys(): void
+    public function test_embargo_lift_bumps_feed_cache_epoch(): void
     {
+        Queue::fake();
+        $cat = Category::factory()->create();
+        $user = User::factory()->create();
+        Story::factory()->create([
+            'status' => 'approved',
+            'category_id' => $cat->id,
+            'owner_id' => $user->id,
+            'created_by' => $user->id,
+            'embargo_until' => now()->subMinute(),
+        ]);
+
         $client = Client::factory()->create(['status' => 'active']);
-        $key = 'feed:v1:'.$client->id.':'.md5(url('/api/v1/feed'));
-        Cache::put($key, ['cached' => true], now()->addMinutes(5));
-        $this->assertTrue(Cache::has($key));
+        $oldEpoch = FeedCache::epoch();
+        $staleKey = 'feed:v1:'.$oldEpoch.':'.$client->id.':'.md5(url('/api/v1/feed'));
+        Cache::put($staleKey, ['cached' => true], now()->addMinutes(5));
+        $this->assertTrue(Cache::has($staleKey));
 
-        app(LiftEmbargoedStories::class)->invalidatePortalFeedCache();
+        app(LiftEmbargoedStories::class)->handle();
 
-        $this->assertFalse(Cache::has($key));
+        $this->assertGreaterThan($oldEpoch, FeedCache::epoch());
+        // Every feed cache key now resolves to a different (unwarmed) key — the stale entry is unreachable
+        $this->assertNotSame($staleKey, FeedCache::clientKey($client->id, md5(url('/api/v1/feed'))));
     }
 
     public function test_archive_sweep_runs_real_invokable_and_archives_old_only(): void

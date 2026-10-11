@@ -2,13 +2,13 @@
   <div class="add-grid {{ $previewCollapsed ? 'pv-collapsed' : '' }}" id="addGrid">
     <div class="add-form-col">
       <div class="breadcrumb">
-        <a href="{{ route('dashboard') }}">Home</a> &nbsp;/&nbsp;
-        <a href="{{ route('admin.news', ['language' => $language]) }}">{{ $language === 'bn' ? 'Bangla News' : 'English News' }}</a> &nbsp;/&nbsp;
-        Add News
+        <a href="{{ route('dashboard') }}">Home</a> <span class="sep">/</span>
+        <a href="{{ route('admin.news', ['language' => $language]) }}">{{ $language === 'bn' ? 'বাংলা সংবাদ' : 'English News' }}</a> <span class="sep">/</span>
+        <span>{{ $language === 'bn' ? 'সংবাদ যোগ করুন' : 'Add News' }}</span>
       </div>
 
       <div class="topbar">
-        <h1>Add News</h1>
+        <h1>{{ $language === 'bn' ? 'সংবাদ যোগ করুন' : 'Add News' }}</h1>
         <div class="topbar-actions">
           <a href="{{ route('admin.news', ['language' => $language]) }}" class="btn btn-outline">Cancel</a>
           <button type="button" class="btn btn-outline pv-top-toggle" id="pvToggleBtn" wire:click="togglePreview" title="Show / hide live preview" aria-label="Toggle live preview">

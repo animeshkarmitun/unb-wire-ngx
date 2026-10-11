@@ -119,7 +119,7 @@ draft → in_review → changes_requested → approved → published   (+ killed
 ## 7. Data, Performance & Caching
 
 - **Eager-Load by Default:** No N+1 queries on article lists, wire feeds, category index, or media attachments. Enforce `Model::preventLazyLoading(! app()->isProduction())`.
-- **Wire Feed Caching:** Cache live feed queries (Redis/File) with tag-based invalidation upon article publish/update.
+- **Wire Feed Caching:** Cache live feed queries (Redis) with **epoch-versioned keys** (`App\Support\FeedCache`, DEC-017) — publish/kill/archive/embargo-lift/published-re-edit bump `feed:epoch` so every feed entry goes stale instantly. Entries use `Cache::flexible([30, 120])` (stale-while-revalidate, stampede-guarded). Never build feed cache keys by raw URL hash without the epoch segment.
 - **Database Transactions:** Use `DB::transaction()` for multi-table updates (e.g., article publish + revision snapshot + feed dispatch).
 - **Index Optimization:** Ensure indexes on `(status, published_at)`, `(category_id, published_at)`, and `uuid`.
 

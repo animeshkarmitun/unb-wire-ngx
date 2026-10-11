@@ -289,16 +289,16 @@ A client-facing API audit revealed critical gaps in news and media distribution:
 ## `DEC-014`: Duplicate News Detection Fingerprint Column (M13-DUP)
 
 ### Context
-M13-DUP-001 (COS-20) requires pre-publish duplicate detection against published stories (exact + fuzzy title, body similarity). The check runs on every autosave and on publish; scanning `body_text` against all candidates is O(n�m) and needs a fast exact-body lookup path.
+M13-DUP-001 (COS-20) requires pre-publish duplicate detection against published stories (exact + fuzzy title, body similarity). The check runs on every autosave and on publish; scanning `body_text` against all candidates is O(n�m) and needs a fast exact-body lookup path.
 
 ### Decision
-- Add **`stories.body_fingerprint`** (varchar(40) nullable, sha1 of normalized `body_text`, indexed `stories_body_fingerprint_index`) � outside `v1-database-design.md`, ratified here per the schema-parity gate (workflow �6). Computed centrally in `StoryService::createDraft`/`updateDraft` alongside `body_text` (`DuplicateDetectionService::fingerprint`).
-- Fuzzy matching (Levenshtein title ratio + trigram Jaccard body) runs in `DuplicateDetectionService` over published stories from the last 30 days (M13-DUP-001 performance rule). Meilisearch full-text similarity is the scale path � matching runs locally so it works without the search stack.
+- Add **`stories.body_fingerprint`** (varchar(40) nullable, sha1 of normalized `body_text`, indexed `stories_body_fingerprint_index`) � outside `v1-database-design.md`, ratified here per the schema-parity gate (workflow �6). Computed centrally in `StoryService::createDraft`/`updateDraft` alongside `body_text` (`DuplicateDetectionService::fingerprint`).
+- Fuzzy matching (Levenshtein title ratio + trigram Jaccard body) runs in `DuplicateDetectionService` over published stories from the last 30 days (M13-DUP-001 performance rule). Meilisearch full-text similarity is the scale path � matching runs locally so it works without the search stack.
 - Publish-time blocking + reason-required override (audited as `publish.duplicate_override`) lives in the AddNews wizard per the spec; the fingerprint column is the only schema change.
 
 ### Consequences
 - Exact body duplicates resolve via index lookup; fuzzy runs in-process over a bounded window.
-- Column nullable � pre-existing rows stay valid (null = no exact-match signal); no backfill required.
+- Column nullable � pre-existing rows stay valid (null = no exact-match signal); no backfill required.
 
 ---
 
@@ -313,3 +313,22 @@ FR-AI-010: Bangla stories get AI-generated English search-only tags (NFR layer 3
 
 ### Consequences
 - Background `GenerateEnTags` job (dispatched on bn draft creation) produces suggestions; `AddNews::confirmEnTags` persists the confirmed set. Nullable — no backfill.
+
+---
+
+## `DEC-017`: Feed cache epoch-versioned invalidation + Redis sessions (M15-SCALE-001)
+
+### Context
+Scale research (`docs/research/scale-performance-optimization-research.md` P0-5/P0-6) found the feed cache invalidation effectively broken: `LiftEmbargoedStories::invalidatePortalFeedCache()` forgot only `feed:v1:{id}:{md5(base-url)}` without query strings (real keys hash `fullUrl()`) and never touched `portal:feed:*` keys — publish/kill left stale feeds for the full 60s TTL, breaching the publish→feed ≤ 60s SLO at the boundary. Plain `Cache::remember(60)` also has no stampede protection on the shared guest key at 1,000 concurrent users. Sessions rode Postgres (`SESSION_DRIVER=database`) — two session queries on every request against the write path. AGENTS/NFR wording said "tag-based invalidation"; Redis-store tags were never actually used.
+
+### Decision
+- **Epoch-versioned keys** via `App\Support\FeedCache`: `feed:v1:{epoch}:{clientId}:{urlHash}` and `portal:feed:{epoch}:{clientId}:{urlHash}`. Any client-visible state change (publish/kill/archive transition, published re-edit, embargo lift, archive sweep) does `Cache::increment('feed:epoch')` (O(1), covers every query-string variant and both key families — chosen over `Cache::tags()` because tag sets add bookkeeping and the old approach already drifted from real key formats).
+- Feed entries cache via `Cache::flexible([30, 120])` (stale-while-revalidate, lock-guarded single regenerator) — epoch bumps make freshness event-driven, TTLs bound drift and stampedes.
+- **Sessions → Redis** on a dedicated `session` connection (DB 2, own prefix; `SESSION_DRIVER=redis`, `SESSION_CONNECTION=session`) — Postgres leaves the per-request path.
+- Bump sites stay client-visibility-scoped (draft→in_review does NOT bump — it changed per-transition before, wastefully).
+
+### Consequences
+- Publish → feed visible on the **next request** (seconds), not ≤ 60s; kill tombstones likewise.
+- Old-epoch entries expire naturally (≤120s stale TTL) — no SCAN loops over clients.
+- `.env.example` defaults `REDIS_CLIENT=phpredis` (ext required in production; local dev without the ext keeps `predis`).
+- `deliveries` monthly partitioning (DEC-011 revisit) remains deferred to its own schema task.

@@ -361,7 +361,17 @@ Build order: `002`–`015` can run in parallel with `001`. E2E tasks start after
 
 ---
 
-## 22. How to Add a Task
+## 22. Scale & Performance Hardening (`M15-SCALE`) — 2026-10-11
+
+> Implements the P0/P1 items from `docs/research/scale-performance-optimization-research.md` (1,000 concurrent portal users + ~50 concurrent admins). Deferred items (own tasks): feed payload slim, PgBouncer/PG-GUC/CDN (infra), `deliveries` monthly partitioning (DEC-011 revisit), admin search → Meilisearch routing.
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M15-SCALE-001` | Feed-cache epoch versioning + stampede guard, Redis sessions, admin-list + trgm indexes, autovacuum, Horizon split (DEC-017) | `M14-COV-*`, `M13-PERF-001` | ✅ | — | 2026-10-11 |
+
+---
+
+## 23. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.

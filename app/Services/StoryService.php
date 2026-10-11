@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Console\Scheduling\LiftEmbargoedStories;
 use App\Events\StoryPublished;
 use App\Jobs\FanoutStory;
 use App\Jobs\GenerateEnTags;
@@ -10,6 +9,7 @@ use App\Models\Story;
 use App\Models\StoryNote;
 use App\Models\User;
 use App\Repositories\AuditLogRepository;
+use App\Support\FeedCache;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -99,6 +99,7 @@ class StoryService
                 'created_at' => now(),
             ]);
             dispatch(new FanoutStory($story->id))->afterResponse();
+            FeedCache::bump();
         }
 
         return $story;
@@ -175,7 +176,7 @@ class StoryService
             }
         }
 
-        return DB::transaction(function () use ($story, $from, $to, $actor, $gate, $aiGate) {
+        $updated = DB::transaction(function () use ($story, $from, $to, $actor, $gate, $aiGate) {
             $extra = [];
             if ($to === 'published' && ! $story->published_at) {
                 $extra['published_at'] = now();
@@ -201,7 +202,6 @@ class StoryService
                 $story->id,
                 ['from' => $from, 'to' => $to],
             );
-            app(LiftEmbargoedStories::class)->invalidatePortalFeedCache();
             if ($to === 'published') {
                 event(new StoryPublished($story));
 
@@ -236,5 +236,11 @@ class StoryService
 
             return $story->refresh();
         });
+
+        if (in_array($to, ['published', 'killed', 'archived'], true)) {
+            FeedCache::bump();
+        }
+
+        return $updated;
     }
 }

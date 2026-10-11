@@ -121,9 +121,13 @@ class AddNews extends Component
         $this->previewCollapsed = ! $this->previewCollapsed;
     }
 
-    public function mount(?int $id = null): void
+    public function mount(?int $id = null, ?string $language = null): void
     {
         $user = auth()->user();
+        if ($language === 'bn' || $language === 'en') {
+            $this->language = $language;
+        }
+        $this->ownerId = $user?->id;
         $this->ownerId = $user?->id;
         $this->ownerName = $user?->name ?? 'Desk User';
         $this->ownerRole = $user?->role?->name ?? 'Staff';
@@ -449,8 +453,11 @@ class AddNews extends Component
 
     public function uploadMedia(string $mode = 'featured'): void
     {
+        // Images: 50 MB max · Videos: 200 MB max (per FR-DST media kinds)
+        $maxKb = (int) ($this->mediaUpload && str_starts_with($this->mediaUpload->getMimeType() ?? '', 'video/') ? 204800 : 51200);
+
         $this->validate([
-            'mediaUpload' => 'required|file|mimes:jpg,jpeg,png,webp,mp4|max:204800',
+            'mediaUpload' => 'required|file|mimes:jpg,jpeg,png,webp,mp4|max:'.$maxKb,
         ]);
 
         $file = $this->mediaUpload;

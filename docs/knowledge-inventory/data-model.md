@@ -51,6 +51,12 @@ exactly as specced; all indexes present; `timestamptz` everywhere (grep generate
 SQL for bare `timestamp` → must be 0); append-only tables carry the grant-revoke
 statement in the same migration.
 
+### Performance indexes & autovacuum (M15-SCALE-001)
+
+- `stories` admin-list indexes: `(language, status, updated_at)` + `(status, updated_at)` — the admin list filters then sorts by `updated_at DESC`.
+- `pg_trgm` extension + GIN trgm indexes on `stories.headline` and `stories.brief` — index-assisted `ILIKE '%term%'` fallback search (NFR: search belongs to Meilisearch; SQL LIKE stays as the emergency fallback).
+- Per-table autovacuum (`vacuum_scale_factor 0.02` / `analyze_scale_factor 0.01`) on append-heavy `deliveries`, `downloads`, `notifications`, `audit_logs`, `story_events`, `index_outbox` — publish fan-out bursts churn these tables faster than the default 0.2 factor vacuums. `deliveries` partitioning revisit (DEC-011) is tracked as its own future schema task.
+
 ### `story_events` action vocabulary (M10-HIST)
 
 Spec-aligned verb actions: `created`, `sent_to_review`, `changes_requested`, `approved`,
@@ -71,4 +77,4 @@ moves search doc main→archive); `deliveries`/`audit_logs`/`downloads`/
 `ai_generations` are monthly RANGE partitions detached to an archive schema after
 12 months (audit kept 7 years); media originals tier to S3 IA/Glacier, derivatives
 stay hot; `index_outbox` rows purged 7 days after `done`.
-- **Search-only EN tags:** stories.en_search_tags (jsonb, DEC-016) � confirmed AI-suggested English tags for indexing only.
+- **Search-only EN tags:** stories.en_search_tags (jsonb, DEC-016) � confirmed AI-suggested English tags for indexing only.

@@ -7,6 +7,7 @@ use App\Http\Requests\FeedRequest;
 use App\Models\Story;
 use App\Repositories\StoryRepository;
 use App\Services\Search\EntitlementResolver;
+use App\Support\FeedCache;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
@@ -57,8 +58,8 @@ class ClientFeedController extends Controller
         }
 
         $clientId = $client?->id ?? 'guest';
-        $cacheKey = 'feed:v1:'.$clientId.':'.md5($request->fullUrl());
-        $payload = Cache::remember($cacheKey, 60, function () use ($q, $limit) {
+        $cacheKey = FeedCache::clientKey($clientId, md5($request->fullUrl()));
+        $payload = Cache::flexible($cacheKey, [FeedCache::FRESH, FeedCache::STALE], function () use ($q, $limit) {
             $stories = (clone $q)->orderByDesc('published_at')->orderByDesc('public_id')->limit($limit)->get()->map(fn ($s) => [
                 'public_id' => $s->public_id,
                 'headline' => $s->headline,
