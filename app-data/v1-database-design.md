@@ -493,7 +493,7 @@ hot; keep 7 years (NFR §8).
 | column | type | notes |
 |---|---|---|
 | id | identity PK | |
-| index_name | varchar(20) | 'main','archive','media' |
+| index_name | varchar(20) | 'main','archive','media','staff' (DEC-019 — staff = admin newsroom index, all statuses) |
 | op | varchar(8) | 'upsert','delete' |
 | document_id | varchar(40) | public_id of story/asset |
 | status | varchar(10) default 'pending' | 'pending','done','failed' |

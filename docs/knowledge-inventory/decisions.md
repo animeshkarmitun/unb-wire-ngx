@@ -352,3 +352,21 @@ DEC-011 deferred partitioning to ~5M rows. Scale research (`docs/research/scale-
 - Distribution log UI + idempotency lookups stay lean on the hot window; partition-pruned when date filters are present (`DeliveryRepository::paginateWithFilters`).
 - Detached partitions leave the hot parent automatically (NFR §4); archived data stays queryable in the `archive` schema.
 - Repository/job code untouched — all reads/writes go through the parent table.
+
+---
+
+## `DEC-019`: `index_outbox.index_name` CHECK extended with `staff` (M15-SCALE-004)
+
+### Context
+
+M15-SCALE-004 routes admin newsroom search through a new Meilisearch **`staff`** index (all story statuses, NFR §1 surface #1) fed via `index_outbox`. The pgsql-only CHECK constraint `index_outbox_index_name_check` allowed only `('main','archive','media')` — `'staff'` inserts violate it. sqlite tests don't create the pgsql CHECK (raw-SQL guard), so the bug surfaced only in live smoke on the pgsql dev DB — not in the 910-test sqlite suite.
+
+### Decision
+
+- Migration `2026_10_11_000500`: extend the enum to `('main','archive','media','staff')` (DROP + re-ADD constraint, pgsql-only; `down()` restores the original). `v1-database-design.md` §8 `index_outbox.index_name` ratifies the enum addition in the same PR.
+- Staff index semantics: server-side master-key queries only (`StaffSearchService`) — never tenant-token-reachable (`TenantTokenIssuer` rules cover `main`/`archive`/`media` only); upserts enqueue on every draft save + transition via `App\Support\IndexOutbox::enqueue` (pending-row dedupe).
+
+### Consequences
+
+- Staff rows pass the CHECK; `ProcessIndexOutbox` builds staff payloads (same field set as main).
+- **Process note:** pgsql-guarded CHECK/CHECK-enum migrations must be verified against a pgsql DB (feature suite is sqlite) — extend the pgsql verification habit to new outbox/search writes.
