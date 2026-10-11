@@ -54,3 +54,7 @@ Thumbs.db
 /storage/pail
 Homestead.json
 Homestead.yaml
+
+# Local development scripts
+start-dev.ps1
+start-dev.sh
