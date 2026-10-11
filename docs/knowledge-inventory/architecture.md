@@ -73,6 +73,14 @@ repositories never cache.
   recorded per attempt.
 - **Scheduler (defined in Dhaka wall-clock, executed as UTC instants):** embargo
   lifts (±60s), archival sweep, digests, backup drills.
+- **Deliveries partition ops (DEC-018):** `partitions:ensure` (daily) creates the
+  current + next month's `deliveries_YYYYMM` RANGE partitions (UTC bounds,
+  default-partition-safe attach); `SweepDeliveryPartitions` (daily) detaches whole
+  months older than 12 months into the `archive` schema. `deliveries_default` is
+  the insert safety net so month rollover never blocks fan-out.
+- **Production deploy reference configs** (M15-SCALE-002): `deploy/` carries
+  PgBouncer (transaction pools), PG16 OLTC GUCs, PHP-FPM/OPcache references, and
+  the CDN edge policy — tune per server, see `deploy/README.md`.
 - **Database backups (M13-OPS-001):** `backup:run` daily at `BACKUP_SCHEDULE`
   (default 02:00) — pg_dump → gzip → `backups/db-YYYYMMDD-HHMMSS.sql.gz` on the
   local disk, optional copy to `BACKUP_DISK` (e.g. S3 offsite). Rotation keeps

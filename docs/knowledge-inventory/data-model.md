@@ -38,7 +38,7 @@
 | Taxonomy | `categories`, `tags`, `story_tag`, `media_tag` |
 | Stories | `stories`, `story_versions`, `story_notes` (+`is_internal`), `story_events`, `story_media` |
 | Media | `media_batches` (+`assignment_id`), `media_assets`, `media_reviews`, `upload_sessions`, `assignments` (reintroduced, DEC-011) |
-| Distribution | `packages`, `package_media`, `client_packages`, `client_channels`, `deliveries` (partitioning deferred to ~5M rows, DEC-011) |
+| Distribution | `packages`, `package_media`, `client_packages`, `client_channels`, `deliveries` (**monthly RANGE partitions live** — DEC-018; PK `(id, created_at)`, unique `(idempotency_key, created_at)` + app-level check-then-insert; `partitions:ensure` + 12-month sweep-to-archive) |
 | AI & ops | `ai_generations` (partitioning deferred), `ai_token_usage_daily`, `settings`, `notifications`, `audit_logs` (grant-restricted, pgsql REVOKE), `downloads`, `index_outbox` |
 | Billing | `invoices`, `invoice_lines` (ratified M5, DEC-011) |
 
@@ -55,7 +55,12 @@ statement in the same migration.
 
 - `stories` admin-list indexes: `(language, status, updated_at)` + `(status, updated_at)` — the admin list filters then sorts by `updated_at DESC`.
 - `pg_trgm` extension + GIN trgm indexes on `stories.headline` and `stories.brief` — index-assisted `ILIKE '%term%'` fallback search (NFR: search belongs to Meilisearch; SQL LIKE stays as the emergency fallback).
-- Per-table autovacuum (`vacuum_scale_factor 0.02` / `analyze_scale_factor 0.01`) on append-heavy `deliveries`, `downloads`, `notifications`, `audit_logs`, `story_events`, `index_outbox` — publish fan-out bursts churn these tables faster than the default 0.2 factor vacuums. `deliveries` partitioning revisit (DEC-011) is tracked as its own future schema task.
+- Per-table autovacuum (`vacuum_scale_factor 0.02` / `analyze_scale_factor 0.01`) on append-heavy `deliveries`, `downloads`, `notifications`, `audit_logs`, `story_events`, `index_outbox` — publish fan-out bursts churn these tables faster than the default 0.2 factor vacuums.
+
+### `deliveries` partition ops (DEC-018, M15-SCALE-003)
+
+- Monthly RANGE partitions (`deliveries_YYYYMM`, UTC bounds) + `deliveries_default` safety net; `partitions:ensure` (daily) creates current + next month with a default-safe attach; `SweepDeliveryPartitions` (daily) detaches whole months older than 12 months into the `archive` schema.
+- Helpers: `App\Support\DeliveryPartitions` (bounds/name/ensureMonth) — used by the ensure command, the sweep, and tests.
 
 ### `story_events` action vocabulary (M10-HIST)
 

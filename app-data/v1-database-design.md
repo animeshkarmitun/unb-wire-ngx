@@ -396,14 +396,14 @@ cached (CacheAside), baked into tenant tokens at issue time.
 ### `deliveries` (distribution log — append-only, monthly partitioned)
 | column | type | notes |
 |---|---|---|
-| id | identity PK | |
+| id | identity, PK **(id, created_at)** | PG requires the partition key in the PK (DEC-018) |
 | deliverable_type | varchar(8) | 'story','media' |
 | deliverable_id | bigint | polymorphic — no FK (keeps partition pruning simple); integrity enforced app-side |
 | client_id | FK clients | |
 | channel_id | FK client_channels | |
 | status | varchar(12) | 'queued','sent','delivered','failed','skipped_entitlement' |
 | attempt_count | int default 0 | |
-| idempotency_key | varchar(80) unique | sha256(deliverable+channel+version) — retry-safe fan-out (NFR §6) |
+| idempotency_key | varchar(80) **unique (idempotency_key, created_at)** + app-level check-then-insert | sha256(deliverable+channel+version) — retry-safe fan-out (NFR §6); global unique impossible on a partitioned table (DEC-018) |
 | payload_hash | char(64) | proves exactly which text went out (defamation defense, NFR §8) |
 | response_code | int null | |
 | error | text null | |
