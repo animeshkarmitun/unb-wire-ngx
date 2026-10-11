@@ -60,6 +60,19 @@
     const briefCount = document.getElementById('briefCount');
 
     // ===== 1. Stepper Navigation & Validation =====
+    function stepDone(num) {
+      if (num === 1) return !!(headlineInput && headlineInput.value.trim());
+      if (num === 2) {
+        const fp = document.getElementById('featuredPreview');
+        return !!(fp && fp.classList.contains('has-photo')) || document.querySelectorAll('.attach-tile').length > 0;
+      }
+      if (num === 3) {
+        const catEl = document.getElementById('catSelect');
+        return !!(catEl && catEl.value);
+      }
+      return false;
+    }
+
     function showStep(n) {
       currentStep = n;
       document.querySelectorAll('.step-panel').forEach(p =>
@@ -68,10 +81,10 @@
       document.querySelectorAll('.stp').forEach(s => {
         const num = +s.dataset.go;
         s.classList.toggle('active', num === n);
-        s.classList.toggle('done', num < n);
+        s.classList.toggle('done', num < n && stepDone(num));
       });
       document.querySelectorAll('.stp-line').forEach(l =>
-        l.classList.toggle('done', +l.dataset.line < n));
+        l.classList.toggle('done', +l.dataset.line < n && stepDone(+l.dataset.line)));
 
       const progressText = document.getElementById('progressText');
       if (progressText) progressText.textContent = 'Step ' + n + ' of 4 — ' + STEP_NAMES[n];

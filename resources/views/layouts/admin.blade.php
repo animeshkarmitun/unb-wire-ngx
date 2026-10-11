@@ -15,11 +15,11 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="font-sans bg-paper text-ink antialiased" x-data="{ sidebarOpen: false }" data-density="{{ auth()->user()->density ?? 'comfortable' }}">
+<body class="font-sans bg-paper text-ink antialiased" x-data="{ sidebarOpen: false, navCollapsed: localStorage.getItem('unb_side_collapsed') === '1', toggleNav() { this.navCollapsed = !this.navCollapsed; localStorage.setItem('unb_side_collapsed', this.navCollapsed ? '1' : '0'); } }" :class="{'side-collapsed': navCollapsed}" data-density="{{ auth()->user()->density ?? 'comfortable' }}">
     {{-- Brand strip across the very top --}}
     <div class="fixed top-0 inset-x-0 h-1 z-50 bg-[linear-gradient(90deg,#e5484d_0%,#f0a832_45%,#16204a_100%)]"></div>
 
-    <div class="grid lg:grid-cols-[240px_1fr] min-h-screen pt-1">
+    <div class="app-grid grid lg:grid-cols-[240px_1fr] min-h-screen pt-1">
         <div class="hidden lg:block">
             <x-sidebar />
         </div>

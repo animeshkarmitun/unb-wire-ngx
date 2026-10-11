@@ -1,6 +1,6 @@
     <!-- ===== LIVE PREVIEW COLUMN ===== -->
     <aside class="pv-col">
-      <button type="button" class="pv-strip" id="pvStrip" title="Show live preview">
+      <button type="button" class="pv-strip" id="pvStrip" wire:click="togglePreview" title="Show live preview" aria-label="Show live preview">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
         <span>Live preview</span>
       </button>
@@ -9,6 +9,9 @@
         <div class="pv-head">
           <span class="pv-dot"></span> Live preview
           <span class="pv-head-sub">client wire view</span>
+          <button type="button" class="pv-icon-btn" id="pvClose" wire:click="togglePreview" title="Collapse preview" aria-label="Collapse preview">
+            ✕
+          </button>
           <button type="button" class="pv-icon-btn" id="pvExpand" title="Fullscreen preview — with device widths">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
           </button>

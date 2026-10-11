@@ -1,12 +1,19 @@
       <!-- ===== STEPPER ===== -->
+      @php
+        $stpDone = [
+          1 => trim($headline) !== '',
+          2 => $featuredMediaId !== null || count($attachedMedia) > 0,
+          3 => $categoryId !== '',
+        ];
+      @endphp
       <div class="stepper" id="stepper">
-        <button type="button" class="stp {{ $step === 1 ? 'active' : ($step > 1 ? 'done' : '') }}" wire:click="go(1)" data-go="1" aria-label="Step 1: Write" @if($step === 1) aria-current="step" @endif>
+        <button type="button" class="stp {{ $step === 1 ? 'active' : ($step > 1 && $stpDone[1] ? 'done' : '') }}" wire:click="go(1)" data-go="1" aria-label="Step 1: Write" @if($step === 1) aria-current="step" @endif>
           <span class="stp-num"><span>1</span></span>
           <span class="stp-label">Write</span>
         </button>
-        <span class="stp-line {{ $step > 1 ? 'done' : '' }}" data-line="1"></span>
+        <span class="stp-line {{ $step > 1 && $stpDone[1] ? 'done' : '' }}" data-line="1"></span>
 
-        <button type="button" class="stp {{ $step === 2 ? 'active' : ($step > 2 ? 'done' : '') }}" wire:click="go(2)" data-go="2" aria-label="Step 2: Media" @if($step === 2) aria-current="step" @endif>
+        <button type="button" class="stp {{ $step === 2 ? 'active' : ($step > 2 && $stpDone[2] ? 'done' : '') }}" wire:click="go(2)" data-go="2" aria-label="Step 2: Media" @if($step === 2) aria-current="step" @endif>
           <span class="stp-num"><span>2</span></span>
           <span class="stp-label">Media</span>
           @if(count($attachedMedia) > 0)
@@ -15,13 +22,13 @@
             <span class="stp-badge" id="mediaStepBadge" hidden>0</span>
           @endif
         </button>
-        <span class="stp-line {{ $step > 2 ? 'done' : '' }}" data-line="2"></span>
+        <span class="stp-line {{ $step > 2 && $stpDone[2] ? 'done' : '' }}" data-line="2"></span>
 
-        <button type="button" class="stp {{ $step === 3 ? 'active' : ($step > 3 ? 'done' : '') }}" wire:click="go(3)" data-go="3" aria-label="Step 3: Organize and access" @if($step === 3) aria-current="step" @endif>
+        <button type="button" class="stp {{ $step === 3 ? 'active' : ($step > 3 && $stpDone[3] ? 'done' : '') }}" wire:click="go(3)" data-go="3" aria-label="Step 3: Organize and access" @if($step === 3) aria-current="step" @endif>
           <span class="stp-num"><span>3</span></span>
           <span class="stp-label">Organize &amp; access</span>
         </button>
-        <span class="stp-line {{ $step > 3 ? 'done' : '' }}" data-line="3"></span>
+        <span class="stp-line {{ $step > 3 && $stpDone[3] ? 'done' : '' }}" data-line="3"></span>
 
         <button type="button" class="stp {{ $step === 4 ? 'active' : '' }}" wire:click="go(4)" data-go="4" aria-label="Step 4: Review and publish" @if($step === 4) aria-current="step" @endif>
           <span class="stp-num"><span>4</span></span>

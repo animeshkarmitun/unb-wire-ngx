@@ -19,6 +19,39 @@
     display: none !important;
 }
 
+/* Collapsible admin sidebar (desktop only) */
+.side-toggle .side-toggle-icon {
+    transition: transform 0.15s ease;
+}
+
+@media (min-width: 1024px) {
+    body.side-collapsed .app-grid {
+        grid-template-columns: 68px 1fr;
+    }
+    body.side-collapsed .side-toggle {
+        right: 50%;
+        transform: translateX(50%);
+    }
+    body.side-collapsed .side-toggle .side-toggle-icon {
+        transform: rotate(180deg);
+    }
+    body.side-collapsed .side-brand-text,
+    body.side-collapsed .side-brand-icon,
+    body.side-collapsed .side-section-title,
+    body.side-collapsed .side-nav-text,
+    body.side-collapsed .side-badge {
+        display: none;
+    }
+    body.side-collapsed .side-item {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+    }
+    body.side-collapsed .side-item::before {
+        display: none;
+    }
+}
+
 [data-density="compact"] .data-table td,
 [data-density="compact"] .data-table th {
     padding-top: 0.25rem;

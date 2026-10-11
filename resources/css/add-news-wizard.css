@@ -2076,6 +2076,11 @@
   border-color: var(--navy-800, #16204a);
   color: var(--navy-800, #16204a);
 }
+/* Prototype width: .main max-width 1420px (app-data/add-news.html) — the form + preview grid uses it */
+main:has(.add-grid) {
+  max-width: 1520px;
+}
+
 .add-grid.pv-collapsed {
   grid-template-columns: minmax(0, 1fr) 46px;
 }
@@ -2083,8 +2088,19 @@
   display: none;
 }
 .add-grid.pv-collapsed .pv-strip {
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+  border-radius: 12px;
+  padding: 0;
+  gap: 0;
+  justify-content: center;
+  align-self: start;
   display: flex;
   animation: fadeUp 0.2s ease;
+}
+.add-grid.pv-collapsed .pv-strip span {
+  display: none;
 }
 
 @media (max-width: 1220px) {
