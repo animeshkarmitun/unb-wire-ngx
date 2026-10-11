@@ -382,6 +382,14 @@ class NewsListTest extends TestCase
         $cmp->assertSee('Published this morning');
         $cmp->assertDontSee('Published last night');
 
+        // Picking Today/Range without touching the field select defaults to Published
+        $cmp->set('dateField', 'any');
+        $cmp->set('dateMode', 'any');
+        $cmp->set('dateMode', 'today');
+        $cmp->assertSet('dateField', 'published');
+        $cmp->assertSee('Published this morning');
+        $cmp->assertDontSee('Published last night');
+
         Carbon::setTestNow();
     }
 

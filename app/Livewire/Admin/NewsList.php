@@ -87,9 +87,15 @@ class NewsList extends Component
         $this->language = in_array($language, ['en', 'bn'], true) ? $language : 'en';
     }
 
-    public function updated(string $name): void
+    public function updated(string $name, $value): void
     {
         $prop = Str::before($name, '.');
+
+        if (Str::startsWith($name, 'dateMode')
+            && in_array($value, ['today', 'range'], true)
+            && $this->dateField === 'any') {
+            $this->dateField = 'published';
+        }
 
         if (in_array($prop, [
             'search', 'status', 'category', 'searchScope', 'authorId', 'tagIds',

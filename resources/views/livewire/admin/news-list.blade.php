@@ -68,7 +68,7 @@
                 $advCount = ($searchScope !== 'all' ? 1 : 0)
                     + ($authorId !== 'any' ? 1 : 0)
                     + count($tagIds)
-                    + ($dateField !== 'any' ? 1 : 0)
+                    + ($dateMode !== 'any' ? 1 : 0)
                     + ($hasImage !== 'any' ? 1 : 0);
             @endphp
 
@@ -104,19 +104,21 @@
                             <button type="button" class="seg-btn {{ $dateMode === 'today' ? 'on' : '' }}" wire:click="$set('dateMode', 'today')">Today</button>
                             <button type="button" class="seg-btn {{ $dateMode === 'range' ? 'on' : '' }}" wire:click="$set('dateMode', 'range')">Range</button>
                         </div>
-                        <select wire:model.live="dateField" class="filter-select" title="Date window applies to the publish date or the created date">
-                            <option value="any">Field: —</option>
-                            <option value="published">Published date</option>
-                            <option value="created">Created date</option>
-                        </select>
+                        @if($dateMode !== 'any')
+                            <div class="adv-date-row">
+                                <select wire:model.live="dateField" class="filter-select" aria-label="Date field to filter on">
+                                    <option value="published">Published date</option>
+                                    <option value="created">Created date</option>
+                                </select>
+                            </div>
+                        @endif
                     </div>
 
                     @if($dateMode === 'range')
                         <div class="adv-field">
-                            <label>From / To (inclusive)</label>
+                            <label>From → To (inclusive)</label>
                             <div class="adv-range">
                                 <input wire:model.live="dateFrom" type="date" class="filter-input" aria-label="From date (inclusive)">
-                                <span>→</span>
                                 <input wire:model.live="dateTo" type="date" class="filter-input" aria-label="To date (inclusive)">
                             </div>
                         </div>
@@ -137,7 +139,7 @@
                             @forelse($tags as $tag)
                                 <button type="button" class="tag-chip {{ in_array((string) $tag->id, array_map(strval(...), $tagIds)) ? 'on' : '' }}" wire:click="toggleTag({{ $tag->id }})">{{ $tag->name }}</button>
                             @empty
-                                <span class="text-xs text-muted-2 italic">No tags yet</span>
+                                <span class="tag-empty">No tags yet — add tags from the editor</span>
                             @endforelse
                         </div>
                     </div>
@@ -160,9 +162,9 @@
                         Author: {{ $activeAuthor->name ?? '#' . $authorId }} <span class="chip-x">×</span>
                     </button>
                 @endif
-                @if($dateField !== 'any')
-                    <button type="button" class="chip" wire:click="$set('dateField', 'any'); $set('dateMode', 'any')" title="Remove date filter">
-                        {{ $dateField === 'published' ? 'Published' : 'Created' }}:
+                @if($dateMode !== 'any')
+                    <button type="button" class="chip" wire:click="$set('dateMode', 'any')" title="Remove date filter">
+                        {{ $dateField === 'created' ? 'Created' : 'Published' }}:
                         @if($dateMode === 'today')
                             Today
                         @else
