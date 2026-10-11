@@ -25,13 +25,13 @@ test.describe('News List Faithful (M8-NEWS-001 & M8-NEWS-002)', () => {
     await expect(page.getByRole('button', { name: /Draft/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /In review/i })).toBeVisible();
 
-    // 7-column table headers
+    // 7-column table headers (subcategory renders inside the Category cell)
     const table = page.locator('.news-table');
     await expect(table).toBeVisible();
     await expect(table.locator('th')).toHaveCount(7);
     await expect(table.locator('th').nth(1)).toContainText('Title');
     await expect(table.locator('th').nth(2)).toContainText('Category');
-    await expect(table.locator('th').nth(3)).toContainText('Sub category');
+    await expect(table.locator('th').nth(3)).toContainText('Published');
     await expect(table.locator('th').nth(4)).toContainText('Views');
     await expect(table.locator('th').nth(5)).toContainText('Status');
     await expect(table.locator('th').nth(6)).toContainText('Actions');

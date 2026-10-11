@@ -78,6 +78,14 @@
 
 .subcat { color: #7c7f8c; font-size: 13.5px; }
 
+.subcat-under { margin-top: 5px; font-size: 12px; }
+
+.pub-at {
+  color: #7c7f8c;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 .views {
   display: inline-flex;
   align-items: center;

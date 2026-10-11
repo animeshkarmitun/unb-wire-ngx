@@ -83,8 +83,8 @@
                     <tr>
                         <th style="width:36px"><input type="checkbox" wire:model.live="selectAll"></th>
                         <th>Title</th>
-                        <th style="width:120px">Category</th>
-                        <th style="width:120px">Sub category</th>
+                        <th style="width:140px">Category</th>
+                        <th style="width:110px">Published</th>
                         <th style="width:80px">Views</th>
                         <th style="width:130px">Status</th>
                         <th style="width:110px">Actions</th>
@@ -132,9 +132,16 @@
                             </td>
                             <td>
                                 <span class="cat-tag {{ $catSlug }}">{{ $s->category?->name_en ?? 'General' }}</span>
+                                @if($s->subCategory)
+                                    <div class="subcat subcat-under" title="{{ $s->category?->name_en }} → {{ $s->subCategory->name_en }}">{{ $s->subCategory->name_en }}</div>
+                                @endif
                             </td>
-                            <td class="subcat">
-                                {{ $s->subCategory?->name_en ?? '—' }}
+                            <td title="{{ $s->published_at ? optional($s->published_at)->timezone('Asia/Dhaka')->format('j M Y, h:i A') : 'Not published yet' }}">
+                                @if($s->published_at)
+                                    <span class="pub-at">{{ \App\Support\DisplayPrefs::format($s->published_at) }}</span>
+                                @else
+                                    <span style="color:var(--muted, #b0b2bc)">—</span>
+                                @endif
                             </td>
                             <td>
                                 <span class="views">
