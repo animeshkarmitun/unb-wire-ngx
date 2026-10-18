@@ -835,108 +835,26 @@ const addMediaAfter = document.getElementById('addMediaAfter');
       });
     }
 
-    // Document Importer (.docx / .txt)
-    const docOverlay = document.getElementById('docOverlay');
-    const docFile = document.getElementById('docFile');
+    // Document Importer — modal + parsing are Livewire-managed (server-side .docx
+    // parse + mapping preview). This bridge only forwards dropped files to the
+    // hidden Livewire file input, mirroring the featured-image drop pattern above.
     const docDrop = document.getElementById('docDrop');
-    const docError = document.getElementById('docError');
-    const docPreview = document.getElementById('docPreview');
-    const docInsert = document.getElementById('docInsert');
-    let pendingDoc = null;
-
-    const openImport = document.getElementById('openImport');
-    if (openImport) openImport.onclick = () => docOverlay?.classList.add('open');
-    function closeDocModal() {
-      docOverlay?.classList.remove('open');
-      if (docPreview) docPreview.hidden = true;
-      if (docError) docError.classList.remove('show');
-      if (docFile) docFile.value = '';
-      pendingDoc = null;
-      if (docInsert) docInsert.disabled = true;
-    }
-    const closeDoc = document.getElementById('closeDoc');
-    if (closeDoc) closeDoc.onclick = closeDocModal;
-    const cancelDoc = document.getElementById('cancelDoc');
-    if (cancelDoc) cancelDoc.onclick = closeDocModal;
-
-    if (docFile) docFile.onchange = () => { if (docFile.files.length) parseDoc(docFile.files[0]); };
-    if (docDrop) {
+    const docFile = document.getElementById('docFile');
+    if (docDrop && docFile) {
       ['dragover', 'dragleave', 'drop'].forEach(ev => {
         docDrop.addEventListener(ev, e => {
           e.preventDefault();
           docDrop.classList.toggle('drag', ev === 'dragover');
-          if (ev === 'drop' && e.dataTransfer.files.length) parseDoc(e.dataTransfer.files[0]);
+          if (ev === 'drop' && e.dataTransfer.files.length) {
+            try { docFile.files = e.dataTransfer.files; } catch (err) {
+              const dt = new DataTransfer();
+              dt.items.add(e.dataTransfer.files[0]);
+              docFile.files = dt.files;
+            }
+            docFile.dispatchEvent(new Event('change', { bubbles: true }));
+          }
         });
       });
-    }
-
-    async function parseDoc(file) {
-      if (!docError) return;
-      docError.classList.remove('show');
-      const ext = file.name.split('.').pop().toLowerCase();
-      try {
-        let text = '';
-        if (ext === 'txt') {
-          text = await file.text();
-        } else if (ext === 'docx') {
-          if (!window.mammoth) throw new Error('Mammoth parser not available');
-          const res = await window.mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
-          text = res.value;
-        } else {
-          docError.textContent = 'Only .docx and .txt files are supported.';
-          docError.classList.add('show');
-          return;
-        }
-        showDocPreview(text, file.name);
-      } catch (err) {
-        docError.textContent = 'Could not parse that file: ' + err.message;
-        docError.classList.add('show');
-      }
-    }
-
-    function showDocPreview(text, name) {
-      const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-      if (!lines.length) {
-        if (docError) {
-          docError.textContent = 'Document is empty.';
-          docError.classList.add('show');
-        }
-        return;
-      }
-      const headline = lines[0];
-      const body = lines.slice(1).join('\n\n');
-      const words = text.trim().split(/\s+/).length;
-      const meta = document.getElementById('docMeta');
-      if (meta) meta.innerHTML = '<span><strong>' + esc(name) + '</strong></span><span>' + words.toLocaleString() + ' words</span><span>' + lines.length + ' paragraphs</span>';
-      const docHead = document.getElementById('docHeadline');
-      if (docHead) docHead.textContent = headline;
-      const docBodyEl = document.getElementById('docBody');
-      if (docBodyEl) docBodyEl.textContent = body || '(no body paragraphs)';
-      pendingDoc = { headline, body, brief: body.slice(0, 280) };
-      if (docPreview) docPreview.hidden = false;
-      if (docInsert) docInsert.disabled = false;
-    }
-
-    if (docInsert) {
-      docInsert.onclick = () => {
-        if (!pendingDoc) return;
-        if (headlineInput) headlineInput.value = pendingDoc.headline;
-        if (briefInput) {
-          briefInput.value = pendingDoc.brief;
-          if (briefCount) briefCount.textContent = String(pendingDoc.brief.length);
-        }
-        if (quill) {
-          quill.setText(pendingDoc.body + '\n');
-        }
-        const app = document.getElementById('addNewsApp');
-        const wireEl = app ? app.closest('[wire\\:id]') : null;
-        if (wireEl && window.Livewire) {
-          const wireComponent = window.Livewire.find(wireEl.getAttribute('wire:id'));
-          if (wireComponent) wireComponent.syncFromDoc(pendingDoc.headline, pendingDoc.body, pendingDoc.brief);
-        }
-        closeDocModal();
-        syncPreview();
-      };
     }
 
     // Photo Archive Modal

@@ -382,31 +382,91 @@ class AddNewsTest extends TestCase
 
     // ─── Document Import ───────────────────────────────────────────
 
-    public function test_sync_from_doc_imports_headline_and_body(): void
+    public function test_docx_import_applies_mapping_fields(): void
     {
         $this->actingAs($this->editor);
 
         $cmp = Livewire::test(AddNews::class)
-            ->call('syncFromDoc', 'Imported headline', '<p>Imported body content from document</p>', 'Imported brief text')
+            ->set('docImport', [
+                'blocks' => [
+                    ['kind' => 'heading', 'text' => 'Imported headline'],
+                    ['kind' => 'bold', 'text' => 'Imported sub head line'],
+                    ['kind' => 'para', 'text' => 'Imported body content from document'],
+                    ['kind' => 'para', 'text' => 'By Rahim Uddin'],
+                ],
+                'assignment' => ['headline', 'sub_head', 'body', 'byline'],
+                'author' => null,
+                'dateline_city' => 'DHAKA',
+                'dateline_date' => 'Oct 18',
+                'heading_found' => true,
+                'subhead_found' => true,
+                'byline_found' => true,
+                'words' => 11,
+                'file_name' => 'story.docx',
+            ])
+            ->set('docAssignment', ['headline', 'sub_head', 'body', 'byline'])
+            ->call('applyDocImport')
             ->assertSet('headline', 'Imported headline')
-            ->assertSet('brief', 'Imported brief text')
+            ->assertSet('subHead', 'Imported sub head line')
+            ->assertSet('datelineCity', 'DHAKA')
+            ->assertSet('author', 'Rahim Uddin')
             ->assertDispatched('toast');
 
-        $this->assertStringContainsString('Imported body', $cmp->get('bodyHtml'));
+        $this->assertStringContainsString('Imported body content', $cmp->get('bodyHtml'));
     }
 
-    public function test_sync_from_doc_auto_generates_brief_if_missing(): void
+    public function test_docx_import_auto_generates_brief_if_missing(): void
     {
         $this->actingAs($this->editor);
 
-        $longBody = '<p>'.str_repeat('This is a long body text that should be truncated. ', 20).'</p>';
+        $longText = str_repeat('This is a long body text that should be truncated. ', 20);
 
         $cmp = Livewire::test(AddNews::class)
-            ->call('syncFromDoc', 'Headline', $longBody)
+            ->set('docImport', [
+                'blocks' => [
+                    ['kind' => 'heading', 'text' => 'Headline'],
+                    ['kind' => 'para', 'text' => $longText],
+                ],
+                'assignment' => ['headline', 'body'],
+                'author' => null,
+                'dateline_city' => null,
+                'dateline_date' => null,
+                'heading_found' => true,
+                'subhead_found' => false,
+                'byline_found' => false,
+                'words' => 900,
+                'file_name' => 'long.docx',
+            ])
+            ->set('docAssignment', ['headline', 'body'])
+            ->call('applyDocImport')
             ->assertSet('headline', 'Headline');
 
         $this->assertNotEmpty($cmp->get('brief'));
         $this->assertLessThanOrEqual(280, mb_strlen($cmp->get('brief')));
+    }
+
+    public function test_docx_import_requires_headline_assignment(): void
+    {
+        $this->actingAs($this->editor);
+
+        Livewire::test(AddNews::class)
+            ->set('docImport', [
+                'blocks' => [
+                    ['kind' => 'para', 'text' => 'Some body text without headline'],
+                ],
+                'assignment' => ['body'],
+                'author' => null,
+                'dateline_city' => null,
+                'dateline_date' => null,
+                'heading_found' => false,
+                'subhead_found' => false,
+                'byline_found' => false,
+                'words' => 5,
+                'file_name' => 'x.docx',
+            ])
+            ->set('docAssignment', ['body'])
+            ->call('applyDocImport')
+            ->assertSet('docError', fn ($v) => str_contains($v, 'headline'));
     }
 
     // ─── AI Touched & Guardrails ───────────────────────────────────
