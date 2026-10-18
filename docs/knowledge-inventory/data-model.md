@@ -36,7 +36,7 @@
 | Identity & access | `roles`, `role_permissions`, `users` (+`date_format`, `density` — M12-PROFILE-002), `devices` (retained, DEC-011) |
 | Clients | `clients`, `client_users`, `client_api_keys` |
 | Taxonomy | `categories`, `tags`, `story_tag`, `media_tag` |
-| Stories | `stories`, `story_versions`, `story_notes` (+`is_internal`), `story_events`, `story_media` |
+| Stories | `stories`, `story_versions`, `story_notes` (+`is_internal`), `story_events`, `story_media` (role `featured`,`inline`,`body` — body = editor-embedded, auto-pruned on removal) |
 | Media | `media_batches` (+`assignment_id`), `media_assets`, `media_reviews`, `upload_sessions`, `assignments` (reintroduced, DEC-011) |
 | Distribution | `packages`, `package_media`, `client_packages`, `client_channels`, `deliveries` (**monthly RANGE partitions live** — DEC-018; PK `(id, created_at)`, unique `(idempotency_key, created_at)` + app-level check-then-insert; `partitions:ensure` + 12-month sweep-to-archive) |
 | AI & ops | `ai_generations` (partitioning deferred), `ai_token_usage_daily`, `settings`, `notifications`, `audit_logs` (grant-restricted, pgsql REVOKE), `downloads`, `index_outbox` |

@@ -347,7 +347,7 @@ class StoryRepository
             DB::table('story_media')->insert([
                 'story_id' => $storyId,
                 'asset_id' => $att['id'],
-                'role' => 'inline',
+                'role' => (($att['role'] ?? '') === 'body') ? 'body' : 'inline',
                 'sort_order' => $idx + 1,
                 'caption_override' => $att['cap'] ?: null,
             ]);

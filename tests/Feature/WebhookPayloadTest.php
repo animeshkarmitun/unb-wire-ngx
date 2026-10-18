@@ -80,4 +80,24 @@ class WebhookPayloadTest extends TestCase
         $this->assertEquals('story.killed', $payload['event']);
         $this->assertEquals('UNB-2026-KILLED', $payload['data']['public_id']);
     }
+
+    public function test_excludes_body_embedded_images_from_media_list(): void
+    {
+        $story = Story::factory()->create([
+            'public_id' => 'UNB-2026-BODYIMG',
+            'headline' => 'Body Image Story',
+            'body_html' => '<p>text</p><img src="https://x/a.webp" data-media-id="7">',
+        ]);
+
+        $bodyImg = MediaAsset::factory()->create(['public_id' => 'MEDIA-BODY', 'kind' => 'photo']);
+        $gallery = MediaAsset::factory()->create(['public_id' => 'MEDIA-GALLERY', 'kind' => 'photo']);
+        $story->media()->attach($bodyImg, ['role' => 'body']);
+        $story->media()->attach($gallery, ['role' => 'inline']);
+
+        $payload = app(WebhookPayloadBuilder::class)->build($story->fresh(), 'story.published');
+
+        $mediaIds = collect($payload['data']['media'])->pluck('public_id')->values()->all();
+        $this->assertContains('MEDIA-GALLERY', $mediaIds);
+        $this->assertNotContains('MEDIA-BODY', $mediaIds);
+    }
 }

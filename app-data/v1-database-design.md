@@ -247,7 +247,7 @@ Index `(story_id, created_at)`.
 | created_at | | append-only |
 
 ### `story_media` (pivot)
-story_id, asset_id, role ('featured','inline'), sort_order, caption_override text null.
+story_id, asset_id, role ('featured','inline','body' — `body` added 2026-10-18 for editor-embedded inline story images, auto-pruned when removed from body), sort_order, caption_override text null.
 PK (story_id, asset_id).
 
 ---

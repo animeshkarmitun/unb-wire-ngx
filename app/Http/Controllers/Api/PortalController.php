@@ -192,8 +192,8 @@ class PortalController extends Controller
             'status' => $s->status,
             'is_breaking' => (bool) $s->is_breaking,
             'tags' => $s->tags->pluck('name')->values()->all(),
-            'caps' => $s->media->reject(fn ($m) => $m->isEmbargoed())->pluck('caption')->filter()->values()->all(),
-            'media' => $s->media->reject(fn ($m) => $m->isEmbargoed())->values()->map(fn ($m) => [
+            'caps' => $s->media->reject(fn ($m) => $m->isEmbargoed() || $m->pivot?->role === 'body')->pluck('caption')->filter()->values()->all(),
+            'media' => $s->media->reject(fn ($m) => $m->isEmbargoed() || $m->pivot?->role === 'body')->values()->map(fn ($m) => [
                 'id' => $m->id,
                 'public_id' => $m->public_id,
                 'caption' => $m->caption ?: $m->title,

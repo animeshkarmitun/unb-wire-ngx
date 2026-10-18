@@ -541,28 +541,39 @@ class AddNews extends Component
 
     /**
      * Register an inline body image (from the archive modal). Idempotent —
-     * unlike toggleMedia it never detaches; the asset keeps its existing role
-     * if it is already attached (e.g. featured).
+     * unlike toggleMedia it never detaches. Embedded images get the role
+     * `body` so autosave can auto-prune them when the embed is removed from
+     * the body text; an already-attached asset (e.g. gallery or featured)
+     * is adopted into the body on embed.
      */
     public function attachInline(int $id, string $caption = '', string $kind = 'photo', ?string $src = null): void
     {
         if (! MediaAsset::find($id)) {
             return;
         }
-        if (! in_array($id, $this->selectedMediaIds, true)) {
-            $this->selectedMediaIds[] = $id;
-            $this->attachedMedia[] = [
-                'id' => $id,
-                'cap' => $caption ?: 'Photo #'.$id,
-                'role' => 'inline',
-                'rights' => 'story',
-                'type' => $kind === 'video' ? 'video' : 'photo',
-                'grad' => 'g'.(($id % 8) + 1),
-                'src' => $src,
-            ];
-            $this->dispatch('story-updated');
+        if (in_array($id, $this->selectedMediaIds, true)) {
+            foreach ($this->attachedMedia as &$item) {
+                if ((int) $item['id'] === $id && $item['role'] !== 'featured') {
+                    $item['role'] = 'body';
+                }
+            }
+            unset($item);
             $this->autosave();
+
+            return;
         }
+        $this->selectedMediaIds[] = $id;
+        $this->attachedMedia[] = [
+            'id' => $id,
+            'cap' => $caption ?: 'Photo #'.$id,
+            'role' => 'body',
+            'rights' => 'story',
+            'type' => $kind === 'video' ? 'video' : 'photo',
+            'grad' => 'g'.(($id % 8) + 1),
+            'src' => $src,
+        ];
+        $this->dispatch('story-updated');
+        $this->autosave();
     }
 
     public function clearMedia(): void
@@ -823,14 +834,26 @@ class AddNews extends Component
 
         $cleanHtml = HtmlSanitizer::clean($this->bodyHtml ?: '<p></p>');
         // Reconcile inline body images (layer 2): keep only <img> tags whose
-        // data-media-id refers to an attachment on this story. Gallery
-        // attachments that are not embedded in the body are left untouched.
+        // data-media-id refers to an attachment on this story, then auto-prune
+        // role-`body` attachments whose embed is no longer in the text.
+        // Gallery attachments (role `inline`) are intentionally untouched.
         $attachedIds = collect($this->attachedMedia)->pluck('id')->map(fn ($v) => (int) $v);
         $cleanHtml = preg_replace_callback(
             '/<img\b[^>]*\bdata-media-id="(\d+)"[^>]*>/i',
             fn ($m) => $attachedIds->contains((int) $m[1]) ? $m[0] : '',
             $cleanHtml
         );
+        $bodyIds = collect();
+        if (preg_match_all('/<img\b[^>]*\bdata-media-id="(\d+)"[^>]*>/i', $cleanHtml, $mm)) {
+            $bodyIds = collect($mm[1])->map(fn ($v) => (int) $v);
+        }
+        $this->attachedMedia = array_values(array_filter($this->attachedMedia, function ($m) use ($bodyIds) {
+            if (($m['role'] ?? '') === 'body') {
+                return $bodyIds->contains((int) $m['id']);
+            }
+
+            return true;
+        }));
         $this->bodyHtml = $cleanHtml;
 
         $embargo = $this->embargoUntil ? $this->parseEmbargo($this->embargoUntil) : null;

@@ -525,12 +525,17 @@ class AddNewsTest extends TestCase
         $this->actingAs($this->editor);
         $asset = $this->makeMediaAsset('Inline photo');
 
+        // Real-world sequence: embed first, register after (JS order)
         $cmp = Livewire::test(AddNews::class)
+            ->set('headline', 'Inline headline')
+            ->set('brief', 'Inline brief')
+            ->set('categoryId', (string) $this->cat->id)
+            ->set('bodyHtml', '<p>text</p><img src="https://x/p.webp" data-media-id="'.$asset->id.'">')
             ->call('attachInline', $asset->id, 'Inline cap', 'photo', 'storage/media.jpg');
 
         $this->assertCount(1, $cmp->get('attachedMedia'));
         $this->assertEquals($asset->id, $cmp->get('attachedMedia.0.id'));
-        $this->assertSame('inline', $cmp->get('attachedMedia.0.role'));
+        $this->assertSame('body', $cmp->get('attachedMedia.0.role'));
 
         // Second call must not duplicate or detach
         $cmp->call('attachInline', $asset->id, 'Inline cap', 'photo', 'storage/media.jpg');
@@ -560,6 +565,45 @@ class AddNewsTest extends TestCase
         $this->assertStringContainsString('data-media-id="'.$asset->id.'"', $html);
         $this->assertStringNotContainsString('999999', $html);
         $this->assertStringNotContainsString('noid', $html);
+    }
+
+    public function test_autosave_prunes_body_attachments_whose_embed_is_gone(): void
+    {
+        $this->actingAs($this->editor);
+        $asset = $this->makeMediaAsset('Dropped photo');
+
+        $cmp = Livewire::test(AddNews::class)
+            ->set('headline', 'Prune headline')
+            ->set('brief', 'Prune brief')
+            ->set('categoryId', (string) $this->cat->id)
+            ->set('bodyHtml', '<p>one</p><img src="https://x/a.webp" data-media-id="'.$asset->id.'"><p>two</p>')
+            ->call('attachInline', $asset->id, 'cap', 'photo', 'storage/a.jpg');
+
+        $this->assertCount(1, $cmp->get('attachedMedia'));
+
+        // Editor delete: the img leaves the body text
+        $cmp->set('bodyHtml', '<p>one</p><p>two</p>')
+            ->call('autosave');
+
+        $this->assertCount(0, $cmp->get('attachedMedia'));
+    }
+
+    public function test_autosave_keeps_gallery_attachments_outside_body(): void
+    {
+        $this->actingAs($this->editor);
+        $asset = $this->makeMediaAsset('Gallery photo');
+
+        $cmp = Livewire::test(AddNews::class)
+            ->set('headline', 'Gallery headline')
+            ->set('brief', 'Gallery brief')
+            ->set('categoryId', (string) $this->cat->id)
+            ->set('bodyHtml', '<p>plain text body, no images</p>');
+
+        $cmp->call('toggleMedia', $asset->id, 'cap', 'photo', 'storage/g.jpg')
+            ->call('autosave');
+
+        $this->assertCount(1, $cmp->get('attachedMedia'));
+        $this->assertSame('inline', $cmp->get('attachedMedia.0.role'));
     }
 
     // ─── AI Touched & Guardrails ───────────────────────────────────

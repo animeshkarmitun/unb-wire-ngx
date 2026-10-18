@@ -949,7 +949,6 @@ const addMediaAfter = document.getElementById('addMediaAfter');
         const cap = c.dataset.cap;
         const kind = c.dataset.type || 'photo';
         const src = c.dataset.src || null;
-        if (wireComponent) wireComponent.attachInline(id, cap, kind, src);
         if (quill && src) {
           const at = inlineCursor != null ? inlineCursor : quill.getLength();
           quill.insertEmbed(at, 'image', src, 'user');
@@ -957,7 +956,9 @@ const addMediaAfter = document.getElementById('addMediaAfter');
           if (wireComponent) wireComponent.syncBody(quill.root.innerHTML);
           syncPreview();
           scheduleAutosave();
-        } else if (!src) {
+          if (wireComponent) wireComponent.attachInline(id, cap, kind, src);
+        } else if (wireComponent) {
+          wireComponent.attachInline(id, cap, kind, src);
           miniToast('That item has no image file yet — it was attached without an inline preview');
         }
       } else {
