@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Models\Story;
 use App\Services\DashboardService;
+use App\Services\DocxImportService;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -24,6 +25,13 @@ Route::get('/admin/packages', function () {
 Route::get('/admin/clients', function () {
     return view('admin.clients');
 })->middleware(['auth', 'verified', 'rbac:clients,view'])->name('admin.clients');
+
+Route::get('/admin/news/import-sample', function () {
+    return response(app(DocxImportService::class)->generateSample(), 200, [
+        'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'Content-Disposition' => 'attachment; filename="UNB-wire-news-sample.docx"',
+    ]);
+})->middleware(['auth', 'verified', 'rbac:stories,create'])->name('admin.news.import-sample');
 
 Route::get('/admin/news/{language}', function (string $language) {
     abort_unless(in_array($language, ['en', 'bn']), 404);

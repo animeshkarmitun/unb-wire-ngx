@@ -10,6 +10,7 @@ use App\Models\StoryNote;
 use App\Repositories\AuditLogRepository;
 use App\Repositories\StoryRepository;
 use App\Services\AiService;
+use App\Services\DocxImportService;
 use App\Services\DuplicateDetectionService;
 use App\Services\HtmlSanitizer;
 use App\Services\RbacService;
@@ -303,16 +304,131 @@ class AddNews extends Component
         $this->dispatch('story-updated');
     }
 
-    public function syncFromDoc(string $headline, string $body, ?string $brief = null): void
+    // ---- Document import (.docx → mapping preview → wizard fields) ----
+
+    public bool $docOpen = false;
+
+    public string $docError = '';
+
+    public $docUpload;
+
+    public ?array $docImport = null;
+
+    public array $docAssignment = [];
+
+    public function openDocImport(): void
     {
-        $this->headline = $headline;
-        $cleanBody = HtmlSanitizer::clean($body);
-        $this->bodyHtml = $cleanBody;
-        if (! empty($brief)) {
-            $this->brief = Str::limit($brief, 280, '');
-        } elseif (empty($this->brief)) {
-            $this->brief = Str::limit(HtmlSanitizer::text($cleanBody), 280, '');
+        $this->docOpen = true;
+    }
+
+    public function closeDocImport(): void
+    {
+        $this->docOpen = false;
+        $this->docError = '';
+        $this->docUpload = null;
+        $this->docImport = null;
+        $this->docAssignment = [];
+        $this->resetErrorBag('docUpload');
+    }
+
+    public function updatedDocUpload(): void
+    {
+        if (! $this->docUpload) {
+            return;
         }
+        $this->docError = '';
+        try {
+            $this->validate([
+                'docUpload' => 'required|file|mimes:docx|max:10240',
+            ], [
+                'docUpload.mimes' => 'Only Word (.docx) documents are supported.',
+                'docUpload.max' => 'Document is larger than the 10 MB limit.',
+            ]);
+        } catch (ValidationException $e) {
+            $this->docUpload = null;
+            $this->docError = collect($e->errors())->flatten()->implode(' ') ?: 'Upload failed.';
+            $this->resetErrorBag('docUpload');
+
+            return;
+        }
+
+        try {
+            $this->docImport = app(DocxImportService::class)->extract($this->docUpload->getRealPath());
+        } catch (\RuntimeException $e) {
+            $this->docUpload = null;
+            $this->docImport = null;
+            $this->docAssignment = [];
+            $this->docError = match ($e->getMessage()) {
+                'empty' => 'This document has no readable text.',
+                'too_long' => 'Document is too long (max '.DocxImportService::MAX_PARAGRAPHS.' paragraphs) — split it before importing.',
+                default => 'Not a valid Word (.docx) file — re-save it from Word and try again.',
+            };
+
+            return;
+        }
+
+        $this->docImport['file_name'] = $this->docUpload->getClientOriginalName();
+        $this->docAssignment = $this->docImport['assignment'];
+        $this->docUpload = null;
+    }
+
+    public function applyDocImport(): void
+    {
+        app(RbacService::class)->assertCan(auth()->user(), 'stories', 'edit');
+        if (! $this->docImport) {
+            return;
+        }
+
+        $blocks = $this->docImport['blocks'];
+        $firstFor = function (string $field) use ($blocks): ?int {
+            foreach ($this->docAssignment as $i => $f) {
+                if ($f === $field && isset($blocks[$i])) {
+                    return (int) $i;
+                }
+            }
+
+            return null;
+        };
+
+        $headlineIdx = $firstFor('headline');
+        if ($headlineIdx === null) {
+            $this->docError = 'Assign a headline block first.';
+
+            return;
+        }
+
+        $bodyParas = [];
+        foreach ($this->docAssignment as $i => $field) {
+            if ($field === 'body' && isset($blocks[$i]) && trim($blocks[$i]['text']) !== '') {
+                $bodyParas[] = '<p>'.e($blocks[$i]['text']).'</p>';
+            }
+        }
+
+        $this->headline = mb_substr(trim($blocks[$headlineIdx]['text']), 0, 300);
+
+        $subIdx = $firstFor('sub_head');
+        $this->subHead = $subIdx !== null ? mb_substr(trim($blocks[$subIdx]['text']), 0, 300) : '';
+
+        $bylineIdx = $firstFor('byline');
+        if ($bylineIdx !== null) {
+            $this->author = trim(preg_replace('/^\s*by\s*[:\-]?\s+/i', '', trim($blocks[$bylineIdx]['text'])));
+        }
+
+        if (! empty($this->docImport['dateline_city'])) {
+            $this->datelineCity = mb_substr($this->docImport['dateline_city'], 0, 100);
+        }
+
+        $this->bodyHtml = HtmlSanitizer::clean(implode('', $bodyParas));
+        if (empty($this->brief)) {
+            $this->brief = Str::limit(HtmlSanitizer::text($this->bodyHtml), 280, '');
+        }
+
+        foreach (['headline', 'brief', 'body'] as $key) {
+            unset($this->aiTouched[$key]);
+        }
+
+        $this->closeDocImport();
+        $this->dispatch('quill-set-content', html: $this->bodyHtml);
         $this->dispatch('toast', message: 'Document imported into story');
         $this->dispatch('story-updated');
         $this->autosave();

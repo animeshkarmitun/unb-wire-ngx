@@ -48,44 +48,83 @@
     </div>
   </div>
 
-  <!-- ============ IMPORT FROM DOC MODAL ============ -->
-  <div class="media-overlay" id="docOverlay" wire:ignore>
+  <!-- ============ IMPORT FROM DOC MODAL (Livewire-managed) ============ -->
+  <div class="media-overlay {{ $docOpen ? 'open' : '' }}" id="docOverlay">
     <div class="media-modal doc-modal">
       <div class="mm-header">
         <div>
           <div class="mm-title">Import story from document</div>
-          <div class="mm-count">Upload a .docx or .txt draft — headline and body will populate the wizard</div>
+          <div class="mm-count">Upload a .docx draft — we suggest the mapping, you confirm before anything fills the wizard</div>
         </div>
-        <button type="button" class="mm-close" id="closeDoc" title="Close">✕</button>
+        <button type="button" class="mm-close" wire:click="closeDocImport" title="Close">✕</button>
       </div>
 
       <div class="doc-body">
         <label class="doc-dropzone" id="docDrop">
-          <input type="file" accept=".docx,.txt" id="docFile" hidden>
+          <input type="file" accept=".docx" id="docFile" wire:model="docUpload" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
-          <div><strong>Drop your document here</strong> or <span class="browse">browse files</span></div>
-          <div class="doc-hint">Supports Word (.docx) and plain text (.txt) up to 10 MB</div>
+          <span wire:loading.remove wire:target="docUpload"><strong>Drop your document here</strong> or <span class="browse">browse files</span></span>
+          <span wire:loading wire:target="docUpload"><strong>Extracting…</strong> parsing paragraphs and structure</span>
+          <div class="doc-hint">Word (.docx) up to 10 MB · parsed on the server, nothing is stored</div>
         </label>
-        <div class="doc-error" id="docError"></div>
+        <div class="doc-error {{ $docError ? 'show' : '' }}" role="alert">{{ $docError }}</div>
 
-        <div class="doc-preview" id="docPreview" hidden>
-          <div class="doc-meta" id="docMeta"></div>
-          <div class="doc-field">
-            <span class="doc-flabel">Extracted headline (first line)</span>
-            <div class="doc-headline" id="docHeadline"></div>
-          </div>
-          <div class="doc-field">
-            <span class="doc-flabel">Extracted body preview</span>
-            <div class="doc-body-preview" id="docBody"></div>
-          </div>
+        <div class="doc-template-row">
+          <a href="{{ route('admin.news.import-sample') }}" class="doc-template-link" download>
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="19" x2="13" y2="19"/></svg>
+            First time? — Download the sample template (.docx)
+          </a>
+          <span class="doc-hint">Heading 1 = headline · bold line = sub-head · body starts with CITY, Date:</span>
         </div>
+
+        @if($docImport)
+          <div class="doc-preview">
+            <div class="doc-meta">
+              <span><strong>{{ $docImport['file_name'] }}</strong></span>
+              <span>{{ number_format($docImport['words']) }} words</span>
+              <span>{{ count($docImport['blocks']) }} blocks</span>
+            </div>
+
+            @if($docImport['dateline_city'])
+              <div class="doc-field">
+                <span class="doc-flabel">📍 Dateline detected — city applied automatically</span>
+                <div class="doc-headline">{{ $docImport['dateline_city'] }}{{ $docImport['dateline_date'] ? ', '.$docImport['dateline_date'] : '' }}</div>
+              </div>
+            @endif
+
+            @if($docImport['headline_placeholder'] ?? false)
+              <div class="doc-warn">Headline still looks like a template placeholder — replace it in the wizard after import.</div>
+            @endif
+
+            @if(! $docImport['heading_found'])
+              <div class="doc-warn">Headline guessed from the first line — please verify the assignment below.</div>
+            @elseif(! $docImport['subhead_found'])
+              <div class="doc-warn">No sub-head detected — assign one below if the document has it.</div>
+            @endif
+
+            <div class="doc-blocks">
+              @foreach($docImport['blocks'] as $i => $block)
+                <div class="doc-block-row">
+                  <select class="select-input doc-block-select" wire:model="docAssignment.{{ $i }}">
+                    <option value="headline">Headline</option>
+                    <option value="sub_head">Sub-head</option>
+                    <option value="byline">Byline → author</option>
+                    <option value="body">Body</option>
+                    <option value="ignore">Ignore</option>
+                  </select>
+                  <div class="doc-block-text doc-block-{{ $block['kind'] }}">{{ Str::limit($block['text'], 220) }}</div>
+                </div>
+              @endforeach
+            </div>
+          </div>
+        @endif
       </div>
 
       <div class="mm-footer">
-        <span class="mm-selected-count">Formatting will be preserved where supported</span>
+        <span class="mm-selected-count">Nothing fills the wizard until you confirm the mapping</span>
         <div class="mm-footer-btns">
-          <button type="button" class="btn btn-outline" id="cancelDoc">Cancel</button>
-          <button type="button" class="btn btn-primary" id="docInsert" disabled>Use this document</button>
+          <button type="button" class="btn btn-outline" wire:click="closeDocImport">Cancel</button>
+          <button type="button" class="btn btn-primary" wire:click="applyDocImport" @disabled(! $docImport)>Import into wizard</button>
         </div>
       </div>
     </div>

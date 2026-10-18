@@ -376,7 +376,17 @@ Build order: `002`–`015` can run in parallel with `001`. E2E tasks start after
 
 ---
 
-## 23. How to Add a Task
+## 23. Docx Import (`M16-IMP`) — 2026-10-18
+
+> "Draft in Word, publish in Wire." Server-side .docx parsing (ZipArchive+XML, no new deps) + editable mapping preview in the wizard's import modal. Replaces the client-side mammoth text dump (mammoth CDN removed). Decisions: .docx only; embedded images → Phase 2; Bijoy→Unicode conversion → Phase 3.
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M16-IMP-001` | Docx import: server-side parse + mapping preview (headline/sub-head/byline/dateline/body) + on-the-fly sample template | — | ✅ | — | 2026-10-18 |
+
+---
+
+## 24. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.
