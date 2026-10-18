@@ -382,7 +382,8 @@ Build order: `002`–`015` can run in parallel with `001`. E2E tasks start after
 
 | Task ID | Title | Dependencies | Status | Review | Completed |
 |---------|-------|--------------|--------|--------|-----------|
-| `M16-IMP-001` | Docx import: server-side parse + mapping preview (headline/sub-head/byline/dateline/body) + on-the-fly sample template | — | ✅ | — | 2026-10-18 |
+| `M16-IMP-001` | Docx import: server-side parse + mapping preview (headline/sub-head/byline/dateline/body) + on-the-fly sample template | — | ✅ | PR #53 | 2026-10-18 |
+| `M16-IMP-002` | Inline story images: library-backed embeds (sanitizer media-id rule, archive inline mode, autosave reconcile) | `M16-IMP-001` | ✅ | — | 2026-10-18 |
 
 ---
 

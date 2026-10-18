@@ -491,6 +491,50 @@ class AddNewsTest extends TestCase
             ->assertSet('docError', fn ($v) => str_contains($v, 'headline'));
     }
 
+    // ─── Inline Story Images ────────────────────────────────────────
+
+    public function test_attach_inline_registers_attachment_idempotently(): void
+    {
+        $this->actingAs($this->editor);
+        $asset = $this->makeMediaAsset('Inline photo');
+
+        $cmp = Livewire::test(AddNews::class)
+            ->call('attachInline', $asset->id, 'Inline cap', 'photo', 'storage/media.jpg');
+
+        $this->assertCount(1, $cmp->get('attachedMedia'));
+        $this->assertEquals($asset->id, $cmp->get('attachedMedia.0.id'));
+        $this->assertSame('inline', $cmp->get('attachedMedia.0.role'));
+
+        // Second call must not duplicate or detach
+        $cmp->call('attachInline', $asset->id, 'Inline cap', 'photo', 'storage/media.jpg');
+        $this->assertCount(1, $cmp->get('attachedMedia'));
+    }
+
+    public function test_autosave_reconciles_inline_imgs_against_attachments(): void
+    {
+        $this->actingAs($this->editor);
+        $asset = $this->makeMediaAsset('Kept photo');
+
+        $body = '<p>Before</p>'
+            .'<img src="https://x/kept.webp" data-media-id="'.$asset->id.'" alt="kept">'
+            .'<img src="https://x/foreign.webp" data-media-id="999999" alt="foreign">'
+            .'<img src="https://x/noid.webp" alt="noid">'
+            .'<p>After</p>';
+
+        $cmp = Livewire::test(AddNews::class)
+            ->set('headline', 'Reconcile headline')
+            ->set('brief', 'Reconcile brief')
+            ->set('categoryId', (string) $this->cat->id)
+            ->set('bodyHtml', $body)
+            ->call('attachInline', $asset->id, 'Kept photo', 'photo', 'storage/kept.jpg')
+            ->call('autosave');
+
+        $html = $cmp->get('bodyHtml');
+        $this->assertStringContainsString('data-media-id="'.$asset->id.'"', $html);
+        $this->assertStringNotContainsString('999999', $html);
+        $this->assertStringNotContainsString('noid', $html);
+    }
+
     // ─── AI Touched & Guardrails ───────────────────────────────────
 
     public function test_apply_ai_sets_touched_flags(): void

@@ -4,9 +4,9 @@ namespace App\Services;
 
 class HtmlSanitizer
 {
-    private const ALLOWED_TAGS = ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'a', 'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'code', 'pre', 'span', 'div'];
+    private const ALLOWED_TAGS = ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'a', 'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'code', 'pre', 'span', 'div', 'img'];
 
-    private const ALLOWED_ATTR = ['href', 'title', 'alt', 'src'];
+    private const ALLOWED_ATTR = ['href', 'title', 'alt', 'src', 'data-media-id'];
 
     public static function clean(?string $html): string
     {
@@ -70,6 +70,13 @@ class HtmlSanitizer
                 foreach ($toRemove as $n) {
                     $node->removeAttribute($n);
                 }
+            }
+            // Inline images must be media-library-backed: an <img> without a
+            // data-media-id (base64 paste, hotlink, junk from Word) is dropped.
+            if ($tag === 'img' && $node->getAttribute('data-media-id') === '') {
+                $node->parentNode->removeChild($node);
+
+                continue;
             }
         }
         $div = $doc->getElementsByTagName('div')->item(0);

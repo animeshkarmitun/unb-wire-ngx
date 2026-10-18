@@ -58,6 +58,28 @@ class HtmlSanitizerTest extends TestCase
         $this->assertStringNotContainsString('onerror', $out);
     }
 
+    public function test_keeps_library_backed_img_with_media_id(): void
+    {
+        $out = HtmlSanitizer::clean('<img src="https://cdn.example.com/p.webp" data-media-id="12" alt="Photo">');
+        $this->assertStringContainsString('<img', $out);
+        $this->assertStringContainsString('data-media-id="12"', $out);
+        $this->assertStringContainsString('alt="Photo"', $out);
+    }
+
+    public function test_removes_img_without_media_id(): void
+    {
+        $this->assertSame('', HtmlSanitizer::clean('<img src="https://cdn.example.com/p.webp">'));
+        $this->assertSame('<p>ab</p>', HtmlSanitizer::clean('<p>a<img src="data:image/png;base64,AAAA">b</p>'));
+    }
+
+    public function test_strips_foreign_attrs_from_media_img(): void
+    {
+        $out = HtmlSanitizer::clean('<img src="https://x/y.png" data-media-id="3" onclick="bad()" style="x">');
+        $this->assertStringNotContainsString('onclick', $out);
+        $this->assertStringNotContainsString('style', $out);
+        $this->assertStringContainsString('data-media-id="3"', $out);
+    }
+
     public function test_strips_svg_onload(): void
     {
         $out = HtmlSanitizer::clean('<svg onload="bad()"></svg>');

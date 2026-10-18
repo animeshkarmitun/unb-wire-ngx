@@ -313,6 +313,7 @@ const addMediaAfter = document.getElementById('addMediaAfter');
                 pullquote: () => insertPullQuote(),
                 related: () => openRelatedModal(),
                 table: () => openTableModal(),
+                image: () => openArchiveModal('inline'),
                 cleanup: () => wireCleanup(),
                 findreplace: () => toggleFindBar(),
                 history: () => openHistoryModal()
@@ -865,11 +866,19 @@ const addMediaAfter = document.getElementById('addMediaAfter');
 
     function openArchiveModal(mode) {
       archiveMode = mode;
+      if (mode === 'inline' && quill) {
+        inlineCursor = (quill.getSelection(true) || {}).index ?? quill.getLength();
+        if (insertPhoto) insertPhoto.textContent = 'Insert inline';
+      } else if (insertPhoto) {
+        inlineCursor = null;
+        insertPhoto.textContent = 'Insert photo';
+      }
       document.querySelectorAll('.photo-card').forEach(c => c.classList.remove('selected'));
       if (selectedCount) selectedCount.textContent = 'No photo selected';
       if (insertPhoto) insertPhoto.disabled = true;
       mediaOverlay?.classList.add('open');
     }
+    let inlineCursor = null;
 
     document.addEventListener('click', (e) => {
       const openArchiveBtn = e.target.closest('#openArchive');
@@ -892,7 +901,7 @@ const addMediaAfter = document.getElementById('addMediaAfter');
 
       const card = e.target.closest('.photo-card');
       if (card) {
-        if (archiveMode === 'featured') {
+        if (archiveMode === 'featured' || archiveMode === 'inline') {
           document.querySelectorAll('.photo-card').forEach(c => c.classList.remove('selected'));
           card.classList.add('selected');
         } else {
@@ -928,6 +937,23 @@ const addMediaAfter = document.getElementById('addMediaAfter');
             }
           }
           if (wireComponent) wireComponent.setFeatured(id, cap, src);
+        } else if (archiveMode === 'inline') {
+          const c = sel[0];
+          const id = +c.dataset.id;
+          const cap = c.dataset.cap;
+          const kind = c.dataset.type || 'photo';
+          const src = c.dataset.src || null;
+          if (wireComponent) wireComponent.attachInline(id, cap, kind, src);
+          if (quill && src) {
+            const at = inlineCursor != null ? inlineCursor : quill.getLength();
+            quill.insertEmbed(at, 'image', src, 'user');
+            quill.setSelection(at + 1, 0, 'silent');
+            if (wireComponent) wireComponent.syncBody(quill.root.innerHTML);
+            syncPreview();
+            scheduleAutosave();
+          } else if (!src) {
+            miniToast('That item has no image file yet — it was attached without an inline preview');
+          }
         } else {
           sel.forEach(c => {
             const id = +c.dataset.id;
