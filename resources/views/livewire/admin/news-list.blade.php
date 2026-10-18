@@ -262,11 +262,11 @@
                                     <div class="subcat subcat-under" title="{{ $s->category?->name_en }} → {{ $s->subCategory->name_en }}">{{ $s->subCategory->name_en }}</div>
                                 @endif
                             </td>
-                            <td title="{{ $s->published_at ? optional($s->published_at)->timezone('Asia/Dhaka')->format('j M Y, h:i A') : 'Not published yet' }}">
+                            <td title="{{ $s->published_at ? optional($s->published_at)->timezone('Asia/Dhaka')->format('j M Y, h:i A') : 'Not published yet · Last updated '.optional($s->updated_at)->timezone('Asia/Dhaka')->format('j M Y, h:i A') }}">
                                 @if($s->published_at)
                                     <span class="pub-at">{{ \App\Support\DisplayPrefs::format($s->published_at) }}</span>
                                 @else
-                                    <span style="color:var(--muted, #b0b2bc)">—</span>
+                                    <span class="pub-at" style="color:var(--muted, #b0b2bc)">Updated {{ \App\Support\DisplayPrefs::format($s->updated_at) }}</span>
                                 @endif
                             </td>
                             <td>
