@@ -112,6 +112,28 @@ class AddNewsTest extends TestCase
             ->assertSet('step', 2);
     }
 
+    public function test_new_story_defaults_to_last_used_category(): void
+    {
+        $this->actingAs($this->editor);
+        $this->createDraftStory($this->editor);
+
+        Livewire::test(AddNews::class)
+            ->assertSet('categoryId', (string) $this->cat->id);
+    }
+
+    public function test_category_error_clears_on_selection(): void
+    {
+        $this->actingAs($this->editor);
+
+        Livewire::test(AddNews::class)
+            ->set('headline', 'Headline ready')
+            ->set('brief', 'Brief ready')
+            ->call('publish')
+            ->assertHasErrors(['categoryId'])
+            ->set('categoryId', (string) $this->cat->id)
+            ->assertHasNoErrors(['categoryId']);
+    }
+
     public function test_stepper_navigates_through_all_steps(): void
     {
         $this->actingAs($this->editor);

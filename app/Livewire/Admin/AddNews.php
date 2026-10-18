@@ -6,6 +6,7 @@ use App\Jobs\ProcessIndexOutbox;
 use App\Models\AiGeneration;
 use App\Models\Category;
 use App\Models\MediaAsset;
+use App\Models\Story;
 use App\Models\StoryNote;
 use App\Repositories\AuditLogRepository;
 use App\Repositories\StoryRepository;
@@ -184,6 +185,14 @@ class AddNews extends Component
                 $this->attachedMedia[] = $item;
                 $this->selectedMediaIds[] = (int) $m->id;
             }
+        } else {
+            // New story: prefill the writer's last-used category so publishing
+            // does not force a detour to Step 3 for one mandatory field.
+            // Still visible/changeable on Step 3 and shown in review.
+            $lastUsed = Story::where('owner_id', $user->id)->latest('id')->value('category_id');
+            if ($lastUsed && Category::find($lastUsed)) {
+                $this->categoryId = (string) $lastUsed;
+            }
         }
     }
 
@@ -275,6 +284,7 @@ class AddNews extends Component
         if (isset($this->aiTouched['category'])) {
             unset($this->aiTouched['category']);
         }
+        $this->resetErrorBag('categoryId');
         $this->dispatch('story-updated');
     }
 
