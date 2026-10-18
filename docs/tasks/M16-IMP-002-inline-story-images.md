@@ -16,6 +16,7 @@
 2. Editor: 🖼 toolbar button opens the existing photo archive modal in "inline" mode (single-select, cursor index captured before modal opens); insert = `attachInline()` (registers story_media, role `inline`) + `quill.insertEmbed` + manual `syncBody` (embed fires source `api`).
 3. `autosave()` reconcile (layer 2): strip `<img>` whose `data-media-id` is not among `attachedMedia` ids — gallery attachments (role `inline` not embedded in body) intentionally untouched.
 4. Story reader/preview render via existing `safe_body_html` (sanitizer now keeps valid imgs).
+5. "Upload from computer" tile at the head of the archive grid (any mode): `updatedArchiveUpload()` → shared `storeUploadedAsset()` → browser event `archive-uploaded` → JS applies the current mode's action (featured/inline/attach) and closes the modal. Same limits as the wizard uploader (imgs 50 MB, video 200 MB).
 
 ## 3. Context (Where)
 - **Modify:** `app/Services/HtmlSanitizer.php`, `app/Livewire/Admin/AddNews.php`, `resources/js/wizard/wizard-main.js`, `tests/Unit/HtmlSanitizerTest.php`, `tests/Feature/AddNewsTest.php`
@@ -30,8 +31,8 @@
 - [ ] `php -l` clean; full suite green
 
 ## 6. Completion Notes
-- **Shipped:** Sanitizer `img` allowlist with mandatory `data-media-id` (base64/hotlink pastes dropped at layer 1); archive-modal inline mode (single-select, cursor captured pre-modal, "Insert inline" label); `attachInline()` idempotent registration (reuses story_media role `inline`, no migration); autosave layer-2 reconcile (unattached media-ids stripped; gallery attachments untouched); toolbar 🖼 now opens the archive modal instead of Quill's base64 handler.
-- **Tests:** `php artisan test` — 949 passed / 6 skipped. New: 3 sanitizer unit tests (media-id kept/removed/foreign-attrs), 2 feature tests (idempotent attachInline, autosave reconcile).
+- **Shipped:** Sanitizer `img` allowlist with mandatory `data-media-id` (base64/hotlink pastes dropped at layer 1); archive-modal inline mode (single-select, cursor captured pre-modal, "Insert inline" label); `attachInline()` idempotent registration (reuses story_media role `inline`, no migration); autosave layer-2 reconcile (unattached media-ids stripped; gallery attachments untouched); toolbar 🖼 now opens the archive modal instead of Quill's base64 handler; "Upload from computer" tile in the archive modal (all modes) via shared `storeUploadedAsset()` + `archive-uploaded` browser event.
+- **Tests:** `php artisan test` — 951 passed / 6 skipped. New: 3 sanitizer unit tests (media-id kept/removed/foreign-attrs), 2 feature tests (idempotent attachInline, autosave reconcile), 2 archive-upload tests (asset created + dispatched, unsupported rejected).
 - **Gates:** `php -l` clean · pint passed · `npm run build` ✓ (new JS bundle).
 - **Live Smoke:** Pending manual browser confirmation (insert inline → publish → reader render).
 - **Review:** —

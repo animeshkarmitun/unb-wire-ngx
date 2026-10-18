@@ -76,6 +76,8 @@ class AddNews extends Component
 
     public $mediaUpload; // Livewire temporary upload
 
+    public $archiveUpload; // Upload tile inside the archive modal
+
     // Step 3: Organize & Access fields
     public string $categoryId = '';
 
@@ -614,21 +616,7 @@ class AddNews extends Component
 
         $file = $this->mediaUpload;
         $isVideo = str_starts_with($file->getMimeType(), 'video/');
-        $path = $file->store('media/originals', 'public');
-
-        $asset = MediaAsset::create([
-            'kind' => $isVideo ? 'video' : 'photo',
-            'status' => 'library',
-            'title' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
-            'caption' => '',
-            'credit_line' => 'UNB',
-            'mime' => $file->getMimeType(),
-            'size_bytes' => $file->getSize(),
-            'checksum' => hash_file('sha256', $file->getRealPath()) ?: hash('sha256', $file->getClientOriginalName().time()),
-            'storage_disk' => 'public',
-            'original_path' => $path,
-            'uploaded_by' => auth()->id(),
-        ]);
+        $asset = $this->storeUploadedAsset($file);
 
         if ($mode === 'featured') {
             $this->featuredMediaId = $asset->id;
@@ -646,13 +634,67 @@ class AddNews extends Component
             'rights' => 'story',
             'type' => $isVideo ? 'video' : 'photo',
             'grad' => 'g'.(($asset->id % 8) + 1),
-            'src' => Storage::url($path),
+            'src' => Storage::url($asset->original_path),
         ];
 
         $this->mediaUpload = null;
         $this->dispatch('story-updated');
         $this->dispatch('media-uploaded');
         $this->autosave();
+    }
+
+    /**
+     * Upload from the archive modal (any mode) — creates the library asset,
+     * then hands the asset back to JS to apply the current mode's action.
+     */
+    public function updatedArchiveUpload(): void
+    {
+        if (! $this->archiveUpload) {
+            return;
+        }
+        $isVideo = str_starts_with($this->archiveUpload->getMimeType() ?? '', 'video/');
+        try {
+            $this->validate([
+                'archiveUpload' => 'required|file|mimes:'.($isVideo ? 'mp4' : 'jpg,jpeg,png,webp').'|max:'.($isVideo ? 204800 : 51200),
+            ], [
+                'archiveUpload.mimes' => $isVideo ? 'Only MP4 videos are supported.' : 'Only JPG, PNG or WEBP images are supported.',
+            ]);
+        } catch (ValidationException $e) {
+            $this->archiveUpload = null;
+            $this->resetErrorBag('archiveUpload');
+            $this->dispatch('toast', message: collect($e->errors())->flatten()->first() ?: 'Upload failed.');
+
+            return;
+        }
+
+        $asset = $this->storeUploadedAsset($this->archiveUpload);
+        $this->archiveUpload = null;
+        $this->dispatch('archive-uploaded',
+            id: $asset->id,
+            cap: $asset->title,
+            kind: $isVideo ? 'video' : 'photo',
+            src: Storage::url($asset->original_path),
+        );
+    }
+
+    private function storeUploadedAsset($file): MediaAsset
+    {
+        $isVideo = str_starts_with($file->getMimeType(), 'video/');
+        $path = $file->store('media/originals', 'public');
+
+        return MediaAsset::create([
+            'kind' => $isVideo ? 'video' : 'photo',
+            'status' => 'library',
+            'title' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+            'caption' => '',
+            'credit_line' => 'UNB',
+            'mime' => $file->getMimeType(),
+            'size_bytes' => $file->getSize(),
+            'checksum' => hash_file('sha256', $file->getRealPath()) ?: hash('sha256', $file->getClientOriginalName().time()),
+            'storage_disk' => 'public',
+            'original_path' => $path,
+            'uploaded_by' => auth()->id(),
+        ]);
     }
 
     public function reorderMedia(array $order): void

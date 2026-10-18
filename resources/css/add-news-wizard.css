@@ -1594,6 +1594,39 @@
 .photo-card.selected .photo-check {
   display: flex;
 }
+.photo-upload-tile {
+  border: 1.5px dashed #d8d5cd;
+  border-radius: 11px;
+  padding: 18px 8px 12px;
+  cursor: pointer;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 140px;
+  background: #fcfbf8;
+  transition: border 0.14s ease, background 0.14s ease;
+}
+.photo-upload-tile:hover {
+  border-color: var(--crimson, #e5484d);
+  background: var(--crimson-soft, #fdecec);
+}
+.photo-upload-tile .put-plus {
+  font-size: 26px;
+  line-height: 1;
+  color: var(--muted, #7c7f8c);
+}
+.photo-upload-tile .put-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink, #1c1f2e);
+}
+.photo-upload-tile .put-hint {
+  font-size: 10.5px;
+  color: var(--muted-2, #b0b2bc);
+}
 .photo-cap {
   font-size: 12px;
   font-weight: 500;

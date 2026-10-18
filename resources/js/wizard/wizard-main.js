@@ -918,54 +918,69 @@ const addMediaAfter = document.getElementById('addMediaAfter');
       if (insertBtn) {
         const sel = [...document.querySelectorAll('.photo-card.selected')];
         if (!sel.length) return;
-        const app = document.getElementById('addNewsApp');
-        const wireEl = app ? app.closest('[wire\\:id]') : null;
-        const wireComponent = wireEl && window.Livewire ? window.Livewire.find(wireEl.getAttribute('wire:id')) : null;
+        applyArchiveSelection(sel);
+        mediaOverlay?.classList.remove('open');
+      }
+    });
 
-        if (archiveMode === 'featured') {
-          const c = sel[0];
-          const id = +c.dataset.id;
-          const cap = c.dataset.cap;
-          const src = c.dataset.src || null;
-          const fp = document.getElementById('featuredPreview');
-          if (fp) {
-            fp.className = 'featured-preview has-photo';
-            if (src) {
-              fp.innerHTML = '<div class="fp-photo g' + ((id % 8) + 1) + '"><img src="' + esc(src) + '" alt="' + esc(cap) + '" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"></div><div class="fp-cap">' + esc(cap) + '</div>';
-            } else {
-              fp.innerHTML = '<div class="fp-photo g' + ((id % 8) + 1) + '"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><div class="fp-cap">' + esc(cap) + '</div>';
-            }
+    function applyArchiveSelection(sel) {
+      const app = document.getElementById('addNewsApp');
+      const wireEl = app ? app.closest('[wire\\:id]') : null;
+      const wireComponent = wireEl && window.Livewire ? window.Livewire.find(wireEl.getAttribute('wire:id')) : null;
+
+      if (archiveMode === 'featured') {
+        const c = sel[0];
+        const id = +c.dataset.id;
+        const cap = c.dataset.cap;
+        const src = c.dataset.src || null;
+        const fp = document.getElementById('featuredPreview');
+        if (fp) {
+          fp.className = 'featured-preview has-photo';
+          if (src) {
+            fp.innerHTML = '<div class="fp-photo g' + ((id % 8) + 1) + '"><img src="' + esc(src) + '" alt="' + esc(cap) + '" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"></div><div class="fp-cap">' + esc(cap) + '</div>';
+          } else {
+            fp.innerHTML = '<div class="fp-photo g' + ((id % 8) + 1) + '"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><div class="fp-cap">' + esc(cap) + '</div>';
           }
-          if (wireComponent) wireComponent.setFeatured(id, cap, src);
-        } else if (archiveMode === 'inline') {
-          const c = sel[0];
+        }
+        if (wireComponent) wireComponent.setFeatured(id, cap, src);
+      } else if (archiveMode === 'inline') {
+        const c = sel[0];
+        const id = +c.dataset.id;
+        const cap = c.dataset.cap;
+        const kind = c.dataset.type || 'photo';
+        const src = c.dataset.src || null;
+        if (wireComponent) wireComponent.attachInline(id, cap, kind, src);
+        if (quill && src) {
+          const at = inlineCursor != null ? inlineCursor : quill.getLength();
+          quill.insertEmbed(at, 'image', src, 'user');
+          quill.setSelection(at + 1, 0, 'silent');
+          if (wireComponent) wireComponent.syncBody(quill.root.innerHTML);
+          syncPreview();
+          scheduleAutosave();
+        } else if (!src) {
+          miniToast('That item has no image file yet — it was attached without an inline preview');
+        }
+      } else {
+        sel.forEach(c => {
           const id = +c.dataset.id;
           const cap = c.dataset.cap;
           const kind = c.dataset.type || 'photo';
           const src = c.dataset.src || null;
-          if (wireComponent) wireComponent.attachInline(id, cap, kind, src);
-          if (quill && src) {
-            const at = inlineCursor != null ? inlineCursor : quill.getLength();
-            quill.insertEmbed(at, 'image', src, 'user');
-            quill.setSelection(at + 1, 0, 'silent');
-            if (wireComponent) wireComponent.syncBody(quill.root.innerHTML);
-            syncPreview();
-            scheduleAutosave();
-          } else if (!src) {
-            miniToast('That item has no image file yet — it was attached without an inline preview');
-          }
-        } else {
-          sel.forEach(c => {
-            const id = +c.dataset.id;
-            const cap = c.dataset.cap;
-            const kind = c.dataset.type || 'photo';
-            const src = c.dataset.src || null;
-            if (wireComponent) wireComponent.toggleMedia(id, cap, kind, src);
-          });
-        }
-        mediaOverlay?.classList.remove('open');
+          if (wireComponent) wireComponent.toggleMedia(id, cap, kind, src);
+        });
       }
-    });
+    }
+
+    // Upload tile inside the archive modal → asset created server-side, then
+    // applied to whatever mode the modal is currently in.
+    if (window.Livewire) {
+      window.Livewire.on('archive-uploaded', (e) => {
+        if (!e || !e.id) return;
+        applyArchiveSelection([{ id: String(e.id), cap: e.cap, type: e.kind, src: e.src }]);
+        mediaOverlay?.classList.remove('open');
+        miniToast('Uploaded from your computer');
+      });
+    }
 
     // Edit Media Modal & Cropper.js
     const editOverlay = document.getElementById('editOverlay');

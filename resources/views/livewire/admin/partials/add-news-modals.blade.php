@@ -19,6 +19,13 @@
       </div>
 
       <div class="mm-body" id="photoGrid">
+        <label class="photo-upload-tile" title="Upload from your computer">
+          <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4" hidden wire:model="archiveUpload">
+          <span class="put-plus">＋</span>
+          <span class="put-label">Upload from computer</span>
+          <span class="put-hint" wire:loading wire:target="archiveUpload">Uploading…</span>
+          <span class="put-hint" wire:loading.remove wire:target="archiveUpload">JPG · PNG · WEBP · MP4</span>
+        </label>
         @foreach($media as $m)
           @php
             $mThumb = !empty($m->original_path) ? Storage::url($m->original_path) : $m->thumbUrl();

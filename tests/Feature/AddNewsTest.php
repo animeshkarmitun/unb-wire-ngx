@@ -493,6 +493,33 @@ class AddNewsTest extends TestCase
 
     // ─── Inline Story Images ────────────────────────────────────────
 
+    public function test_archive_modal_upload_creates_asset_and_dispatches(): void
+    {
+        $this->actingAs($this->editor);
+
+        $before = MediaAsset::count();
+
+        $cmp = Livewire::test(AddNews::class)
+            ->set('archiveUpload', UploadedFile::fake()->image('desk-photo.png'))
+            ->assertDispatched('archive-uploaded', cap: 'desk-photo', kind: 'photo');
+
+        $this->assertSame($before + 1, MediaAsset::count());
+        $this->assertDatabaseHas('media_assets', ['title' => 'desk-photo', 'status' => 'library']);
+    }
+
+    public function test_archive_modal_upload_rejects_unsupported_file(): void
+    {
+        $this->actingAs($this->editor);
+
+        $before = MediaAsset::count();
+
+        Livewire::test(AddNews::class)
+            ->set('archiveUpload', UploadedFile::fake()->create('doc.pdf', 20))
+            ->assertDispatched('toast');
+
+        $this->assertSame($before, MediaAsset::count());
+    }
+
     public function test_attach_inline_registers_attachment_idempotently(): void
     {
         $this->actingAs($this->editor);
