@@ -353,6 +353,9 @@ class MediaSeeder extends Seeder
             $user = $photographers[$d['by']] ?? $adminUser;
             $catId = $cats[$d['cat']] ?? ($cats['bangladesh'] ?? null);
 
+            $path = 'media/demo/'.Str::slug($d['title']).'.jpg';
+            $this->ensureDemoFile($path, $d['grad'] ?? 'g1');
+
             $asset = MediaAsset::create([
                 'public_id' => (string) Str::ulid(),
                 'kind' => $d['kind'] ?? 'photo',
@@ -374,10 +377,9 @@ class MediaSeeder extends Seeder
                 'size_bytes' => 245000,
                 'checksum' => hash('sha256', $d['title']),
                 'storage_disk' => 'public',
-                'original_path' => 'media/demo/'.Str::slug($d['title']).'.jpg',
+                'original_path' => $path,
                 'derivatives' => [
-                    'grad' => $d['grad'] ?? 'g1',
-                    'r' => $d['r'] ?? 1.5,
+                    'grad' => $d['grad'] ?? 'g1',                    'r' => $d['r'] ?? 1.5,
                     'stack' => $d['stack'] ?? null,
                 ],
                 'embargo_until' => $d['embargo'] ?? null,
@@ -515,6 +517,8 @@ class MediaSeeder extends Seeder
             $catId = $cats[$fb['cat']] ?? ($cats['bangladesh'] ?? null);
 
             foreach ($fb['frames'] as $frame) {
+                $fieldPath = 'media/field/'.Str::slug($batch->event_label.'-'.$frame['cap']).'.jpg';
+                $this->ensureDemoFile($fieldPath, $frame['grad']);
                 MediaAsset::create([
                     'public_id' => (string) Str::ulid(),
                     'kind' => 'photo',
@@ -537,7 +541,7 @@ class MediaSeeder extends Seeder
                     'size_bytes' => 180000,
                     'checksum' => hash('sha256', $frame['cap']),
                     'storage_disk' => 'public',
-                    'original_path' => 'media/field/'.Str::slug($batch->event_label).'.jpg',
+                    'original_path' => $fieldPath,
                     'derivatives' => [
                         'grad' => $frame['grad'],
                         'r' => $frame['r'],
@@ -763,6 +767,8 @@ class MediaSeeder extends Seeder
 
         foreach ($apPhotos as $ap) {
             $catId = $cats[$ap['cat']] ?? null;
+            $apPath = 'media/ap/'.Str::slug(Str::limit($ap['cap'], 30)).'.jpg';
+            $this->ensureDemoFile($apPath, $ap['grad']);
 
             MediaAsset::create([
                 'public_id' => (string) Str::ulid(),
@@ -786,7 +792,7 @@ class MediaSeeder extends Seeder
                 'size_bytes' => 450000,
                 'checksum' => hash('sha256', $ap['cap'].$ap['date']),
                 'storage_disk' => 'public',
-                'original_path' => 'media/ap/'.Str::slug(Str::limit($ap['cap'], 30)).'.jpg',
+                'original_path' => $apPath,
                 'derivatives' => [
                     'grad' => $ap['grad'],
                     'ap_category' => $ap['cat'],
@@ -888,5 +894,57 @@ class MediaSeeder extends Seeder
                 Download::create($d);
             }
         }
+    }
+
+    /**
+     * Seeded assets point at media/demo|field|ap/*.jpg but no real files ship
+     * with the repo — without this the archive grid renders broken images
+     * and inline embedding shows 403s. Generate a simple labelled placeholder
+     * JPEG via GD when the file is missing (idempotent).
+     */
+    private function ensureDemoFile(string $path, string $grad = 'g1'): void
+    {
+        $target = storage_path('app/public/'.$path);
+        if (is_file($target)) {
+            return;
+        }
+
+        $gradients = [
+            'g1' => ['#3b6fe0', '#16204a'], 'g2' => ['#e5484d', '#7a1f2b'],
+            'g3' => ['#16a34a', '#0b3d24'], 'g4' => ['#f0a832', '#8a5410'],
+            'g5' => ['#7c3aed', '#2e1065'], 'g6' => ['#0ea5e9', '#0c4a6e'],
+            'g7' => ['#db2777', '#831843'], 'g8' => ['#64748b', '#1e293b'],
+        ];
+        [$c1, $c2] = $gradients[$grad] ?? $gradients['g1'];
+
+        if (! function_exists('imagecreatetruecolor')) {
+            return;
+        }
+
+        $w = 1200;
+        $h = 800;
+        $img = imagecreatetruecolor($w, $h);
+        $red = hexdec(substr($c1, 1, 2));
+        $green = hexdec(substr($c1, 3, 2));
+        $blue = hexdec(substr($c1, 5, 2));
+        $r2 = hexdec(substr($c2, 1, 2));
+        $g2 = hexdec(substr($c2, 3, 2));
+        $b2 = hexdec(substr($c2, 5, 2));
+        for ($x = 0; $x < $w; $x++) {
+            $t = $x / $w;
+            $color = imagecolorallocate($img,
+                (int) round($red + ($r2 - $red) * $t),
+                (int) round($green + ($g2 - $green) * $t),
+                (int) round($blue + ($b2 - $blue) * $t),
+            );
+            imageline($img, $x, 0, $x, $h, $color);
+        }
+
+        $dir = dirname($target);
+        if (! is_dir($dir)) {
+            mkdir($dir, 0775, true);
+        }
+        imagejpeg($img, $target, 82);
+        imagedestroy($img);
     }
 }

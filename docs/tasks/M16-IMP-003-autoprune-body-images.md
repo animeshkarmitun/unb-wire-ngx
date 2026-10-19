@@ -19,6 +19,8 @@
 5. JS inline insert reordered: `insertEmbed` + `syncBody` FIRST, then `attachInline` — otherwise the prune would eat the fresh registration before its embed syncs.
 6. Excludes role `body` from gallery-ish lists: `PortalController::formatStoryList` (`media`, `caps`) + `WebhookPayloadBuilder` (payload keeps `body_html`).
 7. Docs sync: `app-data/v1-database-design.md` story_media role values + `docs/knowledge-inventory/data-model.md`.
+8. Race lessons caught by the e2e spec (kept as `wizard-inline-images.spec.ts`): (a) Quill `insertEmbed` must inject `data-media-id` onto the DOM img BEFORE `syncBody`, else sanitizer strips it as a foreign paste; (b) `syncBody` does prune-only, foreign-image stripping + persistence live in autosave — stripping mid-batch detaches attachments registered one commit later; (c) `attachInline` never autosaves (register in-memory; next step nav/save persists).
+9. Seeder now generates real placeholder JPGs (GD, grad colours) for demo/field/AP paths — seeded grids previously rendered broken images that 403'd.
 
 ## 3. Context (Where)
 - **Create:** `database/migrations/2026_10_18_000001_alter_story_media_role_check_include_body.php`
@@ -35,10 +37,10 @@
 - [ ] `php artisan test` green; schema-parity-check passes
 
 ## 6. Completion Notes
-- **Shipped:** Migration widening `story_media_role_check` to `('featured','inline','body')`; `syncMedia` role pass-through; `attachInline` now role `body` + adopts already-attached assets into the body (featured protected); autosave prunes body-role attachments whose embed left the text (JS insert reordered to embed-before-register); `body` filtered out of portal media/caps + webhook payload media list (images still delivered via `body_html`); docs synced (`v1-database-design.md`, `data-model.md`).
-- **Tests:** `php artisan test` — 954 passed / 6 skipped. New: prune test, gallery-survives test, webhook payload exclusion test; idempotency test updated to the embed-first sequence. `migrate:fresh --seed` ✓ · schema-parity ✓ (no checker changes needed).
+- **Shipped:** Migration widening `story_media_role_check` to `('featured','inline','body')`; `syncMedia` role pass-through; `attachInline` now role `body` + adopts already-attached assets into the body (featured protected) and no longer autosaves; `syncBody` does live prune-only + autosave does strip-foreign + prune (ordering-race safe per e2e probe); `body` filtered out of portal media/caps + webhook payload media list (images still delivered via `body_html`); JS injects `data-media-id`/`alt` onto embeds before sync; MediaSeeder generates real placeholder JPGs for demo/field/AP (fixes the /storage 403s on seeded grids); docs synced (`v1-database-design.md`, `data-model.md`).
+- **Tests:** `php artisan test` — 958 passed / 6 skipped. New e2e: `tests/e2e/wizard-inline-images.spec.ts` (archive inline insert + registration, upload-from-computer tile, editor-delete auto-prune) — 3/3 green; 3 prune/gallery/payload feature tests + updated idempotency test in `AddNewsTest`, payload exclusion test in `WebhookPayloadTest`. `migrate:fresh --seed` ✓ · schema-parity ✓.
 - **Gates:** `php -l` · pint passed · `npm run build` ✓.
-- **Live Smoke:** Pending manual browser confirmation (insert → delete in editor → attachment auto-gone).
+- **Live Smoke:** e2e (headless Chromium) covers insert/upload/delete/prune end to end against the live server.
 - **Review:** —
 
 ## 7. Prompt Ready?

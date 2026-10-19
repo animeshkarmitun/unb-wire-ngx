@@ -918,21 +918,26 @@ const addMediaAfter = document.getElementById('addMediaAfter');
       if (insertBtn) {
         const sel = [...document.querySelectorAll('.photo-card.selected')];
         if (!sel.length) return;
-        applyArchiveSelection(sel);
+        applyArchiveSelection(sel.map(cardRecord));
         mediaOverlay?.classList.remove('open');
       }
     });
 
-    function applyArchiveSelection(sel) {
+    // Normalized record (no DOM dependency) so uploads and cards share one path
+    function cardRecord(c) {
+      return { id: String(c.dataset.id), cap: c.dataset.cap, kind: c.dataset.type || 'photo', src: c.dataset.src || null };
+    }
+
+    function applyArchiveSelection(recs) {
       const app = document.getElementById('addNewsApp');
       const wireEl = app ? app.closest('[wire\\:id]') : null;
       const wireComponent = wireEl && window.Livewire ? window.Livewire.find(wireEl.getAttribute('wire:id')) : null;
 
       if (archiveMode === 'featured') {
-        const c = sel[0];
-        const id = +c.dataset.id;
-        const cap = c.dataset.cap;
-        const src = c.dataset.src || null;
+        const rec = recs[0];
+        const id = +rec.id;
+        const cap = rec.cap;
+        const src = rec.src;
         const fp = document.getElementById('featuredPreview');
         if (fp) {
           fp.className = 'featured-preview has-photo';
@@ -944,15 +949,23 @@ const addMediaAfter = document.getElementById('addMediaAfter');
         }
         if (wireComponent) wireComponent.setFeatured(id, cap, src);
       } else if (archiveMode === 'inline') {
-        const c = sel[0];
-        const id = +c.dataset.id;
-        const cap = c.dataset.cap;
-        const kind = c.dataset.type || 'photo';
-        const src = c.dataset.src || null;
+        const rec = recs[0];
+        const id = +rec.id;
+        const cap = rec.cap;
+        const kind = rec.kind || 'photo';
+        const src = rec.src;
         if (quill && src) {
           const at = inlineCursor != null ? inlineCursor : quill.getLength();
           quill.insertEmbed(at, 'image', src, 'user');
           quill.setSelection(at + 1, 0, 'silent');
+          // Tag the embed with its media id BEFORE syncing, or the sanitizer
+          // drops the image as a foreign paste
+          quill.root.querySelectorAll('img').forEach(im => {
+            if (im.getAttribute('src') === src && !im.getAttribute('data-media-id')) {
+              im.setAttribute('data-media-id', String(id));
+              im.setAttribute('alt', cap || 'Inline photo');
+            }
+          });
           if (wireComponent) wireComponent.syncBody(quill.root.innerHTML);
           syncPreview();
           scheduleAutosave();
@@ -962,12 +975,8 @@ const addMediaAfter = document.getElementById('addMediaAfter');
           miniToast('That item has no image file yet — it was attached without an inline preview');
         }
       } else {
-        sel.forEach(c => {
-          const id = +c.dataset.id;
-          const cap = c.dataset.cap;
-          const kind = c.dataset.type || 'photo';
-          const src = c.dataset.src || null;
-          if (wireComponent) wireComponent.toggleMedia(id, cap, kind, src);
+        recs.forEach(rec => {
+          if (wireComponent) wireComponent.toggleMedia(+rec.id, rec.cap, rec.kind || 'photo', rec.src);
         });
       }
     }
@@ -977,7 +986,7 @@ const addMediaAfter = document.getElementById('addMediaAfter');
     if (window.Livewire) {
       window.Livewire.on('archive-uploaded', (e) => {
         if (!e || !e.id) return;
-        applyArchiveSelection([{ id: String(e.id), cap: e.cap, type: e.kind, src: e.src }]);
+        applyArchiveSelection([{ id: String(e.id), cap: e.cap, kind: e.kind, src: e.src }]);
         mediaOverlay?.classList.remove('open');
         miniToast('Uploaded from your computer');
       });

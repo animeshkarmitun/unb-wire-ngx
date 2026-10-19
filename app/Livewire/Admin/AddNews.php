@@ -310,10 +310,44 @@ class AddNews extends Component
     public function syncBody(string $html): void
     {
         $this->bodyHtml = HtmlSanitizer::clean($html);
+        // Prune-only here (live tray honesty): editor deletions mirror to
+        // attachments without a full autosave. Foreign-image stripping and
+        // persistence stay in autosave — stripping mid-typing detaches images
+        // registered one commit later (insert/attach ordering race).
+        $this->pruneInlineBodyAttachments();
         if (isset($this->aiTouched['body'])) {
             unset($this->aiTouched['body']);
         }
         $this->dispatch('story-updated');
+    }
+
+    /** Auto-prune role-`body` attachments whose embed is no longer in the text. */
+    private function pruneInlineBodyAttachments(): void
+    {
+        if (preg_match_all('/<img\b[^>]*\bdata-media-id="(\d+)"[^>]*>/i', $this->bodyHtml, $mm)) {
+            $bodyIds = collect($mm[1])->map(fn ($v) => (int) $v);
+        } else {
+            $bodyIds = collect();
+        }
+        $this->attachedMedia = array_values(array_filter($this->attachedMedia, function ($m) use ($bodyIds) {
+            if (($m['role'] ?? '') === 'body') {
+                return $bodyIds->contains((int) $m['id']);
+            }
+
+            return true;
+        }));
+    }
+
+    /** Keep only <img> tags whose data-media-id belongs to this story's attachments. */
+    private function stripUnattachedInlineImgs(string $cleanHtml): string
+    {
+        $attachedIds = collect($this->attachedMedia)->pluck('id')->map(fn ($v) => (int) $v);
+
+        return (string) preg_replace_callback(
+            '/<img\b[^>]*\bdata-media-id="(\d+)"[^>]*>/i',
+            fn ($m) => $attachedIds->contains((int) $m[1]) ? $m[0] : '',
+            $cleanHtml
+        );
     }
 
     // ---- Document import (.docx → mapping preview → wizard fields) ----
@@ -545,6 +579,11 @@ class AddNews extends Component
      * `body` so autosave can auto-prune them when the embed is removed from
      * the body text; an already-attached asset (e.g. gallery or featured)
      * is adopted into the body on embed.
+     *
+     * No autosave here on purpose: the embed is inserted by JS right after
+     * registration, and reconcileInlineMedia would otherwise prune the just
+     * -registered attachment before the embed syncs. Persistence happens on
+     * the next autosave (save draft, step change, publish).
      */
     public function attachInline(int $id, string $caption = '', string $kind = 'photo', ?string $src = null): void
     {
@@ -558,7 +597,6 @@ class AddNews extends Component
                 }
             }
             unset($item);
-            $this->autosave();
 
             return;
         }
@@ -573,7 +611,6 @@ class AddNews extends Component
             'src' => $src,
         ];
         $this->dispatch('story-updated');
-        $this->autosave();
     }
 
     public function clearMedia(): void
@@ -833,28 +870,9 @@ class AddNews extends Component
         $rbac->assertCan(auth()->user(), 'stories', 'edit');
 
         $cleanHtml = HtmlSanitizer::clean($this->bodyHtml ?: '<p></p>');
-        // Reconcile inline body images (layer 2): keep only <img> tags whose
-        // data-media-id refers to an attachment on this story, then auto-prune
-        // role-`body` attachments whose embed is no longer in the text.
-        // Gallery attachments (role `inline`) are intentionally untouched.
-        $attachedIds = collect($this->attachedMedia)->pluck('id')->map(fn ($v) => (int) $v);
-        $cleanHtml = preg_replace_callback(
-            '/<img\b[^>]*\bdata-media-id="(\d+)"[^>]*>/i',
-            fn ($m) => $attachedIds->contains((int) $m[1]) ? $m[0] : '',
-            $cleanHtml
-        );
-        $bodyIds = collect();
-        if (preg_match_all('/<img\b[^>]*\bdata-media-id="(\d+)"[^>]*>/i', $cleanHtml, $mm)) {
-            $bodyIds = collect($mm[1])->map(fn ($v) => (int) $v);
-        }
-        $this->attachedMedia = array_values(array_filter($this->attachedMedia, function ($m) use ($bodyIds) {
-            if (($m['role'] ?? '') === 'body') {
-                return $bodyIds->contains((int) $m['id']);
-            }
-
-            return true;
-        }));
+        $cleanHtml = $this->stripUnattachedInlineImgs($cleanHtml);
         $this->bodyHtml = $cleanHtml;
+        $this->pruneInlineBodyAttachments();
 
         $embargo = $this->embargoUntil ? $this->parseEmbargo($this->embargoUntil) : null;
         $dateline = $this->datelineAt ? $this->parseEmbargo($this->datelineAt) : null;
