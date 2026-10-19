@@ -1,5 +1,6 @@
 # Tasks Index & Status Board — UNB Wire
 
+> **Project start:** 3 October 2026 · milestones are dated by completion, not kickoff.
 > Central registry of decomposed ACT-DP tasks for the project.
 > **Note:** Tasks will be created directly based on the UI screens & functional requirements provided by the user.
 
