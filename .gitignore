@@ -58,3 +58,4 @@ Homestead.yaml
 # Local development scripts
 start-dev.ps1
 start-dev.sh
+.playwright-cli/
