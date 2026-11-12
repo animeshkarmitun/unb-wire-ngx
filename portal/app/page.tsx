@@ -11,8 +11,9 @@ import {
   TrendingItem,
   StreamPhotoItem,
 } from "./types";
-import { getApiKey, setApiKey, clearApiKey, authHeaders, getPortalToken, setPortalToken, clearPortalToken, portalAuthHeaders } from "../lib/auth";
+import { getApiKey, setApiKey, clearApiKey, authHeaders, getPortalToken, setPortalToken, clearPortalToken, portalAuthHeaders, combinedAuthHeaders } from "../lib/auth";
 import LoginModal from "../components/LoginModal";
+import ForgotPasswordModal from "../components/ForgotPasswordModal";
 import {
   INITIAL_STORIES,
   buildAllMedia,
@@ -43,8 +44,17 @@ import { downloadMedia } from "../lib/download";
 export default function ClientPortal() {
   // ===== Master State =====
   const [clientInfo, setClientInfo] = useState<any>(null);
+  const [authChecking, setAuthChecking] = useState<boolean>(true);
+  const [unreadNotifCount, setUnreadNotifCount] = useState<number>(0);
   const [showLogin, setShowLogin] = useState<boolean>(false);
-  const [stories, setStories] = useState<WireStory[]>(INITIAL_STORIES);
+  const [gateMode, setGateMode] = useState<'email' | 'apikey'>('email');
+  const [gateEmail, setGateEmail] = useState('');
+  const [gatePassword, setGatePassword] = useState('');
+  const [gateApiKey, setGateApiKey] = useState('');
+  const [gateError, setGateError] = useState('');
+  const [gateLoading, setGateLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [stories, setStories] = useState<WireStory[]>([]);
   const [pendingNew, setPendingNew] = useState<WireStory[]>([]);
   const [freshIds, setFreshIds] = useState<Set<number | string>>(new Set());
   const [wsStatus, setWsStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
@@ -64,6 +74,13 @@ export default function ClientPortal() {
   const [filterMedia, setFilterMedia] = useState<string>("all");
   const [filterExclusive, setFilterExclusive] = useState<boolean>(false);
   const [sortOrder, setSortOrder] = useState<"new" | "old">("new");
+
+  // Pagination & Server Search
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalStories, setTotalStories] = useState<number>(0);
+  const [perPage, setPerPage] = useState<number>(20);
+  const [loadingFeed, setLoadingFeed] = useState<boolean>(false);
 
   // Selection & Expansion
   const [selectedStories, setSelectedStories] = useState<Set<number | string>>(new Set());
@@ -146,6 +163,117 @@ export default function ClientPortal() {
   const userWrapRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
+  // ===== Login Handlers =====
+  const handleLoginSuccess = async (key: string, info: any, authType: 'portal' | 'apikey') => {
+    const base = process.env.NEXT_PUBLIC_LARAVEL_URL ?? "http://localhost:8000";
+    if (authType === 'portal') {
+      setPortalToken(key);
+      setClientInfo({
+        name: info?.client?.name || 'Media Partner',
+        initials: info?.client?.initials || 'MP',
+        tier: 'Client',
+        renews_at: '-',
+        stories_quota: 0,
+        stories_used: 0,
+        media_quota: 0,
+        media_used: 0,
+        userName: info?.name || '',
+        userEmail: info?.email || '',
+      });
+
+      try {
+        const ctxRes = await fetch(`${base}/api/v1/portal/context`, {
+          headers: { "Authorization": `Bearer ${key}` }
+        });
+        if (ctxRes.ok) {
+          const ctxData = await ctxRes.json();
+          if (ctxData?.client) {
+            setClientInfo(ctxData.client);
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const notifRes = await fetch(`${base}/api/v1/portal/notifications?filter=unread`, {
+          headers: { "Authorization": `Bearer ${key}` }
+        });
+        if (notifRes.ok) {
+          const notifData = await notifRes.json();
+          if (typeof notifData?.unread_count === "number") setUnreadNotifCount(notifData.unread_count);
+        }
+      } catch (e) {}
+    } else {
+      setApiKey(key);
+      setClientInfo(info);
+    }
+    setShowLogin(false);
+  };
+
+  const handleGateEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!gateEmail.trim() || !gatePassword.trim()) return;
+
+    setGateLoading(true);
+    setGateError('');
+
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_LARAVEL_URL ?? 'http://localhost:8000';
+      const res = await fetch(`${baseUrl}/api/v1/portal/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ email: gateEmail, password: gatePassword })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || 'Invalid credentials');
+      }
+
+      const data = await res.json();
+      await handleLoginSuccess(data.token, data.client_user, 'portal');
+    } catch (err: any) {
+      setGateError(err.message || 'Failed to login');
+    } finally {
+      setGateLoading(false);
+    }
+  };
+
+  const handleGateApiKeyLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!gateApiKey.trim()) return;
+
+    setGateLoading(true);
+    setGateError('');
+
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_LARAVEL_URL ?? 'http://localhost:8000';
+      const res = await fetch(`${baseUrl}/api/v1/portal/context`, {
+        headers: {
+          'X-API-Key': gateApiKey,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!res.ok) {
+        throw new Error('Invalid API key');
+      }
+
+      const data = await res.json();
+      if (data && data.client) {
+        await handleLoginSuccess(gateApiKey, data.client, 'apikey');
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (err: any) {
+      setGateError(err.message || 'Failed to login');
+    } finally {
+      setGateLoading(false);
+    }
+  };
+
   // ===== Auth Hydration =====
   useEffect(() => {
     const portalToken = getPortalToken();
@@ -159,6 +287,19 @@ export default function ClientPortal() {
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data?.client) setClientInfo(data.client);
+        else clearPortalToken();
+      })
+      .catch(() => {})
+      .finally(() => {
+        setAuthChecking(false);
+      });
+
+      fetch(`${base}/api/v1/portal/notifications?filter=unread`, {
+        headers: { "Authorization": `Bearer ${portalToken}` }
+      })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (typeof data?.unread_count === "number") setUnreadNotifCount(data.unread_count);
       })
       .catch(() => {});
     } else if (apiKey) {
@@ -168,8 +309,14 @@ export default function ClientPortal() {
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data?.client) setClientInfo(data.client);
+        else clearApiKey();
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        setAuthChecking(false);
+      });
+    } else {
+      setAuthChecking(false);
     }
   }, []);
 
@@ -232,86 +379,76 @@ export default function ClientPortal() {
     return () => echo?.disconnect();
   }, []);
 
-  // ===== Meilisearch (main + archive) with fallback to local filter =====
+  // ===== Fetch live stories from Laravel backend (Hydration, Pagination & Full Search) =====
   useEffect(() => {
-    const q = searchQuery.trim();
-    if (!q) {
-      setMlStories([]);
+    if (!clientInfo) {
+      setStories([]);
+      setTotalStories(0);
       return;
     }
-    let cancelled = false;
-    const timer = setTimeout(() => {
-      searchStories(q).then((hits) => {
-        if (cancelled || !hits) return;
-        setMlStories(
-          hits.map((h, i) => {
-            const pid = String(h.public_id ?? h.objectID ?? h.id ?? `ml_${i}`);
-            return {
-              id: pid,
-              public_id: pid,
-              mins: 5,
-              category: String(h.category ?? "Bangladesh"),
-              language: String(h.language ?? "en"),
-              published_at: String(h.published_at ?? new Date().toISOString()),
-              status: String(h.status ?? "published"),
-              is_breaking: Boolean(h.is_breaking),
-              ex: null,
-              has_video: false,
-              headline: String(h.headline ?? ""),
-              brief: String(h.brief ?? ""),
-              body_html: String(h.body_html ?? ""),
-              tags: [],
-              caps: [],
-              from_archive: Boolean(h.from_archive),
-            };
-          })
-        );
-      });
-    }, 400);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [searchQuery]);
 
-  // ===== Fetch live stories from Laravel backend (Hydration & Freshness) =====
-  useEffect(() => {
+    setLoadingFeed(true);
     const base = process.env.NEXT_PUBLIC_LARAVEL_URL ?? "http://localhost:8000";
-    fetch(`${base}/api/v1/portal/feed`, {
-      headers: { ...authHeaders() }
-    })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data && Array.isArray(data.data) && data.data.length > 0) {
-          const liveStories: WireStory[] = data.data.map((item: any, idx: number) => ({
-            id: item.public_id || `live_${idx}`,
-            public_id: item.public_id || `live_${idx}`,
-            mins: 5,
-            category: item.category || "Bangladesh",
-            language: item.language || "en",
-            published_at: item.published_at || new Date().toISOString(),
-            status: item.status || "published",
-            is_breaking: Boolean(item.is_breaking),
-            ex: null,
-            has_video: Boolean(item.has_video),
-            headline: item.headline || "",
-            brief: item.brief || "",
-            body_html: item.body_html || `<p>${item.brief || ""}</p>`,
-            tags: item.tags || ["news", "unb"],
-            caps: (item.media || []).map((m: any) => m.caption || "UNB Photo"),
-          }));
+    const params = new URLSearchParams();
+    params.set("page", String(currentPage));
+    params.set("limit", String(perPage));
 
-          setStories((prev) => {
-            const existingIds = new Set(prev.map((s) => s.public_id));
-            const fresh = liveStories.filter((s) => !existingIds.has(s.public_id));
-            return [...fresh, ...prev];
-          });
-        }
+    if (selectedCat && selectedCat !== "All") {
+      params.set("category", selectedCat);
+    }
+
+    const q = searchQuery.trim();
+    if (q) {
+      params.set("search", q);
+    }
+
+    const timer = setTimeout(() => {
+      fetch(`${base}/api/v1/portal/feed?${params.toString()}`, {
+        headers: { ...combinedAuthHeaders() }
       })
-      .catch(() => {
-        // Graceful fallback to rich mock prototype stories
-      });
-  }, []);
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data && Array.isArray(data.data)) {
+            const liveStories: WireStory[] = data.data.map((item: any, idx: number) => ({
+              id: item.public_id || `live_${idx}`,
+              public_id: item.public_id || `live_${idx}`,
+              mins: 5,
+              category: item.category || "Bangladesh",
+              language: item.language || "en",
+              published_at: item.published_at || new Date().toISOString(),
+              status: item.status || "published",
+              is_breaking: Boolean(item.is_breaking),
+              ex: null,
+              has_video: Boolean(item.has_video),
+              headline: item.headline || "",
+              brief: item.brief || "",
+              body_html: item.body_html || `<p>${item.brief || ""}</p>`,
+              tags: item.tags || ["news", "unb"],
+              caps: (item.media || []).map((m: any) => m.caption || "UNB Photo"),
+            }));
+
+            setStories(liveStories);
+
+            if (data.meta) {
+              setCurrentPage(data.meta.current_page || 1);
+              setTotalPages(data.meta.last_page || 1);
+              setTotalStories(data.meta.total ?? liveStories.length);
+            } else {
+              setTotalStories(liveStories.length);
+              setTotalPages(1);
+            }
+          }
+        })
+        .catch(() => {
+          setStories([]);
+        })
+        .finally(() => {
+          setLoadingFeed(false);
+        });
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [clientInfo, currentPage, perPage, selectedCat, searchQuery]);
 
   // ===== Global Click & Key Listeners =====
   useEffect(() => {
@@ -446,48 +583,26 @@ export default function ClientPortal() {
 
   const filteredStories = useMemo(() => {
     let list = stories.filter((s) => {
-      if (selectedCat !== "All" && s.category !== selectedCat) return false;
-      if (filterDate !== "all" && typeof s.mins === "number" && s.mins > +filterDate) return false;
       if (filterMedia === "photo" && !s.caps.length) return false;
       if (filterMedia === "video" && !s.has_video) return false;
       if (filterMedia === "text" && (s.caps.length > 0 || s.has_video)) return false;
       if (filterExclusive && s.ex !== "you") return false;
-      if (searchQuery && !matchWhere(s)) return false;
       return true;
     });
 
-    if (searchQuery && mlStories.length) {
-      const seen = new Set(list.map((s) => s.public_id));
-      for (const m of mlStories) {
-        if (!seen.has(m.public_id)) {
-          list.push(m);
-          seen.add(m.public_id);
-        }
-      }
-    }
-
     if (twSort === "cat") {
-      list.sort((a, b) => a.category.localeCompare(b.category) || (a.mins || 0) - (b.mins || 0));
-    } else {
-      list.sort((a, b) => {
-        const aVal = typeof a.mins === "number" ? a.mins : 999;
-        const bVal = typeof b.mins === "number" ? b.mins : 999;
-        return sortOrder === "new" ? aVal - bVal : bVal - aVal;
-      });
+      list.sort((a, b) => a.category.localeCompare(b.category));
+    } else if (sortOrder === "old") {
+      list.sort((a, b) => new Date(a.published_at).getTime() - new Date(b.published_at).getTime());
     }
 
     return list;
   }, [
     stories,
-    mlStories,
-    selectedCat,
-    filterDate,
     filterMedia,
     filterExclusive,
-    searchQuery,
     sortOrder,
     twSort,
-    matchWhere,
   ]);
 
   // ===== Filtered Media Items =====
@@ -667,6 +782,65 @@ export default function ClientPortal() {
               ← Admin panel
             </a>
 
+            {clientInfo && (
+              <a
+                href="/notifications"
+                className="notif-chip"
+                id="portalNotifBtn"
+                title="Notifications"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  position: "relative",
+                  width: "34px",
+                  height: "34px",
+                  borderRadius: "8px",
+                  border: "1px solid #eceae5",
+                  background: "#fff",
+                  color: "#16204a",
+                  textDecoration: "none",
+                }}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ width: "17px", height: "17px" }}
+                >
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                {unreadNotifCount > 0 && (
+                  <span
+                    id="portalNotifBadge"
+                    style={{
+                      position: "absolute",
+                      top: "-4px",
+                      right: "-4px",
+                      backgroundColor: "#e5484d",
+                      color: "#fff",
+                      fontSize: "10px",
+                      fontWeight: "bold",
+                      borderRadius: "9999px",
+                      minWidth: "16px",
+                      height: "16px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "0 3px",
+                      lineHeight: 1,
+                    }}
+                  >
+                    {unreadNotifCount > 99 ? "99+" : unreadNotifCount}
+                  </span>
+                )}
+              </a>
+            )}
+
             <div className="user-wrap" ref={userWrapRef}>
               {clientInfo ? (
                 <>
@@ -735,6 +909,34 @@ export default function ClientPortal() {
                       </div>
                     </div>
                     <div className="drop-sep" />
+                    <a className="drop-item" href="/notifications">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                      </svg>
+                      <span>Notifications</span>
+                      {unreadNotifCount > 0 && (
+                        <span
+                          style={{
+                            marginLeft: "auto",
+                            backgroundColor: "#e5484d",
+                            color: "#fff",
+                            fontSize: "10px",
+                            fontWeight: "bold",
+                            borderRadius: "9999px",
+                            padding: "1px 6px",
+                          }}
+                        >
+                          {unreadNotifCount}
+                        </span>
+                      )}
+                    </a>
                     <a className="drop-item" href="/account">
                       <svg
                         viewBox="0 0 24 24"
@@ -790,7 +992,9 @@ export default function ClientPortal() {
                         clearPortalToken();
                         clearApiKey();
                         setClientInfo(null);
+                        setStories([]);
                         setUserDropOpen(false);
+                        setShowLogin(true);
                       }}
                     >
                       <svg
@@ -810,7 +1014,7 @@ export default function ClientPortal() {
                   </div>
                 </>
               ) : (
-                <button className="action-btn" onClick={() => setShowLogin(true)} style={{ marginLeft: "16px" }}>
+                <button className="admin-chip cursor-pointer" onClick={() => setShowLogin(true)}>
                   Login
                 </button>
               )}
@@ -820,7 +1024,174 @@ export default function ClientPortal() {
       </header>
 
       {/* ============ MAIN LAYOUT ============ */}
-      <div className={`page ${railHidden ? "rail-hidden" : ""}`}>
+      {authChecking ? (
+        <main className="min-h-[70vh] flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-[#16204a] border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs text-[#7c7f8c] font-medium">Authenticating wire access…</span>
+          </div>
+        </main>
+      ) : !clientInfo ? (
+        <main className="min-h-[75vh] flex items-center justify-center px-4 py-12">
+          <div className="max-w-[460px] w-full bg-white rounded-2xl border border-[#eceae5] p-8 md:p-10 shadow-lg text-left">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-12 h-12 rounded-xl bg-[#16204a] text-white flex items-center justify-center font-serif text-2xl font-bold shadow-md shrink-0">
+                U
+              </div>
+              <div>
+                <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#fef1f1] text-[#e5484d] text-[10px] font-bold uppercase tracking-wider mb-1 border border-[#fcd8d8]">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="w-3 h-3">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                  Restricted Media Portal
+                </div>
+                <h2 className="font-serif text-xl font-bold text-[#16204a]">
+                  Sign In to UNB Wire
+                </h2>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#7c7f8c] mb-5 leading-relaxed">
+              Authorized newsroom access for live dispatches, photo archives, and video packages.
+            </p>
+
+            <div className="flex border-b border-gray-200 mb-5 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => { setGateMode('email'); setGateError(''); }}
+                className={`pb-2.5 px-3 border-b-2 transition-all cursor-pointer ${
+                  gateMode === 'email'
+                    ? 'border-[#16204a] text-[#16204a]'
+                    : 'border-transparent text-[#7c7f8c] hover:text-[#16204a]'
+                }`}
+              >
+                Email &amp; Password
+              </button>
+              <button
+                type="button"
+                onClick={() => { setGateMode('apikey'); setGateError(''); }}
+                className={`pb-2.5 px-3 border-b-2 transition-all cursor-pointer ${
+                  gateMode === 'apikey'
+                    ? 'border-[#16204a] text-[#16204a]'
+                    : 'border-transparent text-[#7c7f8c] hover:text-[#16204a]'
+                }`}
+              >
+                API Key
+              </button>
+            </div>
+
+            {gateError && (
+              <div className="p-3 mb-4 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600 font-medium flex items-center gap-2">
+                <svg className="w-4 h-4 shrink-0 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <span>{gateError}</span>
+              </div>
+            )}
+
+            {gateMode === 'email' ? (
+              <form onSubmit={handleGateEmailLogin} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#7c7f8c] mb-1.5">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#16204a]/20 focus:border-[#16204a] transition-all bg-white text-gray-900 placeholder:text-gray-400"
+                    value={gateEmail}
+                    onChange={(e) => setGateEmail(e.target.value)}
+                    placeholder="newsdesk@client.com"
+                    disabled={gateLoading}
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-[#7c7f8c]">
+                      Password
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-xs text-[#16204a] hover:underline cursor-pointer"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                  <input
+                    type="password"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#16204a]/20 focus:border-[#16204a] transition-all bg-white text-gray-900 placeholder:text-gray-400"
+                    value={gatePassword}
+                    onChange={(e) => setGatePassword(e.target.value)}
+                    placeholder="••••••••"
+                    disabled={gateLoading}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={gateLoading}
+                  className="w-full py-3 px-4 rounded-xl bg-[#16204a] hover:bg-[#202c65] text-white text-sm font-semibold transition-all shadow hover:shadow-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
+                >
+                  {gateLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Signing in…</span>
+                    </>
+                  ) : (
+                    'Sign In to Wire Feed'
+                  )}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleGateApiKeyLogin} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#7c7f8c] mb-1.5">
+                    Client API Key
+                  </label>
+                  <input
+                    type="password"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#16204a]/20 focus:border-[#16204a] transition-all bg-white text-gray-900 placeholder:text-gray-400 font-mono"
+                    value={gateApiKey}
+                    onChange={(e) => setGateApiKey(e.target.value)}
+                    placeholder="unb_live_..."
+                    disabled={gateLoading}
+                    autoFocus
+                  />
+                  <p className="text-[11px] text-[#7c7f8c] mt-1.5">
+                    Use your organization&apos;s secret API token issued by UNB Syndication.
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={gateLoading}
+                  className="w-full py-3 px-4 rounded-xl bg-[#16204a] hover:bg-[#202c65] text-white text-sm font-semibold transition-all shadow hover:shadow-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
+                >
+                  {gateLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Validating…</span>
+                    </>
+                  ) : (
+                    'Authenticate API Key'
+                  )}
+                </button>
+              </form>
+            )}
+
+            <div className="mt-8 pt-6 border-t border-[#eceae5] flex items-center justify-between text-xs text-[#7c7f8c]">
+              <span>Need wire subscription?</span>
+              <a href="mailto:subscription@unbnews.org" className="font-semibold text-[#16204a] hover:underline">
+                Contact UNB Syndication →
+              </a>
+            </div>
+          </div>
+        </main>
+      ) : (
+        <div className={`page ${railHidden ? "rail-hidden" : ""}`}>
         {/* ============ LEFT RAIL ============ */}
         <aside>
           {(() => {
@@ -1194,7 +1565,10 @@ export default function ClientPortal() {
                 ref={omniInputRef}
                 value={searchQuery}
                 placeholder="Search the wire — headline, keywords, tags, even image captions…"
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
               />
               <select
                 className="omni-scope"
@@ -1212,18 +1586,21 @@ export default function ClientPortal() {
 
             {/* Search Meta */}
             {searchQuery ? (
-              <div className="search-meta show" id="searchMeta">
-                <b>{filteredStories.length}</b> result
-                {filteredStories.length === 1 ? "" : "s"} for “<b>{esc(searchQuery)}</b>” in{" "}
-                <b>
-                  {omniScope === "all"
-                    ? "Everywhere"
-                    : omniScope === "headline"
-                    ? "Headlines"
-                    : omniScope === "tags"
-                    ? "Tags"
-                    : "Image captions"}
-                </b>
+              <div className="search-meta show flex items-center justify-between" id="searchMeta">
+                <div>
+                  <b>{totalStories}</b> result{totalStories === 1 ? "" : "s"} for “<b>{esc(searchQuery)}</b>” in{" "}
+                  <b>{selectedCat === "All" ? "All Categories" : selectedCat}</b>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setCurrentPage(1);
+                  }}
+                  className="text-xs text-[#e5484d] hover:underline cursor-pointer font-medium ml-4"
+                >
+                  Clear search ✕
+                </button>
               </div>
             ) : null}
 
@@ -1236,13 +1613,24 @@ export default function ClientPortal() {
                     type="button"
                     className={`cat-chip ${selectedCat === cat ? "active" : ""}`}
                     data-cat={cat}
-                    onClick={() => setSelectedCat(cat)}
+                    onClick={() => {
+                      setSelectedCat(cat);
+                      setCurrentPage(1);
+                    }}
                   >
                     {cat}
                   </button>
                 )
               )}
             </div>
+
+            {/* Loading Indicator */}
+            {loadingFeed && (
+              <div className="py-2.5 px-4 mb-3 rounded-xl bg-blue-50/70 border border-blue-100 flex items-center gap-2 text-xs text-[#16204a]">
+                <div className="w-3.5 h-3.5 border-2 border-[#16204a] border-t-transparent rounded-full animate-spin shrink-0" />
+                <span>Loading from full UNB Wire database…</span>
+              </div>
+            )}
 
             {/* New Stories Pill */}
             {pendingNew.length > 0 ? (
@@ -2264,6 +2652,113 @@ export default function ClientPortal() {
                 </div>
               </div>
             ) : null}
+
+            {/* Empty State */}
+            {filteredStories.length === 0 && !loadingFeed && (
+              <div className="py-16 text-center text-[#7c7f8c] border border-dashed border-[#eceae5] rounded-2xl bg-white mt-6">
+                <svg className="w-10 h-10 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                </svg>
+                <p className="text-sm font-medium text-[#16204a]">No stories found matching your criteria</p>
+                <p className="text-xs text-[#7c7f8c] mt-1">Try searching for other keywords or clear category filters.</p>
+                {(searchQuery || selectedCat !== "All") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSelectedCat("All");
+                      setCurrentPage(1);
+                    }}
+                    className="mt-4 px-4 py-2 rounded-xl bg-[#16204a] text-white text-xs font-semibold hover:bg-[#202c65] transition-all cursor-pointer shadow-sm"
+                  >
+                    Reset all filters
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* ============ PAGINATION BAR ============ */}
+            {totalStories > 0 && (
+              <div className="mt-8 pt-6 border-t border-[#eceae5] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#7c7f8c]">
+                <div className="flex items-center gap-3">
+                  <span>
+                    Showing{" "}
+                    <b>{Math.min((currentPage - 1) * perPage + 1, totalStories)}</b> to{" "}
+                    <b>{Math.min(currentPage * perPage, totalStories)}</b> of{" "}
+                    <b>{totalStories}</b> stories
+                  </span>
+
+                  <div className="flex items-center gap-1.5 ml-4">
+                    <span className="text-[11px] text-[#7c7f8c]">Per page:</span>
+                    <select
+                      value={perPage}
+                      onChange={(e) => {
+                        setPerPage(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className="px-2 py-1 rounded-lg border border-[#eceae5] bg-white text-xs text-[#16204a] font-medium focus:outline-none cursor-pointer"
+                    >
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                    </select>
+                  </div>
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={currentPage <= 1 || loadingFeed}
+                      onClick={() => {
+                        setCurrentPage((p) => Math.max(1, p - 1));
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className="px-3 py-1.5 rounded-lg border border-[#eceae5] bg-white hover:bg-gray-50 text-xs font-semibold text-[#16204a] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1"
+                    >
+                      ← Previous
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2)
+                      .map((p, idx, arr) => {
+                        const showEllipsisBefore = idx > 0 && p - arr[idx - 1] > 1;
+                        return (
+                          <React.Fragment key={p}>
+                            {showEllipsisBefore && <span className="px-1 text-gray-400">…</span>}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCurrentPage(p);
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                              }}
+                              className={`min-w-[32px] h-8 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                                p === currentPage
+                                  ? "bg-[#16204a] text-white shadow-sm"
+                                  : "border border-[#eceae5] bg-white hover:bg-gray-50 text-[#16204a]"
+                              }`}
+                            >
+                              {p}
+                            </button>
+                          </React.Fragment>
+                        );
+                      })}
+
+                    <button
+                      type="button"
+                      disabled={currentPage >= totalPages || loadingFeed}
+                      onClick={() => {
+                        setCurrentPage((p) => Math.min(totalPages, p + 1));
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className="px-3 py-1.5 rounded-lg border border-[#eceae5] bg-white hover:bg-gray-50 text-xs font-semibold text-[#16204a] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* ============ TAB 2: MEDIA LIBRARY ============ */}
@@ -3030,6 +3525,7 @@ export default function ClientPortal() {
           </div>
         </main>
       </div>
+      )}
 
       {/* ============ ASSET DETAIL MODAL ============ */}
       {activeAsset && (
@@ -3346,26 +3842,15 @@ export default function ClientPortal() {
       <LoginModal
         isOpen={showLogin}
         onClose={() => setShowLogin(false)}
-        onSuccess={(key, info, authType) => {
-          if (authType === 'portal') {
-            setPortalToken(key);
-            setClientInfo({
-              name: info.client.name,
-              initials: info.client.initials,
-              tier: 'Client',
-              renews_at: '-',
-              stories_quota: 0,
-              stories_used: 0,
-              media_quota: 0,
-              media_used: 0,
-              userName: info.name,
-              userEmail: info.email,
-            });
-          } else {
-            setApiKey(key);
-            setClientInfo(info);
-          }
-          setShowLogin(false);
+        onSuccess={handleLoginSuccess}
+      />
+
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+        onBackToLogin={() => {
+          setShowForgotPassword(false);
+          setShowLogin(true);
         }}
       />
     </>

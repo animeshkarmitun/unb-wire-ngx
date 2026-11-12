@@ -173,8 +173,13 @@ class ClientService
         $code = strtoupper(Str::slug(substr($name, 0, 4))).rand(10, 99);
 
         $quota = $tier === 'Premium' ? 2000 : ($tier === 'Standard' ? 800 : 200);
+        $mediaQuota = match ($tier) {
+            'Premium' => 1000,
+            'Standard' => 400,
+            default => 0,
+        };
 
-        DB::transaction(function () use ($name, $email, $type, $city, $packageName, $addons, $channels, $tier, $packageModel, $clientRoleId, $initials, $grad, $code, $quota, $contact) {
+        DB::transaction(function () use ($name, $email, $type, $city, $packageName, $addons, $channels, $tier, $packageModel, $clientRoleId, $initials, $grad, $code, $quota, $mediaQuota, $contact) {
             $clientId = DB::table('clients')->insertGetId([
                 'public_id' => (string) Str::ulid(),
                 'name' => $name,
@@ -190,6 +195,10 @@ class ClientService
                     'display_type' => $type,
                     'city' => $city ?: 'Dhaka',
                     'tier' => $tier,
+                    'tier_quotas' => [
+                        'stories_quota' => $quota,
+                        'media_quota' => $mediaQuota,
+                    ],
                     'since' => now()->format('M Y'),
                     'addons' => $addons,
                     'usage' => ['dl' => 0, 'quota' => $quota, 'api' => in_array('api', $channels) ? '0' : '—', 'last' => 'Just now'],

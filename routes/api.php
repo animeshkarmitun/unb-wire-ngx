@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\ClientFeedController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\PortalAuthController;
 use App\Http\Controllers\Api\PortalController;
+use App\Http\Controllers\Api\PortalNotificationController;
 use App\Http\Controllers\Api\PortalProfileController;
 use App\Http\Controllers\TusController;
 use Illuminate\Support\Facades\Route;
@@ -27,6 +28,13 @@ Route::prefix('v1/portal')->middleware(['portal.session', 'throttle:portal-sessi
     Route::get('/profile', [PortalProfileController::class, 'show']);
     Route::patch('/profile', [PortalProfileController::class, 'update']);
     Route::patch('/password', [PortalProfileController::class, 'updatePassword']);
+
+    // Notifications
+    Route::get('/notifications', [PortalNotificationController::class, 'index']);
+    Route::patch('/notifications/{id}/read', [PortalNotificationController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [PortalNotificationController::class, 'markAllRead']);
+    Route::delete('/notifications/{id}', [PortalNotificationController::class, 'destroy']);
+    Route::delete('/notifications', [PortalNotificationController::class, 'destroyAll']);
 });
 
 Route::prefix('v1')->group(function () {

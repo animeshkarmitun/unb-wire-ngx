@@ -11,6 +11,7 @@ use App\Services\Media\MediaZipExportService;
 use App\Services\Media\PresignedUrlService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -44,15 +45,43 @@ class MediaController extends Controller
             return response()->json(['message' => 'Insufficient scope'], 403);
         }
 
-        $client = $request->attributes->get('client');
-        if ($client) {
-            $quotaSvc->assertCanDownloadMedia($client);
-        }
-
         $asset = MediaAsset::clientVisible()
             ->where('public_id', $id)
             ->when(is_numeric($id), fn ($q) => $q->orWhere('id', (int) $id))
             ->firstOrFail();
+
+        $client = $request->attributes->get('client');
+        if ($client) {
+            $quotaSvc->assertCanDownloadMedia($client);
+
+            if ($client->clientPackages()->where('status', 'active')->exists()) {
+                $rows = DB::table('client_packages')
+                    ->join('packages', 'packages.id', '=', 'client_packages.package_id')
+                    ->where('client_packages.client_id', $client->id)
+                    ->where('client_packages.status', 'active')
+                    ->where('packages.status', 'active')
+                    ->select('packages.entitlement_filter')
+                    ->get();
+
+                $hasMediaConstraint = false;
+                $allowedMedia = [];
+                foreach ($rows as $r) {
+                    $f = is_string($r->entitlement_filter) ? json_decode($r->entitlement_filter, true) : $r->entitlement_filter;
+                    if (isset($f['media_kinds'])) {
+                        $hasMediaConstraint = true;
+                        if (! empty($f['media_kinds'])) {
+                            $allowedMedia = array_merge($allowedMedia, (array) $f['media_kinds']);
+                        }
+                    }
+                }
+
+                if ($hasMediaConstraint && ! in_array($asset->kind, array_unique($allowedMedia), true)) {
+                    return response()->json([
+                        'message' => "Client subscription does not include '{$asset->kind}' media access.",
+                    ], 403);
+                }
+            }
+        }
         $variant = (string) $request->input('variant', 'original');
         $url = $svc->forAsset($asset, $variant);
 
