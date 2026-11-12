@@ -31,3 +31,11 @@ export function portalAuthHeaders(): Record<string, string> {
   const token = getPortalToken();
   return token ? { 'Authorization': `Bearer ${token}` } : {};
 }
+
+export function combinedAuthHeaders(): Record<string, string> {
+  const token = getPortalToken();
+  if (token) return { 'Authorization': `Bearer ${token}` };
+  const key = getApiKey();
+  if (key) return { 'X-API-Key': key };
+  return {};
+}

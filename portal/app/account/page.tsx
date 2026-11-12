@@ -127,8 +127,11 @@ export default function AccountPage() {
             </div>
           </div>
         </Link>
-        <div className="ml-auto flex items-center gap-3 text-xs">
-          <Link href="/" className="text-[#4b4e5c] hover:text-[#16204a] font-semibold">
+        <div className="ml-auto flex items-center gap-4 text-xs font-semibold">
+          <Link href="/notifications" className="text-[#4b4e5c] hover:text-[#16204a]">
+            Notifications
+          </Link>
+          <Link href="/" className="text-[#4b4e5c] hover:text-[#16204a]">
             ← Back to wire feed
           </Link>
         </div>

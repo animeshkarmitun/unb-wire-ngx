@@ -1,0 +1,144 @@
+services:
+  wire-postgres:
+    image: postgres:16-alpine
+    container_name: wire-postgres-1
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: unb_wire
+      POSTGRES_USER: unb_wire_user
+      POSTGRES_PASSWORD: WireSecretDB@2026
+    volumes:
+      - wire_pgdata:/var/lib/postgresql/data
+    networks:
+      - wire_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U unb_wire_user -d unb_wire"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  wire-redis:
+    image: redis:7-alpine
+    container_name: wire-redis-1
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - wire_redisdata:/data
+    networks:
+      - wire_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  wire-meilisearch:
+    image: getmeili/meilisearch:v1.17
+    container_name: wire-meilisearch-1
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: WireMeiliMasterKey2026!
+      MEILI_ENV: production
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - wire_meilidata:/meili_data
+    networks:
+      - wire_network
+
+  wire-app:
+    build: ./docker/app
+    container_name: wire-app-1
+    restart: unless-stopped
+    volumes:
+      - /opt/unb-wire-ngx:/var/www/html
+    networks:
+      - wire_network
+    depends_on:
+      wire-postgres:
+        condition: service_healthy
+      wire-redis:
+        condition: service_healthy
+      wire-meilisearch:
+        condition: service_started
+
+  wire-web:
+    build: ./docker/web
+    container_name: wire-web-1
+    restart: unless-stopped
+    ports:
+      - "8090:80"
+    volumes:
+      - /opt/unb-wire-ngx:/var/www/html:ro
+    networks:
+      - wire_network
+    depends_on:
+      - wire-app
+
+  wire-horizon:
+    build: ./docker/app
+    container_name: wire-horizon-1
+    restart: unless-stopped
+    command: ["php", "artisan", "horizon"]
+    volumes:
+      - /opt/unb-wire-ngx:/var/www/html
+    networks:
+      - wire_network
+    depends_on:
+      - wire-app
+      - wire-redis
+
+  wire-reverb:
+    build: ./docker/app
+    container_name: wire-reverb-1
+    restart: unless-stopped
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8085"]
+    ports:
+      - "8085:8085"
+    volumes:
+      - /opt/unb-wire-ngx:/var/www/html
+    networks:
+      - wire_network
+    depends_on:
+      - wire-app
+      - wire-redis
+
+  wire-portal:
+    build: ./docker/app
+    container_name: wire-portal-1
+    restart: unless-stopped
+    working_dir: /var/www/html/portal
+    command: ["sh", "-c", "npx next start -H 0.0.0.0 -p 3000"]
+    ports:
+      - "3000:3000"
+    volumes:
+      - /opt/unb-wire-ngx:/var/www/html
+    networks:
+      - wire_network
+    depends_on:
+      - wire-app
+
+  wire-agent-bridge:
+    image: one-erp-agent-bridge
+    container_name: wire-agent-bridge-1
+    restart: always
+    volumes:
+      - /opt/unb-wire-ngx:/workspace/app
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/unb-wire-ngx/agent-bridge:/bridge-env:ro
+      - /opt/unb-wire-ngx/agent-bridge/bot.js:/bot/bot.js:ro
+    environment:
+      APP_DIR: /workspace/app
+      ENV_FILE: /bridge-env/.env
+      BACKEND_CONTAINER: wire-app-1
+    networks:
+      - wire_network
+    tty: true
+
+volumes:
+  wire_pgdata:
+  wire_redisdata:
+  wire_meilidata:
+
+networks:
+  wire_network:
+    driver: bridge

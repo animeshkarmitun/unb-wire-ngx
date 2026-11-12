@@ -37,11 +37,36 @@ class MediaZipExportService
         }
 
         // 1. Entitlement check
-        $ent = $this->entitlementResolver->forClient($client);
-        if (! empty($ent['media_kinds'])) {
-            foreach ($assets as $asset) {
-                if (! in_array($asset->kind, $ent['media_kinds'], true)) {
-                    throw new AccessDeniedHttpException("Client is not entitled to '{$asset->kind}' media assets.");
+        if ($client->clientPackages()->where('status', 'active')->exists()) {
+            $rows = DB::table('client_packages')
+                ->join('packages', 'packages.id', '=', 'client_packages.package_id')
+                ->where('client_packages.client_id', $client->id)
+                ->where('client_packages.status', 'active')
+                ->where('packages.status', 'active')
+                ->select('packages.entitlement_filter')
+                ->get();
+
+            $hasMediaConstraint = false;
+            $allowedMedia = [];
+            foreach ($rows as $r) {
+                $f = is_string($r->entitlement_filter) ? json_decode($r->entitlement_filter, true) : $r->entitlement_filter;
+                if (isset($f['media_kinds'])) {
+                    $hasMediaConstraint = true;
+                    if (! empty($f['media_kinds'])) {
+                        $allowedMedia = array_merge($allowedMedia, (array) $f['media_kinds']);
+                    }
+                }
+            }
+
+            if ($hasMediaConstraint) {
+                $uniqueAllowed = array_unique($allowedMedia);
+                if (empty($uniqueAllowed)) {
+                    throw new AccessDeniedHttpException('Client subscription does not include media access.');
+                }
+                foreach ($assets as $asset) {
+                    if (! in_array($asset->kind, $uniqueAllowed, true)) {
+                        throw new AccessDeniedHttpException("Client is not entitled to '{$asset->kind}' media assets.");
+                    }
                 }
             }
         }

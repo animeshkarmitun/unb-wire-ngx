@@ -170,6 +170,26 @@ class PortalApiTest extends TestCase
         $this->assertLessThanOrEqual(100, count($resp->json('data')));
     }
 
+    public function test_feed_returns_pagination_meta(): void
+    {
+        for ($i = 0; $i < 25; $i++) {
+            Story::factory()->published()->create([
+                'language' => 'en', 'category_id' => $this->catEconomy->id,
+                'owner_id' => $this->owner->id, 'created_by' => $this->owner->id,
+                'published_at' => now()->subMinutes($i),
+            ]);
+        }
+
+        $resp = $this->getJson('/api/v1/portal/feed?language=en&page=2&limit=10');
+
+        $resp->assertOk();
+        $this->assertEquals(2, $resp->json('meta.current_page'));
+        $this->assertEquals(10, $resp->json('meta.per_page'));
+        $this->assertGreaterThanOrEqual(25, $resp->json('meta.total'));
+        $this->assertGreaterThanOrEqual(3, $resp->json('meta.last_page'));
+        $resp->assertJsonCount(10, 'data');
+    }
+
     public function test_feed_returns_cache_control_header(): void
     {
         $resp = $this->getJson('/api/v1/portal/feed?language=en');

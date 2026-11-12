@@ -40,7 +40,7 @@ class PortalController extends Controller
         $clientId = $client?->id ?? 'guest';
         $key = FeedCache::portalKey($clientId, md5($request->fullUrl()));
 
-        $stories = Cache::flexible($key, [FeedCache::FRESH, FeedCache::STALE], function () use ($request, $client) {
+        $result = Cache::flexible($key, [FeedCache::FRESH, FeedCache::STALE], function () use ($request, $client) {
             $q = Story::with(['category', 'tags', 'media'])->where('status', 'published');
 
             if ($client) {
@@ -66,14 +66,38 @@ class PortalController extends Controller
             if ($request->filled('search')) {
                 $term = '%'.$request->query('search').'%';
                 $operator = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
-                $q->where(fn ($sub) => $sub->where('headline', $operator, $term)->orWhere('brief', $operator, $term));
+                $q->where(fn ($sub) => $sub->where('headline', $operator, $term)
+                    ->orWhere('brief', $operator, $term)
+                    ->orWhere('body_text', $operator, $term));
             }
-            $limit = min(100, max(1, (int) $request->query('limit', 50)));
 
-            return $q->orderByDesc('published_at')->orderByDesc('id')->limit($limit)->get()->map(fn ($s) => self::formatStoryList($s));
+            $page = max(1, (int) $request->query('page', 1));
+            $limit = min(100, max(1, (int) $request->query('limit', $request->query('per_page', 20))));
+
+            $total = (clone $q)->count();
+            $lastPage = max(1, (int) ceil($total / $limit));
+
+            $stories = $q->orderByDesc('published_at')
+                ->orderByDesc('id')
+                ->forPage($page, $limit)
+                ->get()
+                ->map(fn ($s) => self::formatStoryList($s));
+
+            return [
+                'data' => $stories,
+                'meta' => [
+                    'current_page' => $page,
+                    'last_page' => $lastPage,
+                    'per_page' => $limit,
+                    'total' => $total,
+                ],
+            ];
         });
 
-        return response()->json(['data' => $stories])->header('Cache-Control', 'public, max-age=60');
+        return response()->json([
+            'data' => $result['data'],
+            'meta' => $result['meta'],
+        ])->header('Cache-Control', 'public, max-age=60');
     }
 
     public function context(Request $request, QuotaService $quotaSvc): JsonResponse

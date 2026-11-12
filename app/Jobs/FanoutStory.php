@@ -4,7 +4,9 @@ namespace App\Jobs;
 
 use App\Models\Client;
 use App\Models\ClientChannel;
+use App\Models\ClientUser;
 use App\Models\Story;
+use App\Notifications\ClientStoryNotification;
 use App\Repositories\ClientRepository;
 use App\Repositories\DeliveryRepository;
 use App\Services\Delivery\TriggerMatcher;
@@ -16,6 +18,7 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 
 class FanoutStory implements ShouldQueue
 {
@@ -56,6 +59,7 @@ class FanoutStory implements ShouldQueue
         })->map(fn (Client $c) => (object) ['client_id' => $c->id])->values();
 
         foreach ($matchedClients as $row) {
+            $this->notifyClientUsers($row->client_id, $story, 'published');
             $channels = $clients->activeChannelsFor($row->client_id);
             foreach ($channels as $ch) {
                 $key = hash('sha256', $story->id.'-'.$ch->id.'-'.$story->version);
@@ -119,6 +123,11 @@ class FanoutStory implements ShouldQueue
 
         if ($recipients->isEmpty()) {
             return;
+        }
+
+        $distinctClientIds = $recipients->pluck('client_id')->unique();
+        foreach ($distinctClientIds as $cid) {
+            $this->notifyClientUsers((int) $cid, $story, 'killed');
         }
 
         $channels = ClientChannel::whereIn('id', $recipients->pluck('channel_id')->unique())->get()->keyBy('id');
@@ -193,5 +202,41 @@ class FanoutStory implements ShouldQueue
             'response_code' => $code,
             'error' => substr($error, 0, 1000),
         ]);
+    }
+
+    private function notifyClientUsers(int $clientId, Story $story, string $action): void
+    {
+        try {
+            $clientUsers = ClientUser::where('client_id', $clientId)->where('status', 'active')->get();
+            if ($clientUsers->isEmpty()) {
+                return;
+            }
+
+            $isBreaking = ! empty($story->is_breaking) || in_array($story->priority, ['urgent', 'flash'], true);
+            $event = match ($action) {
+                'killed' => 'story.killed',
+                default => $isBreaking ? 'story.breaking' : 'story.published',
+            };
+
+            $title = match ($action) {
+                'killed' => '[KILLED] Advisory: '.($story->headline ?? 'Story Withdrawn'),
+                default => ($isBreaking ? '🚨 [BREAKING] ' : '').($story->headline ?? 'New Story'),
+            };
+
+            $urgency = $story->is_breaking ? 'breaking' : ($story->priority ?? 'routine');
+
+            $notificationData = [
+                'title' => $title,
+                'message' => $story->brief ?? '',
+                'story_id' => $story->id,
+                'public_id' => (string) $story->public_id,
+                'category' => $story->category?->name_en ?? 'General',
+                'urgency' => $urgency,
+            ];
+
+            Notification::sendNow($clientUsers, new ClientStoryNotification($event, $notificationData));
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send client user in-app notification', ['client_id' => $clientId, 'error' => $e->getMessage()]);
+        }
     }
 }

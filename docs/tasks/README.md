@@ -389,7 +389,17 @@ Build order: `002`–`015` can run in parallel with `001`. E2E tasks start after
 
 ---
 
-## 24. How to Add a Task
+## 24. Client Portal Notifications (`M17-PORTAL-NTF`) — 2026-11-12
+
+> Client-facing Notification Center in the decoupled Client Portal. Clients view breaking alerts, story dispatches, updates, and kill notices with read/unread filtering, unread badge counter in topnav, mark as read, and deletion.
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M17-PORTAL-NTF-001` | Client Portal Notification Center (`/notifications`, topnav bell badge, read/delete endpoints, fanout hook) | `M12-PROFILE-003` | ✅ | — | 2026-11-12 |
+
+---
+
+## 25. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.
