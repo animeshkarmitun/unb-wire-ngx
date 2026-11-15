@@ -97,6 +97,16 @@ class AddNewsDocxImportTest extends TestCase
         $this->assertStringStartsWith('PK', $resp->getContent());
     }
 
+    public function test_add_news_page_renders_sample_template_download_button(): void
+    {
+        $this->actingAs($this->editor);
+
+        Livewire::test(AddNews::class)
+            ->assertSeeHtml(route('admin.news.import-sample'))
+            ->assertSee('Sample template (.docx)')
+            ->assertSee('Import from doc');
+    }
+
     public function test_sample_template_is_denied_without_stories_create(): void
     {
         $this->actingAs($this->business);

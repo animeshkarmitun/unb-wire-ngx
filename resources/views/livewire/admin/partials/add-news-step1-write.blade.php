@@ -5,10 +5,16 @@
         <div class="card">
           <div class="card-title card-title-flex">
             <span>Story content</span>
-            <button type="button" class="btn btn-outline btn-sm" wire:click="openDocImport">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
-              Import from doc
-            </button>
+            <div class="flex items-center gap-2" style="display:inline-flex;align-items:center;gap:8px">
+              <a href="{{ route('admin.news.import-sample') }}" class="btn btn-outline btn-sm" download title="Download sample Word document template (.docx)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5" style="width:14px;height:14px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Sample template (.docx)
+              </a>
+              <button type="button" class="btn btn-outline btn-sm" wire:click="openDocImport">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+                Import from doc
+              </button>
+            </div>
           </div>
 
           <div class="draft-banner" id="draftBanner" hidden>
