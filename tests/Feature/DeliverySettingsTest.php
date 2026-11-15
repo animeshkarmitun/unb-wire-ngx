@@ -29,7 +29,7 @@ class DeliverySettingsTest extends TestCase
         parent::setUp();
         $this->seed(DatabaseSeeder::class);
 
-        $this->adminUser = User::where('email', 'nahar@unbnews.org')->firstOrFail();
+        $this->adminUser = User::where('email', 'admin@unbnews.org')->firstOrFail();
         $this->uploaderUser = User::where('email', 'maria@unbnews.org')->firstOrFail();
         $this->client = Client::where('code', 'DST')->firstOrFail();
     }

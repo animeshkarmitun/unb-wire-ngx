@@ -26,7 +26,7 @@ class RolesManagerTest extends TestCase
 
     public function test_roles_manager_page_loads_for_admin(): void
     {
-        $admin = User::where('email', 'nahar@unbnews.org')->firstOrFail();
+        $admin = User::where('email', 'admin@unbnews.org')->firstOrFail();
 
         $response = $this->actingAs($admin)->get('/admin/roles');
 
@@ -46,7 +46,7 @@ class RolesManagerTest extends TestCase
 
     public function test_roles_manager_computes_correct_stats(): void
     {
-        $admin = User::where('email', 'nahar@unbnews.org')->firstOrFail();
+        $admin = User::where('email', 'admin@unbnews.org')->firstOrFail();
 
         Livewire::actingAs($admin)
             ->test(RolesManager::class)
@@ -59,7 +59,7 @@ class RolesManagerTest extends TestCase
 
     public function test_admin_can_open_drawer_and_save_role_permissions(): void
     {
-        $admin = User::where('email', 'nahar@unbnews.org')->firstOrFail();
+        $admin = User::where('email', 'admin@unbnews.org')->firstOrFail();
         $editor = Role::where('name', 'Editor')->firstOrFail();
 
         Livewire::actingAs($admin)
@@ -101,7 +101,7 @@ class RolesManagerTest extends TestCase
 
     public function test_admin_can_create_custom_role_with_copy_from(): void
     {
-        $admin = User::where('email', 'nahar@unbnews.org')->firstOrFail();
+        $admin = User::where('email', 'admin@unbnews.org')->firstOrFail();
         $editor = Role::where('name', 'Editor')->firstOrFail();
 
         Livewire::actingAs($admin)
@@ -132,7 +132,7 @@ class RolesManagerTest extends TestCase
 
     public function test_admin_can_duplicate_role(): void
     {
-        $admin = User::where('email', 'nahar@unbnews.org')->firstOrFail();
+        $admin = User::where('email', 'admin@unbnews.org')->firstOrFail();
         $strat = Role::where('name', 'Strategist')->firstOrFail();
 
         Livewire::actingAs($admin)
@@ -153,7 +153,7 @@ class RolesManagerTest extends TestCase
 
     public function test_admin_cannot_delete_role_with_members(): void
     {
-        $admin = User::where('email', 'nahar@unbnews.org')->firstOrFail();
+        $admin = User::where('email', 'admin@unbnews.org')->firstOrFail();
         $editor = Role::where('name', 'Editor')->firstOrFail();
         $this->assertGreaterThan(0, $editor->users()->count());
 
@@ -170,7 +170,7 @@ class RolesManagerTest extends TestCase
 
     public function test_admin_can_delete_role_without_members(): void
     {
-        $admin = User::where('email', 'nahar@unbnews.org')->firstOrFail();
+        $admin = User::where('email', 'admin@unbnews.org')->firstOrFail();
         $role = Role::create([
             'name' => 'Empty Role',
             'type' => 'custom',
@@ -194,7 +194,7 @@ class RolesManagerTest extends TestCase
 
     public function test_apply_presets_in_drawer(): void
     {
-        $admin = User::where('email', 'nahar@unbnews.org')->firstOrFail();
+        $admin = User::where('email', 'admin@unbnews.org')->firstOrFail();
         $role = Role::create([
             'name' => 'Test Custom Role',
             'type' => 'custom',
@@ -230,7 +230,7 @@ class RolesManagerTest extends TestCase
 
     public function test_update_user_role(): void
     {
-        $admin = User::where('email', 'nahar@unbnews.org')->firstOrFail();
+        $admin = User::where('email', 'admin@unbnews.org')->firstOrFail();
         $target = User::where('email', 'shohel@unbnews.org')->firstOrFail();
         $strat = Role::where('name', 'Strategist')->firstOrFail();
 
@@ -248,7 +248,7 @@ class RolesManagerTest extends TestCase
 
     public function test_user_cannot_change_own_role(): void
     {
-        $admin = User::where('email', 'nahar@unbnews.org')->firstOrFail();
+        $admin = User::where('email', 'admin@unbnews.org')->firstOrFail();
         $editor = Role::where('name', 'Editor')->firstOrFail();
 
         Livewire::actingAs($admin)
@@ -261,7 +261,7 @@ class RolesManagerTest extends TestCase
 
     public function test_deactivate_purges_sessions_and_revokes_devices(): void
     {
-        $admin = User::where('email', 'nahar@unbnews.org')->firstOrFail();
+        $admin = User::where('email', 'admin@unbnews.org')->firstOrFail();
         $target = User::where('email', 'shohel@unbnews.org')->firstOrFail();
 
         DB::table('sessions')->insert([
@@ -285,7 +285,7 @@ class RolesManagerTest extends TestCase
 
     public function test_deactivate_and_activate_user(): void
     {
-        $admin = User::where('email', 'nahar@unbnews.org')->firstOrFail();
+        $admin = User::where('email', 'admin@unbnews.org')->firstOrFail();
         $target = User::where('email', 'shohel@unbnews.org')->firstOrFail();
 
         // Deactivate
@@ -315,7 +315,7 @@ class RolesManagerTest extends TestCase
 
     public function test_admin_cannot_deactivate_self(): void
     {
-        $admin = User::where('email', 'nahar@unbnews.org')->firstOrFail();
+        $admin = User::where('email', 'admin@unbnews.org')->firstOrFail();
 
         Livewire::actingAs($admin)
             ->test(RolesManager::class)
@@ -327,7 +327,7 @@ class RolesManagerTest extends TestCase
 
     public function test_invite_member_with_validation(): void
     {
-        $admin = User::where('email', 'nahar@unbnews.org')->firstOrFail();
+        $admin = User::where('email', 'admin@unbnews.org')->firstOrFail();
         $editor = Role::where('name', 'Editor')->firstOrFail();
 
         Livewire::actingAs($admin)

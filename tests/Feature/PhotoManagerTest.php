@@ -46,7 +46,7 @@ class PhotoManagerTest extends TestCase
         $adminRole = Role::where('name', 'Admin')->first();
         $uploaderRole = Role::where('name', 'Uploader-English')->first();
 
-        $this->admin = User::factory()->create(['role_id' => $adminRole->id, 'name' => 'Nahar Khan']);
+        $this->admin = User::factory()->create(['role_id' => $adminRole->id, 'name' => 'System Admin']);
         $this->photographer = User::factory()->create(['role_id' => $uploaderRole->id, 'name' => 'Enamul Haque']);
 
         $this->category = Category::where('slug', 'bangladesh')->first();
