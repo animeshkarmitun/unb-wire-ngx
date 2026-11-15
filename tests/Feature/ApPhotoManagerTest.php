@@ -39,8 +39,8 @@ class ApPhotoManagerTest extends TestCase
         $adminRole = Role::where('name', 'Admin')->first();
         $this->admin = User::factory()->create([
             'role_id' => $adminRole->id,
-            'name' => 'Nahar Khan',
-            'email' => 'nahar@unbnews.org',
+            'name' => 'System Admin',
+            'email' => 'admin@unbnews.org',
         ]);
 
         $this->worldCat = Category::where('slug', 'world')->first();

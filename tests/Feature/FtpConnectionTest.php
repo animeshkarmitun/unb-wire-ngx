@@ -30,7 +30,7 @@ class FtpConnectionTest extends TestCase
         parent::setUp();
 
         $this->seed(DatabaseSeeder::class);
-        $this->admin = User::where('email', 'nahar@unbnews.org')->firstOrFail();
+        $this->admin = User::where('email', 'admin@unbnews.org')->firstOrFail();
 
         $this->client = Client::first();
         if (! $this->client) {

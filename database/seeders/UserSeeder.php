@@ -40,8 +40,8 @@ class UserSeeder extends Seeder
         // 2. Prototype Team Members from app-data/roles.html
         $members = [
             [
-                'name' => 'Nahar Khan',
-                'email' => 'nahar@unbnews.org',
+                'name' => 'System Admin',
+                'email' => 'admin@unbnews.org',
                 'desk' => 'Chief Editor',
                 'role_id' => $adminRole?->id,
                 'status' => 'active',
@@ -125,23 +125,23 @@ class UserSeeder extends Seeder
 
         // 3. Initial Audit Logs from app-data/roles.html (if table empty)
         if (DB::table('audit_logs')->count() === 0) {
-            $nahar = User::where('email', 'nahar@unbnews.org')->first();
+            $adminUser = User::where('email', 'admin@unbnews.org')->first();
             $audits = [
                 [
                     'actor_type' => 'user',
-                    'actor_id' => $nahar?->id,
+                    'actor_id' => $adminUser?->id,
                     'action' => 'role.updated',
                     'entity_type' => 'role',
                     'entity_id' => $editorRole?->id,
                     'diff' => json_encode([
-                        'message' => '<b>Nahar Khan</b> edited role <b>Editor</b> — added <b>Publish</b> on Bangla News',
+                        'message' => '<b>System Admin</b> edited role <b>Editor</b> — added <b>Publish</b> on Bangla News',
                         'color' => 'var(--crimson, #e5484d)',
                     ]),
                     'created_at' => now()->subHours(2),
                 ],
                 [
                     'actor_type' => 'user',
-                    'actor_id' => $nahar?->id,
+                    'actor_id' => $adminUser?->id,
                     'action' => 'user.invited',
                     'entity_type' => 'user',
                     'entity_id' => null,
@@ -153,7 +153,7 @@ class UserSeeder extends Seeder
                 ],
                 [
                     'actor_type' => 'user',
-                    'actor_id' => $nahar?->id,
+                    'actor_id' => $adminUser?->id,
                     'action' => 'role.created',
                     'entity_type' => 'role',
                     'entity_id' => $bizRole?->id,
@@ -165,7 +165,7 @@ class UserSeeder extends Seeder
                 ],
                 [
                     'actor_type' => 'user',
-                    'actor_id' => $nahar?->id,
+                    'actor_id' => $adminUser?->id,
                     'action' => 'user.deactivated',
                     'entity_type' => 'user',
                     'entity_id' => null,
@@ -177,7 +177,7 @@ class UserSeeder extends Seeder
                 ],
                 [
                     'actor_type' => 'user',
-                    'actor_id' => $nahar?->id,
+                    'actor_id' => $adminUser?->id,
                     'action' => 'role.updated',
                     'entity_type' => 'role',
                     'entity_id' => $reportRole?->id,
