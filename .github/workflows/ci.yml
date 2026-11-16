@@ -110,10 +110,13 @@ jobs:
             git reset --hard origin/main
             docker exec wire-app-1 npm run build
             docker exec wire-app-1 php artisan optimize:clear
+            docker exec wire-app-1 php artisan cache:clear
             docker exec wire-app-1 php artisan view:clear
+            docker exec wire-app-1 php artisan route:clear
+            docker exec wire-app-1 php artisan config:clear
             docker exec wire-app-1 php artisan horizon:terminate || true
-            docker exec wire-app-1 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-            docker exec wire-app-1 chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+            docker exec wire-app-1 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public/build
+            docker exec wire-app-1 chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public/build
             echo '=== Deployment successful! ==='
           "
 
