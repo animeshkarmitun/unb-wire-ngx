@@ -9,6 +9,7 @@ Behavioral guidelines, architecture standards, quality gates, and AI protocols f
 > 4. `docs/knowledge-inventory/decisions.md` (Architecture Decision Log)
 > 5. `app-data/v1-database-design.md` + `docs/knowledge-inventory/architecture.md` / `data-model.md` (if modifying routing, schema, or services)
 > 6. For non-trivial work: `docs/workflow.md` and `docs/task-decomposition-protocol.md` (see §0)
+> 7. **Live Staging & Production Access (Credentials & Safety):** [`.secrets/production-access.md`](.secrets/production-access.md) (gitignored). Contains server IP, SSH access, container topologies (`wire-*`), ports (8090, 3000), credentials, and critical safety rules (One Group ERP on port 80 must never be touched).
 
 ---
 
@@ -49,6 +50,7 @@ Prompt templates: [`docs/prompt-guide.md`](docs/prompt-guide.md).
 | **Database** | PostgreSQL 16 (primary + read replica; `timestamptz`, JSONB, monthly partitions) |
 | **Search** | Meilisearch (`main` + `archive` indexes) via `index_outbox` workers |
 | **Cache & Queue** | Redis + Horizon; Realtime: Reverb; Scheduler: embargo lifts, archival sweep |
+| **Live Staging / Production** | Runbook & credentials in [`.secrets/production-access.md`](.secrets/production-access.md) (gitignored). Ports: 8090 (Admin), 3000 (Portal). **One Group ERP on port 80 must never be touched**. |
 
 ---
 
