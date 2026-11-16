@@ -80,7 +80,7 @@
                 const { head, sub, date, body, id, cat } = this.getStoryMeta();
                 const escapeXml = (str) => str.replace(/[<>&'"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '\'': '&apos;', '"': '&quot;' }[c]));
                 const xml =
-                    '<?xml version="1.0" encoding="UTF-8"?>\n' +
+                    '<' + '?xml version="1.0" encoding="UTF-8"?>\n' +
                     '<story id="' + id + '" service="{{ $story->language }}">\n' +
                     '  <category>' + escapeXml(cat) + '</category>\n' +
                     '  <headline>' + escapeXml(head) + '</headline>\n' +

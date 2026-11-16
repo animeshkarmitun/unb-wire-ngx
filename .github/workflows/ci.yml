@@ -1,9 +1,10 @@
-name: CI
+name: CI/CD
 
 on:
   push:
     branches: [main, master]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
@@ -83,3 +84,35 @@ jobs:
         with:
           name: coverage
           path: coverage.xml
+
+  deploy:
+    name: Deploy to Production
+    needs: test
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS via SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_PATH: ${{ secrets.VPS_PATH }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$VPS_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "
+            set -e
+            echo '=== Deploying UNB Wire to production VPS ==='
+            cd $VPS_PATH
+            git fetch origin main
+            git reset --hard origin/main
+            docker exec wire-app-1 php artisan optimize:clear
+            docker exec wire-app-1 php artisan view:clear
+            docker exec wire-app-1 php artisan horizon:terminate || true
+            docker exec wire-app-1 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+            docker exec wire-app-1 chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+            echo '=== Deployment successful! ==='
+          "
+
