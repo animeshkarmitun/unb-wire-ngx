@@ -59,3 +59,13 @@
 - [x] **W12 — Break up monolithic Blade files** — `add-news.blade.php` split into 9 modular partials under `partials/` — Commit `REFACTOR-002` (990 → ~30 line orchestrator + 9 partials: header, stepper, step1-write, step2-media, step3-organize, step4-review, preview-panel, modals, ai-drawer)
 - [ ] **CSS consolidation** — Migrate custom CSS into Tailwind config (blocked by Q4)
 - [ ] **Pint formatting** — Run `./vendor/bin/pint` across the codebase to fix pre-existing style issues (several flagged non-blocking during commits)
+
+---
+
+## Phase 5 — External Integrations & Partners Backlog
+
+- [ ] **AP Wire Feed Integration (Sync Worker):**
+  > **চূড়ান্ত পরামর্শ (Verdict):**  
+  > বর্তমানে `MediaAsset`-এর মধ্যে `source = 'ap'` রাখার যে ডিজাইনটি রয়েছে, তা সম্পূর্ণ পারফেক্ট এবং লং-টার্ম স্কেলেবল।  
+  > 
+  > শুধু ভবিষ্যতে যা করতে হবে—AP API-এর সাথে একটি ব্যাকগ্রাউন্ড ইন্টিগ্রেশন সার্ভিস (Sync Worker / `IngestApFeedJob`) যুক্ত করে দিতে হবে, যা AP API থেকে আসা নতুন ডেটাগুলোকে আমাদের এই মডেলের ভেতর ইনজেস্ট (Ingest) করবে।

@@ -404,10 +404,21 @@ Build order: `002`–`015` can run in parallel with `001`. E2E tasks start after
 | Task ID | Title | Dependencies | Status | Review | Completed |
 |---------|-------|--------------|--------|--------|-----------|
 | `BUG-STORY-001` | Production Story Reader 500 error (`/admin/story/{publicId}`) upon clicking eye preview icon | — | ✅ | — | 2026-11-16 |
+| `M8-WIZ-007` | Add News Step 1 Quick Setup (Category & Featured Media Shortcut) | `M8-WIZ-006` | ✅ | — | 2026-11-16 |
 
 ---
 
-## 26. How to Add a Task
+## 26. External Wire Integrations (`M18-AP`) — Backlog
+
+> Integration with external wire agency APIs (Associated Press / AP Wire).
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `M18-AP-001` | AP Wire Feed Integration (Sync Worker / `IngestApFeedJob` fetching external AP API into `media_assets` with `source='ap'`) | `M4-MEDIA-001` | ⏳ | — | — |
+
+---
+
+## 27. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.
