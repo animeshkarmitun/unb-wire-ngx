@@ -41,12 +41,12 @@ class StoryView extends Component
 
     public function getCanViewHistoryProperty(): bool
     {
-        return app(RbacService::class)->can(auth()->user(), 'history', 'view');
+        return auth()->check() && app(RbacService::class)->can(auth()->user(), 'history', 'view');
     }
 
     public function getCanEditStoryProperty(): bool
     {
-        return app(RbacService::class)->can(auth()->user(), 'stories', 'edit');
+        return auth()->check() && app(RbacService::class)->can(auth()->user(), 'stories', 'edit');
     }
 
     public function compareVersions(): void
@@ -183,7 +183,7 @@ class StoryView extends Component
 
     public function render()
     {
-        $this->story->loadMissing('versions.creator', 'events.actor', 'notes.user', 'tags', 'media', 'category', 'owner');
+        $this->story->loadMissing('versions.creator', 'events.actor', 'notes.user', 'tags', 'media', 'category', 'owner', 'deliveries');
 
         return view('livewire.admin.story-view');
     }

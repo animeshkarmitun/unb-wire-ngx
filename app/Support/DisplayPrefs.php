@@ -2,16 +2,18 @@
 
 namespace App\Support;
 
+use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 
 class DisplayPrefs
 {
-    public static function format(?Carbon $dt, ?string $timezone = null, ?string $format = null): string
+    public static function format(\DateTimeInterface|string|null $dt, ?string $timezone = null, ?string $format = null): string
     {
         if (! $dt) {
             return '';
         }
 
+        $carbon = $dt instanceof CarbonInterface ? $dt : Carbon::parse($dt);
         $tz = $timezone ?? (auth()->user()->timezone ?? 'Asia/Dhaka');
         $fmt = $format ?? (auth()->user()->date_format ?? 'dmy');
 
@@ -21,6 +23,6 @@ class DisplayPrefs
             'iso' => 'Y-m-d H:i',
         ];
 
-        return $dt->timezone($tz)->format($patterns[$fmt] ?? $patterns['dmy']);
+        return $carbon->timezone($tz)->format($patterns[$fmt] ?? $patterns['dmy']);
     }
 }

@@ -56,6 +56,7 @@ class StoryRepository
             'category', 'subCategory', 'owner.role',
             'assignedEditor', 'creator', 'tags', 'media',
             'versions.creator', 'notes.user', 'events.actor',
+            'deliveries',
         ])->find($id);
     }
 

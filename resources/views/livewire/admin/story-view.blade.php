@@ -369,7 +369,7 @@
             {{-- Featured Image Stage --}}
             @php
                 $feat = $this->featuredMedia;
-                $gradClass = $feat ? ($feat->derivatives['grad'] ?? ('g' . (($feat->id % 8) + 1))) : 'g1';
+                $gradClass = ($feat && is_array($feat->derivatives) && isset($feat->derivatives['grad'])) ? $feat->derivatives['grad'] : ($feat ? ('g' . (($feat->id % 8) + 1)) : 'g1');
             @endphp
             <div class="story-featured-box">
                 <div class="story-featured-stage {{ $feat && !empty($feat->original_path) ? '' : $gradClass }}" id="featuredStage">
@@ -602,7 +602,7 @@
                                                 "{{ $evt->payload['reason'] }}"
                                             @endif
                                             @if(isset($evt->payload['fields']))
-                                                {{ implode(', ', $evt->payload['fields']) }}
+                                                {{ is_array($evt->payload['fields']) ? implode(', ', $evt->payload['fields']) : $evt->payload['fields'] }}
                                             @endif
                                         </div>
                                     @endif

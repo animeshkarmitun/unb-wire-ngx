@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Livewire\Admin\StoryView;
 use App\Models\Category;
+use App\Models\MediaAsset;
 use App\Models\Role;
 use App\Models\Story;
 use App\Models\User;
@@ -213,5 +214,38 @@ class StoryViewTest extends TestCase
             ->test(StoryView::class, ['publicId' => $this->story->public_id]);
 
         $component->assertDontSee('Restore'); // only v1 exists, current = v1
+    }
+
+    public function test_story_reader_handles_string_fields_payload_in_timeline(): void
+    {
+        $this->editor->role->permissions()->create(['module' => 'history', 'can_view' => true]);
+        $this->story->events()->create([
+            'actor_id' => $this->editor->id,
+            'action' => 'ai_applied',
+            'from_status' => 'draft',
+            'to_status' => 'draft',
+            'payload' => ['fields' => 'headline, body'],
+            'created_at' => now(),
+        ]);
+
+        $response = $this->actingAs($this->editor)->get(route('admin.story', $this->story->public_id));
+
+        $response->assertOk();
+        $response->assertSee('headline, body');
+    }
+
+    public function test_story_reader_handles_media_with_null_derivatives(): void
+    {
+        $media = MediaAsset::factory()->create([
+            'derivatives' => ['grad' => null],
+            'caption' => 'Photo caption',
+        ]);
+
+        $this->story->media()->attach($media->id, ['role' => 'featured', 'sort_order' => 1]);
+
+        $response = $this->actingAs($this->editor)->get(route('admin.story', $this->story->public_id));
+
+        $response->assertOk();
+        $response->assertSee('Photo caption');
     }
 }

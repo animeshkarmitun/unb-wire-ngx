@@ -399,7 +399,15 @@ Build order: `002`–`015` can run in parallel with `001`. E2E tasks start after
 
 ---
 
-## 25. How to Add a Task
+## 25. Operational & Production Hotfixes (`HOTFIX` / `BUG`) — 2026-11-16
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `BUG-STORY-001` | Production Story Reader 500 error (`/admin/story/{publicId}`) upon clicking eye preview icon | — | ✅ | — | 2026-11-16 |
+
+---
+
+## 26. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.
