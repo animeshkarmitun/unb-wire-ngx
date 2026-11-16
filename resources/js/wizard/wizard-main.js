@@ -887,6 +887,13 @@ const addMediaAfter = document.getElementById('addMediaAfter');
         return;
       }
 
+      // Quick-setup archive trigger (Step 1 shortcut)
+      const quickArchiveBtn = e.target.closest('.js-open-archive');
+      if (quickArchiveBtn) {
+        openArchiveModal(quickArchiveBtn.dataset.archiveMode || 'featured');
+        return;
+      }
+
       const openAttachBtn = e.target.closest('#openAttachArchive');
       if (openAttachBtn) {
         openArchiveModal('attach');

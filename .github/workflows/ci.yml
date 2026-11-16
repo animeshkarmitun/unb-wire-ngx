@@ -108,6 +108,7 @@ jobs:
             cd $VPS_PATH
             git fetch origin main
             git reset --hard origin/main
+            docker exec wire-app-1 npm run build
             docker exec wire-app-1 php artisan optimize:clear
             docker exec wire-app-1 php artisan view:clear
             docker exec wire-app-1 php artisan horizon:terminate || true

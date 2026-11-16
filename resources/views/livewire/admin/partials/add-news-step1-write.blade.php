@@ -62,6 +62,59 @@
             </div>
           </div>
 
+          <!-- Quick Setup: Category + Featured Image shortcut -->
+          <div class="quick-setup">
+            <div class="quick-setup-row">
+              {{-- Category quick-select --}}
+              <div class="quick-setup-col">
+                <label class="field-label" for="quickCatSelect">Category <span class="req">*</span></label>
+                <select class="select-input" id="quickCatSelect" wire:model.live="categoryId">
+                  <option value="">Select category</option>
+                  @foreach($cats as $c)
+                    <option value="{{ $c->id }}">{{ $c->name_en }} / {{ $c->name_bn }}</option>
+                  @endforeach
+                </select>
+                @error('categoryId') <div class="error-text show">{{ $message }}</div> @enderror
+              </div>
+
+              {{-- Featured image quick-attach --}}
+              <div class="quick-setup-col">
+                <label class="field-label">Featured image</label>
+                @if($featuredMediaId)
+                  @php
+                    $qFeatured = collect($attachedMedia)->firstWhere('id', $featuredMediaId);
+                    $qFeatSrc = $qFeatured['src'] ?? null;
+                  @endphp
+                  <div class="quick-feat-preview">
+                    <div class="quick-feat-thumb">
+                      @if($qFeatSrc)
+                        <img src="{{ $qFeatSrc }}" alt="{{ $featuredCaption }}">
+                      @else
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                      @endif
+                    </div>
+                    <span class="quick-feat-cap">{{ Str::limit($featuredCaption ?: 'Featured image', 40) }}</span>
+                    <button type="button" class="quick-feat-change js-open-archive" data-archive-mode="featured" title="Change image">Change</button>
+                    <button type="button" class="quick-feat-remove" wire:click="$set('featuredMediaId', null)" title="Remove featured image">✕</button>
+                  </div>
+                @else
+                  <div class="quick-feat-actions">
+                    <button type="button" class="btn btn-outline btn-sm js-open-archive" data-archive-mode="featured">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                      Choose from archive
+                    </button>
+                    <label class="btn btn-outline btn-sm" style="cursor:pointer" wire:click="$set('uploadMode', 'featured')">
+                      <input type="file" accept="image/*" hidden wire:model="mediaUpload" data-upload-mode="featured">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      Upload
+                    </label>
+                  </div>
+                  <div class="field-hint" style="margin-top:4px">Optional — can add later on Step 2</div>
+                @endif
+              </div>
+            </div>
+          </div>
+
           <!-- Headline -->
           <div class="field {{ !empty($aiTouched['headline']) ? 'ai-touched' : '' }}">
             <label class="field-label" for="headlineInput">Headline <span class="req">*</span></label>

@@ -134,6 +134,19 @@ class AddNewsTest extends TestCase
             ->assertHasNoErrors(['categoryId']);
     }
 
+    public function test_step1_renders_quick_setup_for_category_and_featured_media(): void
+    {
+        $this->actingAs($this->editor);
+
+        Livewire::test(AddNews::class)
+            ->assertSet('step', 1)
+            ->assertSeeHtml('id="quickCatSelect"')
+            ->assertSeeHtml('js-open-archive')
+            ->assertSeeHtml('Choose from archive')
+            ->set('categoryId', (string) $this->cat->id)
+            ->assertSet('categoryId', (string) $this->cat->id);
+    }
+
     public function test_stepper_navigates_through_all_steps(): void
     {
         $this->actingAs($this->editor);
