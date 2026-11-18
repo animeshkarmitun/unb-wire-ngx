@@ -61,7 +61,7 @@ class PrivatizeMedia extends Command
             $orphans++;
         }
 
-        $this->info($dryRun ? '[dry-run] ' : ''."Privatized {$assets} media assets ({$files} files), moved {$orphans} orphan files under media/.");
+        $this->info(($dryRun ? '[dry-run] ' : '')."Privatized {$assets} media assets ({$files} files), moved {$orphans} orphan files under media/.");
         if ($dryRun && ($files > 0 || $orphans > 0)) {
             $this->line('Re-run without --dry-run to apply.');
         }
@@ -80,5 +80,28 @@ class PrivatizeMedia extends Command
             }
         }
         Storage::disk('public')->delete($path);
+        $this->ensureReadable($path);
+    }
+
+    /**
+     * The local disk is not web-served but must be traversable by the PHP-FPM
+     * user (which may differ from the user running this command, e.g. root in
+     * docker exec). 0644 files / 0755 dirs keep the private disk readable.
+     */
+    private function ensureReadable(string $path): void
+    {
+        $disk = Storage::disk('local');
+        try {
+            $full = $disk->path($path);
+            $root = rtrim(str_replace('\\', '/', $disk->path('')), '/');
+            @chmod($full, 0644);
+            $dir = str_replace('\\', '/', dirname($full));
+            while ($dir !== $root && str_starts_with($dir, $root)) {
+                @chmod($dir, 0755);
+                $dir = dirname($dir);
+            }
+        } catch (\Throwable $e) {
+            // Non-local or unavailable path — nothing to normalize.
+        }
     }
 }

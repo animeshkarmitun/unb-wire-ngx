@@ -81,10 +81,12 @@ Tier limits, quotas and the AP licence are meaningless while this is open.
       unsigned file route → **403**; story download → 200.
 - [x] `php artisan media:privatize` executed locally: moved 222 orphan files off the public
       disk; `/storage/media/...` → **404** afterwards; signed media route still serves bytes.
-- [ ] **Live server deploy steps (manual/CD):** pull → `php artisan config:clear` →
-      `php artisan media:privatize` → smoke `/api/v1/portal/feed` (expect 401 without
-      token, 200 with), `/storage/media/ap/...` (expect 404 after sweep).
-- [ ] One Group ERP (port 80) untouched.
+- [x] **Live server verified (2026-11-18, 147.93.171.193):**
+  - unauth feed/context → **401**; client login (The Daily Star) → feed 200 (entitlement-filtered), story detail 200
+  - presigned download → signed `media.file` URL → **200** image/jpeg; unsigned file route → **403**; presign without token → **401**
+  - `media:privatize` executed on server: 45 assets moved; `/storage/media/ap/...` → **404**
+  - admin panel & login page unaffected (200)
+  - **Deploy gotcha:** `docker exec` runs as root — moved files/dirs need `chmod u+rwX,go+rX` or php-fpm (www-data) cannot traverse them (symptom: signed URL → 404). `media:privatize` now normalizes perms automatically (0644 files / 0755 dirs below the disk root).
 
 ## 5. Known Follow-ups (out of scope here)
 
