@@ -101,6 +101,38 @@ async function getIssue(identifier) {
   return data.issue;
 }
 
+async function commentOnIssue(identifier, body) {
+  const issue = await getIssue(identifier);
+  const query = `
+    mutation($input: CommentCreateInput!) {
+      commentCreate(input: $input) { success }
+    }
+  `;
+  await gql(query, { input: { issueId: issue.id, body } });
+  return issue.identifier;
+}
+
+async function moveIssue(identifier, stateName) {
+  const issue = await getIssue(identifier);
+  const teamId = await (async () => {
+    const q = `query { issue(id: "${issue.id}") { team { id } } }`;
+    return (await gql(q)).issue.team.id;
+  })();
+  const states = await gql(
+    `query($teamId: ID!) { workflowStates(filter: { team: { id: { eq: $teamId } } }) { nodes { id name } } }`,
+    { teamId }
+  );
+  const state = states.workflowStates.nodes.find(
+    s => s.name.toLowerCase() === String(stateName).toLowerCase()
+  );
+  if (!state) throw new Error(`State "${stateName}" not found. Available: ${states.workflowStates.nodes.map(s => s.name).join(', ')}`);
+  await gql(
+    `mutation($id: String!, $stateId: String!) { issueUpdate(id: $id, input: { stateId: $stateId }) { success } }`,
+    { id: issue.id, stateId: state.id }
+  );
+  return `${issue.identifier} -> ${state.name}`;
+}
+
 // CLI handling
 const [,, cmd, arg1] = process.argv;
 
@@ -123,6 +155,32 @@ if (!cmd || cmd === 'list') {
     console.log(`Labels: ${issue.labels.nodes.map(l => l.name).join(', ')}`);
     console.log(`\nDescription:\n${issue.description}\n`);
   }).catch(console.error);
+} else if (cmd === 'comment') {
+  // Usage: node scripts/linear-client.cjs comment COS-74 <body>  (or pipe body via stdin with "-")
+  if (!arg1) {
+    console.error('Usage: node scripts/linear-client.cjs comment <IDENTIFIER> <body|- (stdin)>');
+    process.exit(1);
+  }
+  const bodyPromise = arg1 === '-'
+    ? new Promise(resolve => {
+        let buf = '';
+        process.stdin.on('data', d => buf += d);
+        process.stdin.on('end', () => resolve(buf));
+      })
+    : Promise.resolve(arg1);
+  bodyPromise
+    .then(body => commentOnIssue(arg1, body))
+    .then(id => console.log(`Comment posted on ${id}`))
+    .catch(console.error);
+} else if (cmd === 'move') {
+  // Usage: node scripts/linear-client.cjs move COS-74 "In Progress"
+  if (!arg1 || !process.argv[4]) {
+    console.error('Usage: node scripts/linear-client.cjs move <IDENTIFIER> <STATE NAME>');
+    process.exit(1);
+  }
+  moveIssue(arg1, process.argv[4])
+    .then(r => console.log(r))
+    .catch(console.error);
 } else {
-  console.log('Usage: node scripts/linear-client.cjs [list|get] [filter|issueId]');
+  console.log('Usage: node scripts/linear-client.cjs [list|get|comment|move] [args]');
 }
