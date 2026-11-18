@@ -1085,8 +1085,7 @@ class AddNewsTest extends TestCase
 
     // ─── Edit Existing Story ───────────────────────────────────────
 
-    public function test_mount_with_existing_story_loads_state(): void
-    {
+    public function test_mount_with_existing_story_loads_state(): void    {
         $this->actingAs($this->editor);
         $tag = Tag::create(['name' => 'politics', 'slug' => 'politics']);
         $story = $this->createDraftStory();
@@ -1098,6 +1097,23 @@ class AddNewsTest extends TestCase
             ->assertSet('brief', 'Draft brief')
             ->assertSet('status', 'draft')
             ->assertSet('tags', ['politics']);
+    }
+
+    public function test_mount_renders_story_with_attached_media(): void
+    {
+        // Regression (COS-74 follow-up): getAttachedMedia must return models —
+        // staffUrl() on stdClass rows 500'd the wizard for any story with media.
+        $story = $this->createDraftStory($this->uploader);
+        $asset = $this->makeMediaAsset('Attached probe');
+        $asset->forceFill(['storage_disk' => 'local', 'original_path' => 'media/uploads/attached.jpg'])->saveQuietly();
+        Storage::fake('local');
+        Storage::disk('local')->put('media/uploads/attached.jpg', 'jpeg-bytes');
+        $story->media()->attach($asset->id, ['role' => 'featured', 'sort_order' => 1]);
+
+        $this->actingAs($this->editor);
+        Livewire::test(AddNews::class, ['id' => $story->id])
+            ->assertSet('featuredMediaId', $asset->id)
+            ->assertSet('featuredCaption', 'Attached probe caption');
     }
 
     // ─── Autosave & Versioning ─────────────────────────────────────

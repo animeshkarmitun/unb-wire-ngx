@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Category;
+use App\Models\MediaAsset;
 use App\Models\Story;
 use App\Models\StoryEvent;
 use App\Models\StoryNote;
@@ -357,11 +358,14 @@ class StoryRepository
 
     public function getAttachedMedia(int $storyId): Collection
     {
-        return DB::table('story_media')
-            ->join('media_assets', 'media_assets.id', '=', 'story_media.asset_id')
+        // Eloquent models (not stdClass rows) so consumers can call model
+        // helpers like MediaAsset::staffUrl() (COS-74 regression fix).
+        // withTrashed: attached media stays visible even if later soft-deleted.
+        return MediaAsset::withTrashed()
+            ->join('story_media', 'story_media.asset_id', '=', 'media_assets.id')
             ->where('story_media.story_id', $storyId)
             ->orderBy('story_media.sort_order')
-            ->select('media_assets.id', 'media_assets.title', 'media_assets.caption', 'media_assets.kind', 'media_assets.original_path', 'story_media.role', 'story_media.caption_override')
+            ->select('media_assets.*', 'story_media.role', 'story_media.caption_override')
             ->get();
     }
 
