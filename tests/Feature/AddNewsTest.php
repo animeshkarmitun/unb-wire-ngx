@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\MediaAsset;
 use App\Models\Role;
 use App\Models\Story;
+use App\Services\StoryService;
 use App\Models\Tag;
 use App\Models\User;
 use Database\Seeders\CategorySeeder;
@@ -987,6 +988,99 @@ class AddNewsTest extends TestCase
         // Uploaders hand off via the editor gate
         $this->actingAs($this->uploader);
         Livewire::test(AddNews::class)->assertSee('wfSendBtn');
+    }
+
+    // ─── COS-76: editor "Needs work" send-back ──────────────────────
+
+    public function test_editor_can_send_in_review_story_back_with_comment(): void
+    {
+        $story = $this->createDraftStory($this->uploader);
+        app(StoryService::class)->transition($story, 'in_review', $this->uploader);
+
+        $this->actingAs($this->editor);
+        $cmp = Livewire::test(AddNews::class, ['id' => $story->id])
+            ->call('toggleNeedsWorkForm', true)
+            ->assertSet('showNeedsWorkForm', true)
+            ->set('needsWorkComment', 'Lead buries the news — rework the first two paragraphs.')
+            ->call('requestChanges')
+            ->assertSet('status', 'changes_requested')
+            ->assertSet('successState', 'needs_work')
+            ->assertSet('showNeedsWorkForm', false)
+            ->assertDispatched('toast');
+
+        $story->refresh();
+        $this->assertEquals('changes_requested', $story->status);
+        $this->assertDatabaseHas('story_events', [
+            'story_id' => $story->id,
+            'action' => 'changes_requested',
+        ]);
+        $this->assertDatabaseHas('story_events', [
+            'story_id' => $story->id,
+            'action' => 'note_added',
+        ]);
+        $this->assertDatabaseHas('story_notes', [
+            'story_id' => $story->id,
+            'body' => 'Lead buries the news — rework the first two paragraphs.',
+            'is_internal' => true,
+        ]);
+    }
+
+    public function test_request_changes_requires_comment(): void
+    {
+        $story = $this->createDraftStory($this->uploader);
+        app(StoryService::class)->transition($story, 'in_review', $this->uploader);
+
+        $this->actingAs($this->editor);
+        Livewire::test(AddNews::class, ['id' => $story->id])
+            ->call('requestChanges')
+            ->assertHasErrors(['needsWorkComment']);
+
+        $story->refresh();
+        $this->assertEquals('in_review', $story->status);
+    }
+
+    public function test_owner_cannot_send_own_story_back(): void
+    {
+        $story = $this->createDraftStory($this->editor);
+        app(StoryService::class)->transition($story, 'in_review', $this->editor);
+
+        $this->actingAs($this->editor);
+        Livewire::test(AddNews::class, ['id' => $story->id])
+            ->call('toggleNeedsWorkForm', true)
+            ->set('needsWorkComment', 'Not applicable comment here')
+            ->call('requestChanges')
+            ->assertDispatched('toast', message: 'This story cannot be sent back right now');
+
+        $story->refresh();
+        $this->assertEquals('in_review', $story->status);
+    }
+
+    public function test_needs_work_button_visible_for_editor_on_reviewing_others_story(): void
+    {
+        $story = $this->createDraftStory($this->uploader);
+        app(StoryService::class)->transition($story, 'in_review', $this->uploader);
+
+        $this->actingAs($this->editor);
+        Livewire::test(AddNews::class, ['id' => $story->id])->assertSee('wfNeedsWorkBtn');
+
+        // The owner does not see it on their own story
+        $this->actingAs($this->uploader);
+        Livewire::test(AddNews::class, ['id' => $story->id])->assertDontSee('wfNeedsWorkBtn');
+    }
+
+    public function test_publish_capable_user_can_publish_story_in_changes_requested(): void
+    {
+        $story = $this->createDraftStory($this->uploader);
+        app(StoryService::class)->transition($story, 'in_review', $this->uploader);
+        app(StoryService::class)->transition($story, 'changes_requested', $this->editor);
+
+        $this->actingAs($this->admin);
+        Livewire::test(AddNews::class, ['id' => $story->id])
+            ->call('publish')
+            ->assertSet('status', 'published');
+
+        $story->refresh();
+        $this->assertEquals('published', $story->status);
     }
 
     // ─── Edit Existing Story ───────────────────────────────────────
