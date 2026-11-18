@@ -406,7 +406,8 @@ Build order: `002`–`015` can run in parallel with `001`. E2E tasks start after
 | `BUG-STORY-001` | Production Story Reader 500 error (`/admin/story/{publicId}`) upon clicking eye preview icon | — | ✅ | — | 2026-11-16 |
 | `M8-WIZ-007` | Add News Step 1 Quick Setup (Category & Featured Media Shortcut) | `M8-WIZ-006` | ✅ | — | 2026-11-16 |
 | `M17-PUB-001` | Backdate Story Publishing Support (past published_at timestamp, wizard review UI, audit payload) | — | ✅ | — | 2026-11-18 |
-| `COS-74` | Portal API & media require authentication (P1 security — feed/story/context/search-token 401, media privatized to private disk + signed URLs) | — | 🔧 | — | — |
+| `COS-74` | Portal API & media require authentication (P1 security — feed/story/context/search-token 401, media privatized to private disk + signed URLs) | — | ✅ | PR #59 / #61 | 2026-11-18 |
+| `COS-62` | Portal broken "Admin panel" localhost link removed; env-driven `NEXT_PUBLIC_ADMIN_URL` for staff links | — | ✅ | PR #60 | 2026-11-18 |
 
 ---
 
