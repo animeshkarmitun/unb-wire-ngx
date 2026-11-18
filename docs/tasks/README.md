@@ -414,6 +414,7 @@ Build order: `002`–`015` can run in parallel with `001`. E2E tasks start after
 | `COS-63` | Language-aware RBAC: `stories_bn` module wired into news/service/story/wizard routes + components; sidebar per-language links | — | ✅ | PR #71 | 2026-11-18 |
 | `COS-68/67/70/69/71` | Audit batch: role/user actions route through log() (ip+correlation), actor names, readable diffs, id tiebreaker, seconds, full filter list | — | ✅ | PR #73 | 2026-11-18 |
 | `COS-79` | Admin Clients usage column shows portal QuotaService truth (no fabricated /800, no 0-clamp); tier-rules product decisions flagged | — | ✅ | PR #75 | 2026-11-18 |
+| `COS-78` | `BriefBuilder` (sentence-boundary briefs, no mid-word cuts/newlines) + `stories:repair-briefs` data repair; `is_breaking` auto-clear flagged as product decision | — | 🔧 | — | — |
 
 ---
 
