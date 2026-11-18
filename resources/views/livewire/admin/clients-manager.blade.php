@@ -111,8 +111,19 @@
         $uiStatus = $c->status === 'suspended' ? 'paused' : ($c->status === 'closed' ? 'deactivated' : 'active');
         $issue = $this->clientHasIssue($c);
         $dl = $meta['usage']['dl'] ?? 0;
-        $quota = max(1, $meta['usage']['quota'] ?? 800);
-        $pct = min(100, (int) round(($dl / $quota) * 100));
+        // COS-79: QuotaService truth — null quota = unlimited, 0 = none (never fabricated).
+        $mediaUsed = $meta['usage']['media_used'] ?? 0;
+        $mediaQuota = $meta['usage']['media_quota'] ?? null;
+        $storiesUsed = $meta['usage']['stories_used'] ?? 0;
+        $storiesQuota = $meta['usage']['stories_quota'] ?? null;
+        $usageText = $mediaQuota !== null
+            ? number_format($mediaUsed).' / '.number_format($mediaQuota).' media'
+            : ($storiesQuota !== null
+                ? number_format($storiesUsed).' / '.number_format($storiesQuota).' stories'
+                : 'Unlimited');
+        $usageQuota = $mediaQuota ?? $storiesQuota;
+        $usagePct = $usageQuota !== null && $usageQuota > 0 ? min(100, (int) round((($mediaQuota !== null ? $mediaUsed : $storiesUsed) / $usageQuota) * 100)) : 0;
+        $pct = $usagePct;
         $isSelected = in_array($c->id, $selectedIds);
 
         // Channels health evaluation
@@ -171,7 +182,7 @@
           <span class="cl-tier {{ $tier }}">{{ $tier }}</span>
         </span>
         <span class="cl-hide-m">
-          <span class="cl-usage">{{ number_format($dl) }} / {{ number_format($quota) }} media</span>
+          <span class="cl-usage">{{ $usageText }}</span>
           <span class="u-bar"><span class="u-fill" style="display:block;width:{{ $pct }}%{{ $pct > 85 ? ';background:var(--crimson, #e5484d)' : '' }}"></span></span>
         </span>
         <span class="cl-status {{ $uiStatus }}"><i></i>{{ ucfirst($uiStatus) }}</span>
@@ -195,8 +206,19 @@
         $selStatus = $selected->status === 'suspended' ? 'paused' : ($selected->status === 'closed' ? 'deactivated' : 'active');
         $selIssue = $this->clientHasIssue($selected);
         $selDl = $selMeta['usage']['dl'] ?? 0;
-        $selQuota = max(1, $selMeta['usage']['quota'] ?? 800);
-        $selPct = min(100, (int) round(($selDl / $selQuota) * 100));
+        // COS-79: same QuotaService numbers as the portal.
+        $selMediaUsed = $selMeta['usage']['media_used'] ?? 0;
+        $selMediaQuota = $selMeta['usage']['media_quota'] ?? null;
+        $selStoriesUsed = $selMeta['usage']['stories_used'] ?? 0;
+        $selStoriesQuota = $selMeta['usage']['stories_quota'] ?? null;
+        $selUsageText = $selMediaQuota !== null
+            ? number_format($selMediaUsed).' / '.number_format($selMediaQuota).' media'
+            : ($selStoriesQuota !== null
+                ? number_format($selStoriesUsed).' / '.number_format($selStoriesQuota).' stories'
+                : 'Unlimited');
+        $selUsageQuota = $selMediaQuota ?? $selStoriesQuota;
+        $selUsageVal = $selMediaQuota !== null ? $selMediaUsed : $selStoriesUsed;
+        $selPct = $selUsageQuota !== null && $selUsageQuota > 0 ? min(100, (int) round(($selUsageVal / $selUsageQuota) * 100)) : 0;
 
         // Renewal due soon check
         $endsAt = $selected->clientPackages->first()?->ends_at;
@@ -306,8 +328,8 @@
             <div class="dr-sec-title">Usage this cycle</div>
             <div class="usage-grid">
               <div class="usage-box">
-                <div class="usage-num">{{ number_format($selDl) }}</div>
-                <div class="usage-label">Media downloads ({{ $selPct }}% of quota)</div>
+                <div class="usage-num">{{ $selUsageText }}</div>
+                <div class="usage-label">{{ $selUsageQuota !== null ? 'Quota usage ('.$selPct.'%)' : 'No quota cap' }}</div>
               </div>
               <div class="usage-box">
                 <div class="usage-num">{{ $selMeta['usage']['api'] ?? '—' }}</div>
