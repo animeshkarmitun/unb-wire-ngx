@@ -41,6 +41,12 @@ import {
 } from "../lib/format";
 import { downloadMedia } from "../lib/download";
 
+// COS-62: staff-only surfaces are reachable from the portal via env config —
+// never hardcoded localhost defaults.
+const ADMIN_URL =
+  process.env.NEXT_PUBLIC_ADMIN_URL ??
+  `${process.env.NEXT_PUBLIC_LARAVEL_URL ?? "http://localhost:8000"}/admin`;
+
 export default function ClientPortal() {
   // ===== Master State =====
   const [clientInfo, setClientInfo] = useState<any>(null);
@@ -778,10 +784,6 @@ export default function ClientPortal() {
               <span id="clockTime">{clockText}</span>
             </div>
 
-            <a className="admin-chip" href="http://localhost:8000/admin">
-              ← Admin panel
-            </a>
-
             {clientInfo && (
               <a
                 href="/notifications"
@@ -964,7 +966,7 @@ export default function ClientPortal() {
                       </svg>
                       My downloads
                     </a>
-                    <a className="drop-item" href="http://localhost:8000/admin">
+                    <a className="drop-item" href={ADMIN_URL}>
                       <svg
                         viewBox="0 0 24 24"
                         fill="none"
@@ -1248,7 +1250,7 @@ export default function ClientPortal() {
                 )}
                 <a
                   className="drop-item"
-                  href="http://localhost:8000/admin"
+                  href={ADMIN_URL}
                   style={{ marginTop: "10px", paddingLeft: "0" }}
                 >
                   <svg
