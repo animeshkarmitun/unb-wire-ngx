@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Models\Device;
 use App\Models\Role;
 use App\Models\User;
+use App\Repositories\AuditLogRepository;
 use App\Services\RbacService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -269,18 +270,7 @@ class RolesManager extends Component
                 $role->permissions()->updateOrCreate(['module' => $mid], $data);
             }
 
-            DB::table('audit_logs')->insert([
-                'actor_type' => 'user',
-                'actor_id' => auth()->id(),
-                'action' => 'role.updated',
-                'entity_type' => 'role',
-                'entity_id' => $role->id,
-                'diff' => json_encode([
-                    'message' => '<b>'.e(auth()->user()->name ?? 'Admin').'</b> updated role <b>'.e($role->name).'</b>',
-                    'color' => 'var(--crimson, #e5484d)',
-                ]),
-                'created_at' => now(),
-            ]);
+            $this->audit('role.updated', 'role', $role->id, (auth()->user()->name ?? 'Admin').' updated role '.$role->name);
         });
 
         $this->editingRoleId = null;
@@ -323,18 +313,7 @@ class RolesManager extends Component
                 ]);
             }
 
-            DB::table('audit_logs')->insert([
-                'actor_type' => 'user',
-                'actor_id' => auth()->id(),
-                'action' => 'role.created',
-                'entity_type' => 'role',
-                'entity_id' => $role->id,
-                'diff' => json_encode([
-                    'message' => 'Role <b>'.e($role->name).'</b> created — copied from <b>'.e($src->name).'</b>',
-                    'color' => 'var(--green, #16a34a)',
-                ]),
-                'created_at' => now(),
-            ]);
+            $this->audit('role.created', 'role', $role->id, 'Role '.$role->name.' created — copied from '.$src->name);
 
             return $role;
         });
@@ -386,18 +365,7 @@ class RolesManager extends Component
             $role->permissions()->delete();
             $role->delete();
 
-            DB::table('audit_logs')->insert([
-                'actor_type' => 'user',
-                'actor_id' => auth()->id(),
-                'action' => 'role.deleted',
-                'entity_type' => 'role',
-                'entity_id' => null,
-                'diff' => json_encode([
-                    'message' => 'Role <b>'.e($roleName).'</b> deleted',
-                    'color' => '#b7791f',
-                ]),
-                'created_at' => now(),
-            ]);
+            $this->audit('role.deleted', 'role', null, 'Role '.$roleName.' deleted');
         });
 
         $this->showDeleteModal = false;
@@ -460,18 +428,7 @@ class RolesManager extends Component
                 ]);
             }
 
-            DB::table('audit_logs')->insert([
-                'actor_type' => 'user',
-                'actor_id' => auth()->id(),
-                'action' => 'role.created',
-                'entity_type' => 'role',
-                'entity_id' => $r->id,
-                'diff' => json_encode([
-                    'message' => 'Role <b>'.e($r->name).'</b> created'.($src ? ' — copied from <b>'.e($src->name).'</b>' : ''),
-                    'color' => 'var(--green, #16a34a)',
-                ]),
-                'created_at' => now(),
-            ]);
+            $this->audit('role.created', 'role', $r->id, 'Role '.$r->name.' created'.($src ? ' — copied from '.$src->name : ''));
 
             return $r;
         });
@@ -505,18 +462,7 @@ class RolesManager extends Component
 
         $target->update(['role_id' => $newRole->id]);
 
-        DB::table('audit_logs')->insert([
-            'actor_type' => 'user',
-            'actor_id' => auth()->id(),
-            'action' => 'user.role_changed',
-            'entity_type' => 'user',
-            'entity_id' => $target->id,
-            'diff' => json_encode([
-                'message' => '<b>'.e($target->name).'</b> moved to role <b>'.e($newRole->name).'</b>',
-                'color' => 'var(--blue, #3b6fe0)',
-            ]),
-            'created_at' => now(),
-        ]);
+        $this->audit('user.role_changed', 'user', $target->id, $target->name.' moved to role '.$newRole->name);
 
         $this->dispatch('toast', message: $target->name.' is now '.$newRole->name);
     }
@@ -542,18 +488,7 @@ class RolesManager extends Component
         DB::table('sessions')->where('user_id', $target->id)->delete();
         Device::where('user_id', $target->id)->whereNull('revoked_at')->update(['revoked_at' => now()]);
 
-        DB::table('audit_logs')->insert([
-            'actor_type' => 'user',
-            'actor_id' => auth()->id(),
-            'action' => 'user.deactivated',
-            'entity_type' => 'user',
-            'entity_id' => $target->id,
-            'diff' => json_encode([
-                'message' => '<b>'.e($target->name).'</b> deactivated — access revoked',
-                'color' => '#b7791f',
-            ]),
-            'created_at' => now(),
-        ]);
+        $this->audit('user.deactivated', 'user', $target->id, $target->name.' deactivated — access revoked');
 
         $this->dispatch('toast', message: $target->name.' deactivated');
     }
@@ -568,18 +503,7 @@ class RolesManager extends Component
             'last_seen_at' => now(),
         ]);
 
-        DB::table('audit_logs')->insert([
-            'actor_type' => 'user',
-            'actor_id' => auth()->id(),
-            'action' => 'user.activated',
-            'entity_type' => 'user',
-            'entity_id' => $target->id,
-            'diff' => json_encode([
-                'message' => '<b>'.e($target->name).'</b> reactivated',
-                'color' => 'var(--green, #16a34a)',
-            ]),
-            'created_at' => now(),
-        ]);
+        $this->audit('user.activated', 'user', $target->id, $target->name.' reactivated');
 
         $this->dispatch('toast', message: $target->name.' reactivated');
     }
@@ -609,18 +533,12 @@ class RolesManager extends Component
 
         $target->update(['is_superadmin' => ! $target->is_superadmin]);
 
-        DB::table('audit_logs')->insert([
-            'actor_type' => 'user',
-            'actor_id' => auth()->id(),
-            'action' => $target->is_superadmin ? 'user.superadmin.granted' : 'user.superadmin.revoked',
-            'entity_type' => 'user',
-            'entity_id' => $target->id,
-            'diff' => json_encode([
-                'message' => '<b>'.e($target->name).'</b> '.($target->is_superadmin ? 'granted' : 'revoked').' superadmin access',
-                'color' => $target->is_superadmin ? 'var(--green, #16a34a)' : '#b7791f',
-            ]),
-            'created_at' => now(),
-        ]);
+        $this->audit(
+            $target->is_superadmin ? 'user.superadmin.granted' : 'user.superadmin.revoked',
+            'user',
+            $target->id,
+            $target->name.' '.($target->is_superadmin ? 'granted' : 'revoked').' superadmin access'
+        );
 
         $this->dispatch('toast', message: $target->name.' superadmin '.($target->is_superadmin ? 'granted' : 'revoked'));
     }
@@ -670,18 +588,7 @@ class RolesManager extends Component
             'timezone' => 'Asia/Dhaka',
         ]);
 
-        DB::table('audit_logs')->insert([
-            'actor_type' => 'user',
-            'actor_id' => auth()->id(),
-            'action' => 'user.invited',
-            'entity_type' => 'user',
-            'entity_id' => $user->id,
-            'diff' => json_encode([
-                'message' => '<b>'.e($user->name).'</b> invited as <b>'.e($role->name).'</b>',
-                'color' => 'var(--blue, #3b6fe0)',
-            ]),
-            'created_at' => now(),
-        ]);
+        $this->audit('user.invited', 'user', $user->id, $user->name.' invited as '.$role->name);
 
         $this->showInviteModal = false;
         $this->dispatch('toast', message: 'Invite sent to '.$user->email);
@@ -693,7 +600,7 @@ class RolesManager extends Component
     {
         $roles = Role::with(['permissions', 'users'])->withCount('users')->orderBy('id')->get();
         $people = User::with('role')->orderBy('name')->get();
-        $audits = DB::table('audit_logs')->orderByDesc('created_at')->limit(15)->get();
+        $audits = DB::table('audit_logs')->orderByDesc('created_at')->orderByDesc('id')->limit(15)->get();
 
         $editingRole = $this->editingRoleId ? Role::with('users')->find($this->editingRoleId) : null;
 
@@ -707,5 +614,15 @@ class RolesManager extends Component
             'customRoles' => $roles->where('type', 'custom')->count(),
             'pendingInvites' => $people->where('status', 'invited')->count(),
         ]);
+    }
+
+    /**
+     * COS-68/69: audit role/user changes through the repository so IP,
+     * user-agent and correlation ID are captured like story actions, and
+     * keep the diff a plain readable message (no HTML/styling metadata).
+     */
+    private function audit(string $action, string $entityType, ?int $entityId, string $message): void
+    {
+        app(AuditLogRepository::class)->log($action, $entityType, $entityId, ['message' => $message]);
     }
 }

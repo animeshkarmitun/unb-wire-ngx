@@ -72,6 +72,15 @@ class AuditLogBrowser extends Component
 
     public function render()
     {
-        return view('livewire.admin.audit-log-browser')->layout('components.layouts.admin');
+        // COS-67: resolve actor names for the current page (no "User #N" labels).
+        $results = $this->results;
+        $ids = $results->getCollection()->pluck('actor_id')->filter()->unique();
+        $actorNames = $ids->isEmpty()
+            ? []
+            : \App\Models\User::whereIn('id', $ids)->pluck('name', 'id')->all();
+
+        return view('livewire.admin.audit-log-browser', [
+            'actorNames' => $actorNames,
+        ])->layout('components.layouts.admin');
     }
 }

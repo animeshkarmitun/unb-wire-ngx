@@ -16,9 +16,18 @@
                     @foreach(\App\Models\StoryEvent::ACTIONS as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
+                    <option value="role.created">Role created</option>
                     <option value="role.updated">Role updated</option>
+                    <option value="role.deleted">Role deleted</option>
+                    <option value="user.invited">User invited</option>
+                    <option value="user.role_changed">User role changed</option>
+                    <option value="user.activated">User activated</option>
+                    <option value="user.deactivated">User deactivated</option>
+                    <option value="user.superadmin.granted">Superadmin granted</option>
+                    <option value="user.superadmin.revoked">Superadmin revoked</option>
                     <option value="ai.kill_switch.on">AI kill switch on</option>
                     <option value="ai.kill_switch.off">AI kill switch off</option>
+                    <option value="ai.settings.updated">AI settings updated</option>
                 </select>
             </div>
             <div>
@@ -27,6 +36,10 @@
                     <option value="">All types</option>
                     <option value="Story">Story</option>
                     <option value="role">Role</option>
+                    <option value="user">User</option>
+                    <option value="client_user">Portal user</option>
+                    <option value="ClientApiKey">API key</option>
+                    <option value="setting">Setting</option>
                     <option value="ai">AI</option>
                 </select>
             </div>
@@ -62,10 +75,10 @@
             <tbody>
                 @forelse($this->results as $log)
                     <tr class="border-b border-border hover:bg-gray-50">
-                        <td class="px-4 py-2 text-muted whitespace-nowrap">{{ \App\Support\DisplayPrefs::format($log->created_at) }}</td>
+                        <td class="px-4 py-2 text-muted whitespace-nowrap">{{ \App\Support\DisplayPrefs::format($log->created_at, format: 'j M, h:i:s A') }}</td>
                         <td class="px-4 py-2 font-semibold text-ink">
                             @if($log->actor_type === 'user' && $log->actor_id)
-                                User #{{ $log->actor_id }}
+                                {{ $actorNames[$log->actor_id] ?? 'User #'.$log->actor_id }}
                             @else
                                 <span class="text-muted italic">{{ $log->actor_type }}</span>
                             @endif
@@ -94,11 +107,19 @@
                             @endif
                         </td>
                         <td class="px-4 py-2 text-muted max-w-[200px] truncate">
-                            @if($log->diff)
-                                {{ \Illuminate\Support\Str::limit(json_encode($log->diff), 80) }}
-                            @else
-                                —
-                            @endif
+                            @php
+                                // COS-69: readable plain-text summary — never raw
+                                // JSON or HTML/styling metadata.
+                                $diff = $log->diff ?? [];
+                                $diffText = match (true) {
+                                    isset($diff['message']) => \Illuminate\Support\Str::limit(strip_tags($diff['message']), 80),
+                                    isset($diff['from'], $diff['to']) => 'from '.$diff['from'].' to '.$diff['to'],
+                                    isset($diff['old'], $diff['new']) => 'old '.(is_scalar($diff['old']) ? var_export($diff['old'], true) : '…').' → new '.(is_scalar($diff['new']) ? var_export($diff['new'], true) : '…'),
+                                    ! empty($diff) => \Illuminate\Support\Str::limit(json_encode($diff), 80),
+                                    default => null,
+                                };
+                            @endphp
+                            {{ $diffText ?? '—' }}
                         </td>
                         <td class="px-4 py-2 text-muted font-mono text-[10px]">{{ $log->ip ?? '—' }}</td>
                         <td class="px-4 py-2 text-muted font-mono text-[10px]">{{ $log->correlation_id ? \Illuminate\Support\Str::limit($log->correlation_id, 12) : '—' }}</td>

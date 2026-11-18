@@ -38,6 +38,7 @@ class AuditLogRepository
         return AuditLog::where('entity_type', $entityType)
             ->where('entity_id', $entityId)
             ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->paginate($perPage);
     }
 
@@ -70,19 +71,19 @@ class AuditLogRepository
             $q->where('created_at', '<=', $dateTo);
         }
 
-        return $q->orderByDesc('created_at')->paginate($perPage);
+        return $q->orderByDesc('created_at')->orderByDesc('id')->paginate($perPage);
     }
 
     public function recentForModule(string $module, int $limit = 15): Collection
     {
         return AuditLog::where('entity_type', $module)
-            ->orderByDesc('created_at')
+            ->orderByDesc('created_at')->orderByDesc('id')
             ->limit($limit)
             ->get();
     }
 
     public function recent(int $limit = 15): Collection
     {
-        return DB::table('audit_logs')->orderByDesc('created_at')->limit($limit)->get();
+        return DB::table('audit_logs')->orderByDesc('created_at')->orderByDesc('id')->limit($limit)->get();
     }
 }
