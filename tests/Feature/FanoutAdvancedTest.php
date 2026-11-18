@@ -143,4 +143,22 @@ class FanoutAdvancedTest extends TestCase
         $this->assertDatabaseHas('deliveries', ['client_id' => $cEn->id]);
         $this->assertDatabaseMissing('deliveries', ['client_id' => $cBn->id]);
     }
+
+    // ─── COS-75: api channels are pull-based — ledger as sent ──────
+
+    public function test_api_channel_delivery_is_ledgered_as_sent(): void
+    {
+        $client = Client::factory()->create(['status' => 'active']);
+        $pkg = Package::factory()->create(['entitlement_filter' => ['languages' => ['en'], 'media_kinds' => ['photo']]]);
+        DB::table('client_packages')->insert(['client_id' => $client->id, 'package_id' => $pkg->id, 'status' => 'active', 'starts_at' => now()]);
+        $chId = DB::table('client_channels')->insertGetId(['client_id' => $client->id, 'type' => 'api', 'config' => json_encode([]), 'status' => 'active', 'failure_count' => 0]);
+        $s = $this->makePublishedStory(); // no media — must not be blocked (COS-75)
+
+        (new FanoutStory($s->id))->handle();
+
+        $row = DB::table('deliveries')->where('channel_id', $chId)->first();
+        $this->assertNotNull($row, 'api channel delivery row exists');
+        $this->assertEquals('sent', $row->status);
+        $this->assertNotNull($row->sent_at);
+    }
 }

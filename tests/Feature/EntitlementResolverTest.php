@@ -2,8 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Category;
 use App\Models\Client;
 use App\Models\Package;
+use App\Models\Story;
+use App\Models\User;
 use App\Services\Search\EntitlementResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -70,5 +73,36 @@ class EntitlementResolverTest extends TestCase
         $this->assertEquals('language IN [en] AND category_id IN [10, 20]', $f);
         $f2 = $this->resolver->compileMeiliFilterFromEntitlement(['languages' => ['bn']]);
         $this->assertEquals('language IN [bn]', $f2);
+    }
+
+    // ─── COS-75: media_kinds must not block media-less stories ──────
+
+    public function test_client_allowed_allows_media_less_story_for_photo_package(): void
+    {
+        $c = Client::factory()->create(['status' => 'active']);
+        $p = Package::factory()->create(['entitlement_filter' => ['languages' => ['en'], 'media_kinds' => ['photo']]]);
+        DB::table('client_packages')->insert(['client_id' => $c->id, 'package_id' => $p->id, 'status' => 'active', 'starts_at' => now()]);
+        $owner = User::factory()->create();
+        $story = Story::factory()->create(['status' => 'published', 'language' => 'en', 'category_id' => Category::factory()->create()->id, 'owner_id' => $owner->id, 'created_by' => $owner->id, 'published_at' => now()]);
+
+        $this->assertTrue($this->resolver->clientAllowed($c, $story));
+    }
+
+    public function test_client_allowed_denies_story_with_only_excluded_media_kinds(): void
+    {
+        $c = Client::factory()->create(['status' => 'active']);
+        $p = Package::factory()->create(['entitlement_filter' => ['languages' => ['en'], 'media_kinds' => ['photo']]]);
+        DB::table('client_packages')->insert(['client_id' => $c->id, 'package_id' => $p->id, 'status' => 'active', 'starts_at' => now()]);
+
+        $cat = Category::factory()->create();
+        $video = Story::factory()->create(['status' => 'published', 'language' => 'en', 'category_id' => $cat->id]);
+        $asset = \App\Models\MediaAsset::factory()->create(['kind' => 'video']);
+        $video->media()->attach($asset->id, ['role' => 'featured']);
+        $this->assertFalse($this->resolver->clientAllowed($c, $video));
+
+        $photo = Story::factory()->create(['status' => 'published', 'language' => 'en', 'category_id' => $cat->id]);
+        $asset2 = \App\Models\MediaAsset::factory()->create(['kind' => 'photo']);
+        $photo->media()->attach($asset2->id, ['role' => 'featured']);
+        $this->assertTrue($this->resolver->clientAllowed($c, $photo));
     }
 }
