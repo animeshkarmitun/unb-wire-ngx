@@ -22,3 +22,9 @@ Completed 2026-11-18 for COS-74 (portal auth + media privatization):
 - php artisan media:privatize moved 222 files off public disk; /storage/media/... = 404 afterwards
 - schema-parity-check: PASSED; migrate:fresh --seed: clean
 
+
+Completed 2026-11-18 COS-74 LIVE verification (147.93.171.193):
+- PR #59 merged (CI green) + auto-deploy; media:privatize executed on server (45 assets)
+- Live smoke: unauth feed/context 401; client login + feed/story 200; presigned signed-URL 200 image/jpeg; unsigned 403; presign-no-token 401; /storage/media/ap/... 404
+- Gotcha fixed: docker-exec/root-owned private-media dirs needed go+rX for php-fpm — media:privatize now normalizes perms
+
