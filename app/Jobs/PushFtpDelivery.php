@@ -66,6 +66,13 @@ class PushFtpDelivery implements ShouldQueue
             if ($delivery->channel_id) {
                 $clients->recordChannelFailure($delivery->channel_id);
             }
+
+            // Permanent failure after the final attempt → honest 'failed' state
+            // in the distribution log instead of an eternally queued row.
+            if ($delivery->attempt_count >= $this->tries) {
+                $delivery->update(['status' => 'failed']);
+            }
+
             throw $e;
         }
     }
