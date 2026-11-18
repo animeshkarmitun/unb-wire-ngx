@@ -98,8 +98,36 @@ class MediaAsset extends Model
         if (! is_string($path) || $path === '') {
             return null;
         }
+
+        return $this->fileUrl('thumb', $path);
+    }
+
+    /**
+     * Staff-authenticated URL for a variant (default original) — used by admin
+     * previews. Private disks are never web-served directly.
+     */
+    public function staffUrl(string $variant = 'original'): ?string
+    {
+        $path = $variant === 'original'
+            ? $this->original_path
+            : ($this->derivatives[$variant]['path'] ?? null);
+
+        if (! is_string($path) || $path === '') {
+            return null;
+        }
+
+        return $this->fileUrl($variant, $path);
+    }
+
+    private function fileUrl(string $variant, string $path): ?string
+    {
+        $disk = $this->storage_disk ?: 's3';
         try {
-            return Storage::disk($this->storage_disk ?: 's3')->url($path);
+            if ($disk === 'local') {
+                return route('admin.media.file', ['asset' => $this->public_id, 'variant' => $variant]);
+            }
+
+            return Storage::disk($disk)->url($path);
         } catch (\Throwable $e) {
             return null;
         }

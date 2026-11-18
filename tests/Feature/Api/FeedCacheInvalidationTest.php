@@ -3,8 +3,10 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Category;
+use App\Models\Client;
 use App\Models\Story;
 use App\Models\User;
+use App\Services\ApiKeyService;
 use App\Services\StoryService;
 use App\Support\FeedCache;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -14,6 +16,16 @@ use Tests\TestCase;
 class FeedCacheInvalidationTest extends TestCase
 {
     use RefreshDatabase;
+
+    private array $auth;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $client = Client::factory()->create();
+        [, $raw] = app(ApiKeyService::class)->issue($client, 'cache-test', ['feed:read']);
+        $this->auth = ['Authorization' => 'Bearer '.$raw];
+    }
 
     private function publishedStory(string $headline): Story
     {
@@ -42,14 +54,14 @@ class FeedCacheInvalidationTest extends TestCase
         $headline = 'Epoch invalidate publish headline';
 
         // Warm the guest feed cache — story does not exist yet
-        $this->getJson('/api/v1/portal/feed')
+        $this->getJson('/api/v1/portal/feed', $this->auth)
             ->assertOk()
             ->assertJsonMissing(['headline' => $headline]);
 
         $this->publishedStory($headline);
 
         // Same URL, within the old entry's TTL — epoch bump must bypass the stale entry
-        $this->getJson('/api/v1/portal/feed')
+        $this->getJson('/api/v1/portal/feed', $this->auth)
             ->assertOk()
             ->assertJsonFragment(['headline' => $headline]);
     }
@@ -60,13 +72,13 @@ class FeedCacheInvalidationTest extends TestCase
         $headline = 'Epoch invalidate kill headline';
         $story = $this->publishedStory($headline);
 
-        $this->getJson('/api/v1/portal/feed')
+        $this->getJson('/api/v1/portal/feed', $this->auth)
             ->assertOk()
             ->assertJsonFragment(['headline' => $headline]);
 
         app(StoryService::class)->transition($story, 'killed', User::first());
 
-        $this->getJson('/api/v1/portal/feed')
+        $this->getJson('/api/v1/portal/feed', $this->auth)
             ->assertOk()
             ->assertJsonMissing(['headline' => $headline]);
     }

@@ -15,7 +15,7 @@ class PresignedUrlTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_happy_path_returns_url_with_expiry_query_for_public_disk(): void
+    public function test_public_disk_falls_back_to_signed_media_file_route(): void
     {
         Storage::fake('public');
         Storage::disk('public')->put('media/test.jpg', 'jpeg-bytes');
@@ -38,9 +38,12 @@ class PresignedUrlTest extends TestCase
 
         $url = app(PresignedUrlService::class)->forAsset($asset, 'original', 5);
 
-        $this->assertStringContainsString('media/test.jpg', $url);
-        // Laravel public disk returns ?expiration=…; AWS S3 returns ?X-Amz-Expires. Accept either as proof of TTL.
-        $this->assertMatchesRegularExpression('/(expires|expiration|X-Amz-Expires)=/', $url);
+        // COS-74: local disks are never web-served — the fallback must be the
+        // signed, controller-served media file route, not a raw /storage link.
+        $this->assertStringContainsString('/api/v1/media/'.$asset->public_id.'/file', $url);
+        $this->assertStringContainsString('variant=original', $url);
+        $this->assertStringContainsString('signature=', $url);
+        $this->assertStringNotContainsString('/storage/', $url);
     }
 
     public function test_no_config_throws_500_via_http_exception(): void

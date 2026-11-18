@@ -53,8 +53,12 @@ class SchedulerAndMiddlewareTest extends TestCase
 
     public function test_feed_throttle_and_cache_headers(): void
     {
-        $this->getJson('/api/v1/portal/feed')->assertOk()->assertHeader('Cache-Control');
-        $this->postJson('/api/v1/portal/search-token')->assertOk();
+        $client = Client::factory()->create();
+        [, $raw] = app(ApiKeyService::class)->issue($client, 'feed', ['feed:read']);
+        $auth = ['Authorization' => 'Bearer '.$raw];
+
+        $this->getJson('/api/v1/portal/feed', $auth)->assertOk()->assertHeader('Cache-Control');
+        $this->postJson('/api/v1/portal/search-token', [], $auth)->assertOk();
     }
 
     public function test_client_api_scope_enforcement(): void

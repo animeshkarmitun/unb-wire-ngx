@@ -109,7 +109,7 @@ class GenerateDerivativesTest extends TestCase
 
     public function test_handle_uploads_dispatches_derivatives_job(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         Queue::fake();
 
         Livewire::actingAs($this->user)
@@ -122,7 +122,7 @@ class GenerateDerivativesTest extends TestCase
 
     public function test_intake_dispatches_derivatives_job(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         Storage::fake('local');
         Queue::fake();
 

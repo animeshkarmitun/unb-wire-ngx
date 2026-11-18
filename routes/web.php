@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\MediaFileController;
 use App\Http\Controllers\ProfileController;
 use App\Models\Story;
 use App\Services\DashboardService;
@@ -84,6 +85,9 @@ Route::get('/admin/audit', function () {
 Route::get('/admin/notifications', function () {
     return view('admin.notifications');
 })->middleware(['auth', 'verified'])->name('admin.notifications');
+
+Route::get('/admin/media/{asset}/file', [MediaFileController::class, 'staff'])
+    ->middleware(['auth', 'verified', 'rbac:media,view'])->name('admin.media.file');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

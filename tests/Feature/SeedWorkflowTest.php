@@ -106,7 +106,7 @@ class SeedWorkflowTest extends TestCase
         $this->assertStringContainsString('en', $tokenData['filter']);
         $this->assertEquals('language IN [en]', $tokenData['filter']);
 
-        $resp = $this->getJson('/api/v1/portal/feed');
+        $resp = $this->getJson('/api/v1/portal/feed', ['Authorization' => 'Bearer '.$raw]);
         $resp->assertOk();
         $found = collect($resp->json('data'))->firstWhere('public_id', $story->public_id);
         $this->assertNotNull($found, 'published story appears in portal feed');

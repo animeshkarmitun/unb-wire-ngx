@@ -178,7 +178,7 @@ class AddNews extends Component
             $mediaRows = $repo->getAttachedMedia($s->id);
 
             foreach ($mediaRows as $m) {
-                $src = ! empty($m->original_path) ? Storage::url($m->original_path) : null;
+                $src = $m->staffUrl();
                 $item = [
                     'id' => (int) $m->id,
                     'cap' => $m->caption_override ?: ($m->caption ?: $m->title),
@@ -515,7 +515,7 @@ class AddNews extends Component
 
         if (! $src) {
             $asset = MediaAsset::find($assetId);
-            $src = $asset?->original_path ? Storage::url($asset->original_path) : null;
+            $src = $asset?->staffUrl();
         }
 
         $found = false;
@@ -565,7 +565,7 @@ class AddNews extends Component
             $this->selectedMediaIds[] = $id;
             if (! $src) {
                 $asset = MediaAsset::find($id);
-                $src = $asset?->original_path ? Storage::url($asset->original_path) : null;
+                $src = $asset?->staffUrl();
             }
             $this->attachedMedia[] = [
                 'id' => $id,
@@ -690,7 +690,7 @@ class AddNews extends Component
             'rights' => 'story',
             'type' => $isVideo ? 'video' : 'photo',
             'grad' => 'g'.(($asset->id % 8) + 1),
-            'src' => Storage::url($asset->original_path),
+            'src' => $asset->staffUrl(),
         ];
 
         $this->mediaUpload = null;
@@ -729,14 +729,14 @@ class AddNews extends Component
             id: $asset->id,
             cap: $asset->title,
             kind: $isVideo ? 'video' : 'photo',
-            src: Storage::url($asset->original_path),
+            src: $asset->staffUrl(),
         );
     }
 
     private function storeUploadedAsset($file): MediaAsset
     {
         $isVideo = str_starts_with($file->getMimeType(), 'video/');
-        $path = $file->store('media/originals', 'public');
+        $path = $file->store('media/originals', 'local');
 
         return MediaAsset::create([
             'kind' => $isVideo ? 'video' : 'photo',
@@ -747,7 +747,7 @@ class AddNews extends Component
             'mime' => $file->getMimeType(),
             'size_bytes' => $file->getSize(),
             'checksum' => hash_file('sha256', $file->getRealPath()) ?: hash('sha256', $file->getClientOriginalName().time()),
-            'storage_disk' => 'public',
+            'storage_disk' => 'local',
             'original_path' => $path,
             'uploaded_by' => auth()->id(),
         ]);

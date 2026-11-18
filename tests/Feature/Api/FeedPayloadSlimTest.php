@@ -18,6 +18,16 @@ class FeedPayloadSlimTest extends TestCase
 {
     use RefreshDatabase;
 
+    private array $auth;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $client = Client::factory()->create();
+        [, $raw] = app(ApiKeyService::class)->issue($client, 'slim-test', ['feed:read']);
+        $this->auth = ['Authorization' => 'Bearer '.$raw];
+    }
+
     private function publishedStory(string $headline, string $bodyHtml = '<p>Full dispatch body paragraph.</p>'): Story
     {
         $cat = Category::factory()->create();
@@ -44,13 +54,13 @@ class FeedPayloadSlimTest extends TestCase
         Queue::fake();
         $story = $this->publishedStory('Slim payload headline');
 
-        $feed = $this->getJson('/api/v1/portal/feed')->assertOk();
+        $feed = $this->getJson('/api/v1/portal/feed', $this->auth)->assertOk();
         $item = $feed->json('data.0');
         $this->assertSame($story->public_id, $item['public_id']);
         $this->assertArrayNotHasKey('body_html', $item);
         $this->assertSame('Slim feed brief', $item['brief']);
 
-        $detail = $this->getJson("/api/v1/portal/story/{$story->public_id}")->assertOk();
+        $detail = $this->getJson("/api/v1/portal/story/{$story->public_id}", $this->auth)->assertOk();
         $this->assertSame('<p>Full dispatch body paragraph.</p>', $detail->json('data.body_html'));
         $detail->assertHeader('Cache-Control');
     }
@@ -61,13 +71,13 @@ class FeedPayloadSlimTest extends TestCase
         $story = $this->publishedStory('Cached detail headline');
         $user = User::first();
 
-        $first = $this->getJson("/api/v1/portal/story/{$story->public_id}")->assertOk();
+        $first = $this->getJson("/api/v1/portal/story/{$story->public_id}", $this->auth)->assertOk();
         $this->assertSame('<p>Full dispatch body paragraph.</p>', $first->json('data.body_html'));
 
         // re-edit after publish bumps the epoch — next detail read must not serve the old body
         app(StoryService::class)->updateDraft($story, ['body_html' => '<p>Corrected dispatch body.</p>'], (int) $story->version, $user);
 
-        $second = $this->getJson("/api/v1/portal/story/{$story->public_id}")->assertOk();
+        $second = $this->getJson("/api/v1/portal/story/{$story->public_id}", $this->auth)->assertOk();
         $this->assertSame('<p>Corrected dispatch body.</p>', $second->json('data.body_html'));
     }
 
@@ -90,8 +100,11 @@ class FeedPayloadSlimTest extends TestCase
         $story = $story->refresh();
         $svc->transition($story, 'published', $user);
 
-        // guest (en, bn allowed) sees the story
-        $this->getJson("/api/v1/portal/story/{$story->public_id}")->assertOk();
+        // a client without a language restriction sees the story (cached entry)
+        $openClient = Client::factory()->create(['status' => 'active']);
+        $this->getJson("/api/v1/portal/story/{$story->public_id}", [
+            'Authorization' => 'Bearer '.app(ApiKeyService::class)->issue($openClient, 'open', ['feed:read'])[1],
+        ])->assertOk();
 
         // an English-only entitled client gets 404 for the same publicId
         $client = Client::factory()->create(['status' => 'active']);
