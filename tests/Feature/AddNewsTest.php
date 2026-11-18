@@ -1128,4 +1128,45 @@ class AddNewsTest extends TestCase
             ->assertSet('featuredMediaId', $asset->id)
             ->assertSet('featuredCaption', 'Updated caption override');
     }
+
+    public function test_wizard_publish_with_backdate_sets_past_date(): void
+    {
+        $this->actingAs($this->editor);
+        $past = now('Asia/Dhaka')->subDays(2)->format('Y-m-d\TH:i');
+
+        $cmp = Livewire::test(AddNews::class)
+            ->set('headline', 'Historical Story')
+            ->set('brief', 'Historical Brief summary')
+            ->set('bodyHtml', '<p>Historical Body content</p>')
+            ->set('categoryId', (string) $this->cat->id)
+            ->set('isBackdated', true)
+            ->set('backdatedAt', $past)
+            ->call('publish')
+            ->assertHasNoErrors()
+            ->assertSet('status', 'published')
+            ->assertSet('successState', 'published');
+
+        $storyId = $cmp->get('storyId');
+        $story = Story::findOrFail($storyId);
+        $this->assertEquals('published', $story->status);
+        $expectedUtc = \Carbon\Carbon::parse($past, 'Asia/Dhaka')->utc();
+        $this->assertEquals($expectedUtc->timestamp, $story->published_at->timestamp);
+    }
+
+    public function test_wizard_publish_with_future_backdate_fails_validation(): void
+    {
+        $this->actingAs($this->editor);
+        $future = now('Asia/Dhaka')->addDays(2)->format('Y-m-d\TH:i');
+
+        Livewire::test(AddNews::class)
+            ->set('headline', 'Future Backdate Story')
+            ->set('brief', 'Brief')
+            ->set('bodyHtml', '<p>Content</p>')
+            ->set('categoryId', (string) $this->cat->id)
+            ->set('isBackdated', true)
+            ->set('backdatedAt', $future)
+            ->call('publish')
+            ->assertHasErrors(['backdatedAt'])
+            ->assertSet('status', 'draft');
+    }
 }

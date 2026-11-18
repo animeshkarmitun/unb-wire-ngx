@@ -65,6 +65,11 @@ class AddNews extends Component
 
     public string $aiRawText = '';
 
+    // Backdate publishing
+    public bool $isBackdated = false;
+
+    public ?string $backdatedAt = null;
+
     // Step 2: Media fields
     public ?int $featuredMediaId = null;
 
@@ -156,6 +161,9 @@ class AddNews extends Component
             $this->priority = $s->priority;
             $this->isBreaking = $s->is_breaking;
             $this->embargoUntil = $s->embargo_until ? $s->embargo_until->setTimezone('Asia/Dhaka')->format('Y-m-d\TH:i') : '';
+            if ($s->published_at) {
+                $this->backdatedAt = $s->published_at->setTimezone('Asia/Dhaka')->format('Y-m-d\TH:i');
+            }
             $this->categoryId = (string) $s->category_id;
             $this->subCategoryId = (string) ($s->sub_category_id ?? '');
             $this->aiTouched = $s->ai_touched ?? [];
@@ -998,6 +1006,30 @@ class AddNews extends Component
             return;
         }
 
+        $customPublishedAt = null;
+        if ($this->isBackdated) {
+            if (empty($this->backdatedAt)) {
+                $this->addError('backdatedAt', 'Please select a publication date and time');
+                $this->dispatch('toast', message: 'Publish blocked — please select a backdate publication time');
+
+                return;
+            }
+            try {
+                $parsed = Carbon::parse($this->backdatedAt, 'Asia/Dhaka');
+                if ($parsed->isFuture()) {
+                    $this->addError('backdatedAt', 'Backdate publication time cannot be in the future. For future publication, use Embargo on Step 3.');
+                    $this->dispatch('toast', message: 'Backdate cannot be in the future. For future scheduling, use Embargo.');
+
+                    return;
+                }
+                $customPublishedAt = $parsed->utc();
+            } catch (\Throwable $e) {
+                $this->addError('backdatedAt', 'Invalid date/time format');
+
+                return;
+            }
+        }
+
         $this->autosave($rbac, $svc);
         $s = app(StoryRepository::class)->findOrFail($this->storyId);
 
@@ -1036,7 +1068,7 @@ class AddNews extends Component
                 $s->refresh();
             }
             if ($s->status === 'approved') {
-                $svc->transition($s, 'published', auth()->user());
+                $svc->transition($s, 'published', auth()->user(), 'manual', $customPublishedAt);
             }
         } catch (\Throwable $e) {
             $this->dispatch('toast', message: $e->getMessage());

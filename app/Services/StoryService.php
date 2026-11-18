@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Repositories\AuditLogRepository;
 use App\Support\FeedCache;
 use App\Support\IndexOutbox;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -148,8 +149,13 @@ class StoryService
         return app(NoteService::class)->add($story, $actor, $body, $kind);
     }
 
-    public function transition(Story $story, string $to, User $actor, string $gate = 'manual'): Story
-    {
+    public function transition(
+        Story $story,
+        string $to,
+        User $actor,
+        string $gate = 'manual',
+        ?Carbon $customPublishedAt = null
+    ): Story {
         $from = $story->status;
         $allowed = self::TRANSITIONS[$from] ?? [];
         if (! in_array($to, $allowed, true)) {
@@ -157,6 +163,9 @@ class StoryService
         }
         $aiGate = null;
         if ($to === 'published') {
+            if ($customPublishedAt !== null && $customPublishedAt->isFuture()) {
+                throw new UnprocessableEntityHttpException('Backdate publication timestamp cannot be in the future. Use embargo for future scheduling.');
+            }
             if (! empty($story->ai_touched) && ! $story->is_breaking) {
                 $cfg = DB::table('settings')->where('key', 'ai.desk')->value('value');
                 $cfg = is_string($cfg) ? json_decode($cfg, true) : $cfg;
@@ -174,10 +183,16 @@ class StoryService
             }
         }
 
-        $updated = DB::transaction(function () use ($story, $from, $to, $actor, $gate, $aiGate) {
+        $updated = DB::transaction(function () use ($story, $from, $to, $actor, $gate, $aiGate, $customPublishedAt) {
             $extra = [];
-            if ($to === 'published' && ! $story->published_at) {
-                $extra['published_at'] = now();
+            $isBackdated = false;
+            if ($to === 'published') {
+                if ($customPublishedAt !== null) {
+                    $extra['published_at'] = $customPublishedAt;
+                    $isBackdated = true;
+                } elseif (! $story->published_at) {
+                    $extra['published_at'] = now();
+                }
             }
             $story->update(array_merge(['status' => $to, 'version' => $story->version + 1], $extra));
             $this->revisions->snapshot($story, $actor);
@@ -187,18 +202,36 @@ class StoryService
                 'archived' => 'archived',
                 default => $to === 'in_review' ? 'sent_to_review' : $to,
             };
+
+            $eventPayload = null;
+            if ($to === 'published') {
+                $eventPayload = array_filter(['gate' => $gate, 'ai_gate' => $aiGate]);
+                if ($isBackdated) {
+                    $eventPayload['is_backdated'] = true;
+                    $eventPayload['backdated_to'] = $customPublishedAt->toIso8601String();
+                    $eventPayload['published_at_wallclock'] = now()->toIso8601String();
+                }
+            }
+
             $story->events()->create([
                 'actor_id' => $actor->id,
                 'action' => $action,
                 'from_status' => $from,
                 'to_status' => $to,
-                'payload' => $to === 'published' ? array_filter(['gate' => $gate, 'ai_gate' => $aiGate]) : null,
+                'payload' => $eventPayload,
             ]);
+
+            $auditPayload = ['from' => $from, 'to' => $to];
+            if ($isBackdated) {
+                $auditPayload['is_backdated'] = true;
+                $auditPayload['backdated_to'] = $customPublishedAt->toIso8601String();
+            }
+
             $this->audit->log(
                 $action,
                 'Story',
                 $story->id,
-                ['from' => $from, 'to' => $to],
+                $auditPayload,
             );
             if ($to === 'published') {
                 event(new StoryPublished($story));
