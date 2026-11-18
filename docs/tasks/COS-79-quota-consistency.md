@@ -33,7 +33,8 @@ display string; Add News Step 3 text is hardcoded.
 - [x] New tests: seeded client (no tier_quotas) → "Unlimited", no "/ 800 media";
       zero-quota client → "0 / 0 media" (clamp regression).
 - [x] `php artisan test` — **1020 passed / 0 failed**.
-- [ ] Live smoke as admin/editor.
+- [x] **Live smoke:** `/admin/clients` as admin — `0 / 800 media` gone; seeded clients
+      show **Unlimited** (matches the portal context's null-quota semantics).
 
 ## 4. Open product decisions (NOT silently decided — for the Linear issue)
 
@@ -50,4 +51,6 @@ display string; Add News Step 3 text is hardcoded.
 
 ## 5. Completion Notes
 
-_(pending)_
+- PR #75 merged + deployed; consistency fix only — the four product questions above
+  are flagged on the Linear issue for the owner to decide (AGENTS §3: no silent
+  decisions).
