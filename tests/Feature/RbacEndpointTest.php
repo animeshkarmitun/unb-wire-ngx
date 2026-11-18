@@ -85,10 +85,30 @@ class RbacEndpointTest extends TestCase
 
     public function test_dashboard_accessible_to_all_authenticated(): void
     {
+        // The dashboard is every staff member's landing page (200 for all), but
+        // client business data must only render for roles with clients:view (COS-80).
         $user = $this->user('Business Team');
         $this->actingAs($user);
 
-        $this->get('/admin')->assertOk();
+        $resp = $this->get('/admin')->assertOk();
+        $resp->assertSee('Active clients');
+        $resp->assertSee('Top clients today');
+    }
+
+    public function test_dashboard_hides_client_business_data_from_uploaders(): void
+    {
+        $uploader = $this->user('Uploader-English');
+        $this->actingAs($uploader);
+
+        $resp = $this->get('/admin')->assertOk();
+
+        $resp->assertSee('Stories published today'); // newsroom data stays
+        $resp->assertSee('Exclusive content sent');
+        $resp->assertDontSee('Active clients');
+        $resp->assertDontSee('Distribution success rate');
+        $resp->assertDontSee('Top clients today');
+        $resp->assertDontSee('Export report');
+        // Note: the sidebar's raw Clients link is tracked separately as COS-65.
     }
 
     public function test_preferences_accessible_to_all_authenticated(): void

@@ -139,4 +139,40 @@ class DashboardTest extends TestCase
 
         Model::preventLazyLoading(false);
     }
+
+    public function test_dashboard_service_hides_client_business_data_without_clients_view(): void
+    {
+        // COS-80: uploaders have no clients:view — the service must not compute
+        // or return client business data for them (shared cache split prevents
+        // a cached business blob leaking through).
+        $uploaderRole = Role::where('name', 'Uploader-English')->first();
+        $uploader = User::factory()->create(['role_id' => $uploaderRole->id]);
+        Client::factory()->create(['status' => 'active']);
+        $cat = Category::first();
+        Story::factory()->create([
+            'category_id' => $cat->id,
+            'status' => 'published',
+            'published_at' => now(),
+            'owner_id' => $uploader->id,
+            'created_by' => $uploader->id,
+        ]);
+
+        $data = app(DashboardService::class)->getData($uploader);
+
+        $this->assertArrayNotHasKey('activeClients', $data);
+        $this->assertArrayNotHasKey('successRate', $data);
+        $this->assertSame([], $data['topClients']);
+        $this->assertNotEmpty($data['recentStories']); // newsroom data stays
+    }
+
+    public function test_dashboard_service_returns_business_data_for_clients_view(): void
+    {
+        $client = Client::factory()->create(['status' => 'active']);
+
+        $data = app(DashboardService::class)->getData($this->admin);
+
+        $this->assertEquals(1, $data['activeClients']);
+        $this->assertNotEmpty($data['topClients']);
+        $this->assertEquals($client->name, $data['topClients'][0]['name']);
+    }
 }

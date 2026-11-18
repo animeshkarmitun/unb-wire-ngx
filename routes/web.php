@@ -12,7 +12,7 @@ Route::get('/', function () {
 });
 
 Route::get('/admin', function (DashboardService $dashboardService) {
-    return view('admin.dashboard', $dashboardService->getData());
+    return view('admin.dashboard', $dashboardService->getData(auth()->user()));
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/admin/roles', function () {
