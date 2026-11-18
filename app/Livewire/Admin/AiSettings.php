@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Admin;
 
-use App\Models\AuditLog;
 use App\Models\Setting;
 use App\Services\RbacService;
 use Illuminate\Support\Facades\DB;
@@ -120,15 +119,13 @@ class AiSettings extends Component
             ]
         );
 
-        AuditLog::create([
-            'actor_type' => 'user',
-            'actor_id' => auth()->id(),
-            'action' => $this->killed ? 'ai.kill_switch.on' : 'ai.kill_switch.off',
-            'entity_type' => 'setting',
-            'entity_id' => null,
-            'diff' => ['killed' => $this->killed, 'autoPublish' => $this->autoPublish],
-            'created_at' => now(),
-        ]);
+        // COS-68: route through the repository so ip/user-agent/correlation are captured.
+        app(\App\Repositories\AuditLogRepository::class)->log(
+            $this->killed ? 'ai.kill_switch.on' : 'ai.kill_switch.off',
+            'setting',
+            null,
+            ['killed' => $this->killed, 'autoPublish' => $this->autoPublish]
+        );
 
         $this->dispatch('toast', message: $this->killed ? '⛔ All AI features disabled newsroom-wide' : '✓ AI features re-enabled');
     }
@@ -179,15 +176,12 @@ class AiSettings extends Component
             ]
         );
 
-        AuditLog::create([
-            'actor_type' => 'user',
-            'actor_id' => auth()->id(),
-            'action' => 'ai.settings.updated',
-            'entity_type' => 'setting',
-            'entity_id' => null,
-            'diff' => ['old' => $oldValue, 'new' => $newValue],
-            'created_at' => now(),
-        ]);
+        app(\App\Repositories\AuditLogRepository::class)->log(
+            'ai.settings.updated',
+            'setting',
+            null,
+            ['old' => $oldValue, 'new' => $newValue]
+        );
 
         $this->dispatch('toast', message: '✓ AI settings saved — applied across the newsroom');
     }
