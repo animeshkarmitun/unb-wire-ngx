@@ -171,4 +171,43 @@ class PushFtpDeliveryTest extends TestCase
         $channel->refresh();
         $this->assertEquals(1, $channel->failure_count);
     }
+
+    public function test_permanent_failure_marks_delivery_failed_on_final_attempt()
+    {
+        // COS-75: after the last try the distribution log must show Failed,
+        // not an eternally queued row.
+        $client = Client::factory()->create(['status' => 'active']);
+        $channel = ClientChannel::factory()->create([
+            'client_id' => $client->id,
+            'type' => 'ftp',
+            'status' => 'active',
+            'config' => ['host' => 'ftp.example.com', 'username' => 'u', 'password' => 'p'],
+        ]);
+        $story = Story::factory()->create(['status' => 'published', 'language' => 'en']);
+        $delivery = Delivery::create([
+            'deliverable_type' => 'story',
+            'deliverable_id' => $story->id,
+            'client_id' => $client->id,
+            'channel_id' => $channel->id,
+            'status' => 'queued',
+            'attempt_count' => 2,
+            'idempotency_key' => 'final-attempt-key',
+            'payload_hash' => 'hash',
+            'created_at' => now(),
+        ]);
+
+        $factoryMock = Mockery::mock(FtpDiskFactory::class);
+        $factoryMock->shouldReceive('make')->once()->andThrow(new \Exception('Connection failed'));
+
+        $job = new PushFtpDelivery($delivery->id);
+        try {
+            $job->handle(app(ClientRepository::class), app(WireFormatFactory::class), $factoryMock);
+        } catch (\Exception) {
+            // expected rethrow on final attempt
+        }
+
+        $delivery->refresh();
+        $this->assertEquals('failed', $delivery->status);
+        $this->assertEquals(3, $delivery->attempt_count);
+    }
 }
