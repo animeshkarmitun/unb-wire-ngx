@@ -24,8 +24,16 @@
     {{-- Newsroom --}}
     <nav>
         <div class="side-section-title text-[10.5px] tracking-[0.14em] uppercase text-navy-label font-semibold mb-2.5 pl-2.5">Newsroom</div>
-        <x-nav-item-admin href="{{ route('admin.news', 'en') }}" icon="newspaper" :active="request()->routeIs('admin.news') && request()->route('language')==='en'">English News</x-nav-item-admin>
-        <x-nav-item-admin href="{{ route('admin.news', 'bn') }}" icon="book-open" :active="request()->routeIs('admin.news') && request()->route('language')==='bn'">Bangla News</x-nav-item-admin>
+        @php
+            $sideRbac = app(\App\Services\RbacService::class);
+            $sideUser = auth()->user();
+        @endphp
+        @if($sideUser && $sideRbac->can($sideUser, 'stories', 'view'))
+            <x-nav-item-admin href="{{ route('admin.news', 'en') }}" icon="newspaper" :active="request()->routeIs('admin.news') && request()->route('language')==='en'">English News</x-nav-item-admin>
+        @endif
+        @if($sideUser && $sideRbac->can($sideUser, 'stories_bn', 'view'))
+            <x-nav-item-admin href="{{ route('admin.news', 'bn') }}" icon="book-open" :active="request()->routeIs('admin.news') && request()->route('language')==='bn'">Bangla News</x-nav-item-admin>
+        @endif
         <x-nav-item-admin href="{{ route('admin.photos') }}" icon="camera" :active="request()->routeIs('admin.photos')">UNB Photos</x-nav-item-admin>
         <x-nav-item-admin href="{{ route('admin.ap-photos') }}" icon="image" :active="request()->routeIs('admin.ap-photos')">AP Photo Manager</x-nav-item-admin>
     </nav>
@@ -43,8 +51,12 @@
         <x-nav-item-admin href="{{ route('admin.distribution') }}" icon="activity" :active="request()->routeIs('admin.distribution')">Distribution log</x-nav-item-admin>
         <x-nav-item-admin href="{{ route('admin.clients') }}" icon="monitor" badge="3" badge-variant="green">Client FTP</x-nav-item-admin>
         <x-nav-item-admin href="{{ route('admin.packages') }}" icon="tag" :active="request()->routeIs('admin.packages')">Packages</x-nav-item-admin>
-        <x-nav-item-admin href="{{ route('admin.service','en') }}" icon="send" :active="request()->routeIs('admin.service') && request()->route('service')==='en'">English Service</x-nav-item-admin>
-        <x-nav-item-admin href="{{ route('admin.service','bn') }}" icon="rss" :active="request()->routeIs('admin.service') && request()->route('service')==='bn'">Bangla Service</x-nav-item-admin>
+        @if($sideUser && $sideRbac->can($sideUser, 'stories', 'view'))
+            <x-nav-item-admin href="{{ route('admin.service','en') }}" icon="send" :active="request()->routeIs('admin.service') && request()->route('service')==='en'">English Service</x-nav-item-admin>
+        @endif
+        @if($sideUser && $sideRbac->can($sideUser, 'stories_bn', 'view'))
+            <x-nav-item-admin href="{{ route('admin.service','bn') }}" icon="rss" :active="request()->routeIs('admin.service') && request()->route('service')==='bn'">Bangla Service</x-nav-item-admin>
+        @endif
     </nav>
 
     {{-- Settings --}}

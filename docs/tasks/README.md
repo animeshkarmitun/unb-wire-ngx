@@ -411,6 +411,7 @@ Build order: `002`–`015` can run in parallel with `001`. E2E tasks start after
 | `COS-80` | Dashboard RBAC gate: client business data (top clients, active clients, success rate, Export report) hidden from roles without `clients:view`; KPI cache split | — | ✅ | PR #63 | 2026-11-18 |
 | `COS-76` | Editor "Needs work": send in_review story back to uploader with required comment (`changes_requested` + internal note), wizard UI + publish-walk fix | — | ✅ | PR #65 / #66 | 2026-11-18 |
 | `COS-75` | Distribution fanout fix: media_kinds no longer blocks media-less stories; api channels ledgered; FTP failed-state; honest dashboard rate; ftp ext installed on server | — | ✅ | PR #68 / #69 | 2026-11-18 |
+| `COS-63` | Language-aware RBAC: `stories_bn` module wired into news/service/story/wizard routes + components; sidebar per-language links | — | 🔧 | — | — |
 
 ---
 

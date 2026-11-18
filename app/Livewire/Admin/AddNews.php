@@ -142,7 +142,11 @@ class AddNews extends Component
         if ($language === 'bn' || $language === 'en') {
             $this->language = $language;
         }
-        $this->ownerId = $user?->id;
+        // COS-63: language-aware gate â€” new stories are gated by the selected
+        // language module (stories vs stories_bn).
+        $rbac = app(RbacService::class);
+        $rbac->assertCan($user, $rbac->storiesModuleFor($this->language), 'create');
+
         $this->ownerId = $user?->id;
         $this->ownerName = $user?->name ?? 'Desk User';
         $this->ownerRole = $user?->role?->name ?? 'Staff';
@@ -158,6 +162,9 @@ class AddNews extends Component
             $this->storyId = $s->id;
             $this->status = $s->status;
             $this->language = $s->language;
+            // COS-63: gate by the story's language module.
+            $rbac = app(RbacService::class);
+            $rbac->assertCan($user, $rbac->storiesModuleFor($this->language), 'edit');
             $this->headline = $s->headline;
             $this->subHead = $s->sub_head ?? '';
             $this->datelineCity = $s->dateline_city ?? 'Dhaka';
@@ -315,7 +322,7 @@ class AddNews extends Component
         if (! $this->mediaUpload) {
             return;
         }
-        // Default to 'attach' — JS dispatches 'upload-mode' with the correct mode
+        // Default to 'attach' â€” JS dispatches 'upload-mode' with the correct mode
         $this->uploadMedia($this->uploadMode ?? 'attach');
     }
 
@@ -326,7 +333,7 @@ class AddNews extends Component
         $this->bodyHtml = HtmlSanitizer::clean($html);
         // Prune-only here (live tray honesty): editor deletions mirror to
         // attachments without a full autosave. Foreign-image stripping and
-        // persistence stay in autosave — stripping mid-typing detaches images
+        // persistence stay in autosave â€” stripping mid-typing detaches images
         // registered one commit later (insert/attach ordering race).
         $this->pruneInlineBodyAttachments();
         if (isset($this->aiTouched['body'])) {
@@ -364,7 +371,7 @@ class AddNews extends Component
         );
     }
 
-    // ---- Document import (.docx → mapping preview → wizard fields) ----
+    // ---- Document import (.docx â†’ mapping preview â†’ wizard fields) ----
 
     public bool $docOpen = false;
 
@@ -420,8 +427,8 @@ class AddNews extends Component
             $this->docAssignment = [];
             $this->docError = match ($e->getMessage()) {
                 'empty' => 'This document has no readable text.',
-                'too_long' => 'Document is too long (max '.DocxImportService::MAX_PARAGRAPHS.' paragraphs) — split it before importing.',
-                default => 'Not a valid Word (.docx) file — re-save it from Word and try again.',
+                'too_long' => 'Document is too long (max '.DocxImportService::MAX_PARAGRAPHS.' paragraphs) â€” split it before importing.',
+                default => 'Not a valid Word (.docx) file â€” re-save it from Word and try again.',
             };
 
             return;
@@ -434,7 +441,7 @@ class AddNews extends Component
 
     public function applyDocImport(): void
     {
-        app(RbacService::class)->assertCan(auth()->user(), 'stories', 'edit');
+        app(RbacService::class)->assertCan(auth()->user(), $this->storiesModule(), 'edit');
         if (! $this->docImport) {
             return;
         }
@@ -588,7 +595,7 @@ class AddNews extends Component
     }
 
     /**
-     * Register an inline body image (from the archive modal). Idempotent —
+     * Register an inline body image (from the archive modal). Idempotent â€”
      * unlike toggleMedia it never detaches. Embedded images get the role
      * `body` so autosave can auto-prune them when the embed is removed from
      * the body text; an already-attached asset (e.g. gallery or featured)
@@ -669,7 +676,7 @@ class AddNews extends Component
 
     public function uploadMedia(string $mode = 'featured'): void
     {
-        // Images: 50 MB max · Videos: 200 MB max (per FR-DST media kinds)
+        // Images: 50 MB max Â· Videos: 200 MB max (per FR-DST media kinds)
         $maxKb = (int) ($this->mediaUpload && str_starts_with($this->mediaUpload->getMimeType() ?? '', 'video/') ? 204800 : 51200);
 
         $this->validate([
@@ -706,7 +713,7 @@ class AddNews extends Component
     }
 
     /**
-     * Upload from the archive modal (any mode) — creates the library asset,
+     * Upload from the archive modal (any mode) â€” creates the library asset,
      * then hands the asset back to JS to apply the current mode's action.
      */
     public function updatedArchiveUpload(): void
@@ -737,6 +744,15 @@ class AddNews extends Component
             kind: $isVideo ? 'video' : 'photo',
             src: $asset->staffUrl(),
         );
+    }
+
+    /**
+     * COS-63: the RBAC module for the wizard's current language
+     * ('stories' for English, 'stories_bn' for Bangla).
+     */
+    private function storiesModule(): string
+    {
+        return app(RbacService::class)->storiesModuleFor($this->language);
     }
 
     private function storeUploadedAsset($file): MediaAsset
@@ -853,12 +869,12 @@ class AddNews extends Component
 
     public function confirmEnTags(): void
     {
-        app(RbacService::class)->assertCan(auth()->user(), 'stories', 'edit');
+        app(RbacService::class)->assertCan(auth()->user(), $this->storiesModule(), 'edit');
         if (! $this->storyId || $this->enTagSuggestions === []) {
             return;
         }
         app(StoryRepository::class)->findOrFail($this->storyId)->update(['en_search_tags' => $this->enTagSuggestions]);
-        $this->dispatch('toast', message: 'Search tags confirmed — used for search indexing only');
+        $this->dispatch('toast', message: 'Search tags confirmed â€” used for search indexing only');
     }
 
     private function loadEnTagSuggestions(): void
@@ -881,7 +897,7 @@ class AddNews extends Component
         $rbac = $rbac ?? app(RbacService::class);
         $stories = $stories ?? app(StoryService::class);
 
-        $rbac->assertCan(auth()->user(), 'stories', 'edit');
+        $rbac->assertCan(auth()->user(), $this->storiesModule(), 'edit');
 
         $cleanHtml = HtmlSanitizer::clean($this->bodyHtml ?: '<p></p>');
         $cleanHtml = $this->stripUnattachedInlineImgs($cleanHtml);
@@ -898,7 +914,7 @@ class AddNews extends Component
             'language' => $this->language,
             'headline' => $this->headline ?: 'Untitled Draft',
             'sub_head' => $this->subHead ?: null,
-            'brief' => $this->brief ?: '—',
+            'brief' => $this->brief ?: 'â€”',
             'body_html' => $cleanHtml,
             'body_text' => HtmlSanitizer::text($cleanHtml),
             'category_id' => $catId,
@@ -971,7 +987,7 @@ class AddNews extends Component
         $rbac = $rbac ?? app(RbacService::class);
         $svc = $svc ?? app(StoryService::class);
 
-        $rbac->assertCan(auth()->user(), 'stories', 'edit');
+        $rbac->assertCan(auth()->user(), $this->storiesModule(), 'edit');
 
         $this->validate([
             'headline' => 'required',
@@ -998,7 +1014,7 @@ class AddNews extends Component
 
     /**
      * COS-76: editor sends an in_review story back to the uploader with a
-     * required comment ("Needs work") — transitions to changes_requested and
+     * required comment ("Needs work") â€” transitions to changes_requested and
      * attaches the comment as a story note.
      */
     public function requestChanges(?RbacService $rbac = null, ?StoryService $svc = null): void
@@ -1006,7 +1022,7 @@ class AddNews extends Component
         $rbac = $rbac ?? app(RbacService::class);
         $svc = $svc ?? app(StoryService::class);
 
-        $rbac->assertCan(auth()->user(), 'stories', 'edit');
+        $rbac->assertCan(auth()->user(), $this->storiesModule(), 'edit');
 
         $this->validate([
             'needsWorkComment' => 'required|min:5',
@@ -1038,7 +1054,7 @@ class AddNews extends Component
         $rbac = $rbac ?? app(RbacService::class);
         $svc = $svc ?? app(StoryService::class);
 
-        $rbac->assertCan(auth()->user(), 'stories', 'publish');
+        $rbac->assertCan(auth()->user(), $this->storiesModule(), 'publish');
 
         try {
             $this->validate([
@@ -1052,7 +1068,7 @@ class AddNews extends Component
             }
             $labels = ['headline' => 'Headline', 'brief' => 'Brief / intro', 'categoryId' => 'Category'];
             $missing = collect(array_keys($e->errors()))->map(fn ($f) => $labels[$f] ?? $f)->implode(', ');
-            $this->dispatch('toast', message: 'Publish blocked — required fields missing: '.$missing.'. Switch to Step 1 / Step 3 to fill them.');
+            $this->dispatch('toast', message: 'Publish blocked â€” required fields missing: '.$missing.'. Switch to Step 1 / Step 3 to fill them.');
 
             return;
         }
@@ -1061,7 +1077,7 @@ class AddNews extends Component
         if ($this->isBackdated) {
             if (empty($this->backdatedAt)) {
                 $this->addError('backdatedAt', 'Please select a publication date and time');
-                $this->dispatch('toast', message: 'Publish blocked — please select a backdate publication time');
+                $this->dispatch('toast', message: 'Publish blocked â€” please select a backdate publication time');
 
                 return;
             }
@@ -1096,7 +1112,7 @@ class AddNews extends Component
             $reason = trim($this->dupOverrideReason);
             if (mb_strlen($reason) < 5 || mb_strlen($reason) > 500) {
                 $this->dupBlocked = true;
-                $this->dispatch('toast', message: 'Similar story detected — a valid override reason (5–500 chars) is required to publish');
+                $this->dispatch('toast', message: 'Similar story detected â€” a valid override reason (5â€“500 chars) is required to publish');
 
                 return;
             }
@@ -1197,7 +1213,7 @@ class AddNews extends Component
         if (! $this->storyId) {
             return;
         }
-        app(RbacService::class)->assertCan(auth()->user(), 'stories', 'edit');
+        app(RbacService::class)->assertCan(auth()->user(), $this->storiesModule(), 'edit');
         $story = app(StoryRepository::class)->findOrFail($this->storyId);
         $restored = app(RevisionService::class)->restore($story, $version, auth()->user(), $story->version);
         $this->headline = $restored->headline;

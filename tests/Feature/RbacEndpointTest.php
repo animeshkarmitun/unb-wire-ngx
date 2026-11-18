@@ -55,6 +55,8 @@ class RbacEndpointTest extends TestCase
             'add-news (Business Team)' => ['/admin/add-news', 'stories', 'Business Team'],
             'ap-photos (Business Team)' => ['/admin/ap-photos', 'media', 'Business Team'],
             'service (Business Team)' => ['/admin/service/en', 'stories', 'Business Team'],
+            'bangla news (Uploader-English)' => ['/admin/news/bn', 'stories_bn', 'Uploader-English'],
+            'bangla service (Uploader-English)' => ['/admin/service/bn', 'stories_bn', 'Uploader-English'],
         ];
     }
 
@@ -65,6 +67,7 @@ class RbacEndpointTest extends TestCase
 
         $routes = [
             '/admin/news/en',
+            '/admin/news/bn',
             '/admin/photos',
             '/admin/clients',
             '/admin/packages',
@@ -76,6 +79,7 @@ class RbacEndpointTest extends TestCase
             '/admin/add-news',
             '/admin/ap-photos',
             '/admin/service/en',
+            '/admin/service/bn',
         ];
 
         foreach ($routes as $route) {
@@ -109,6 +113,44 @@ class RbacEndpointTest extends TestCase
         $resp->assertDontSee('Top clients today');
         $resp->assertDontSee('Export report');
         // Note: the sidebar's raw Clients link is tracked separately as COS-65.
+    }
+
+    // ─── COS-63: language-aware news access ─────────────────────────
+
+    public function test_bangla_uploader_can_open_bangla_news(): void
+    {
+        $user = $this->user('Uploader-Bangla');
+        $this->actingAs($user);
+
+        $this->get('/admin/news/bn')->assertOk();
+        $this->get('/admin/news/en')->assertStatus(403);
+    }
+
+    public function test_bangla_uploader_cannot_open_english_news(): void
+    {
+        $user = $this->user('Uploader-Bangla');
+        $this->actingAs($user);
+
+        $this->get('/admin/news/en')->assertStatus(403);
+    }
+
+    public function test_bangla_uploader_can_open_bangla_service(): void
+    {
+        $user = $this->user('Uploader-Bangla');
+        $this->actingAs($user);
+
+        $this->get('/admin/service/bn')->assertOk();
+        $this->get('/admin/service/en')->assertStatus(403);
+    }
+
+    public function test_sidebar_shows_only_the_uploader_language(): void
+    {
+        $user = $this->user('Uploader-Bangla');
+        $this->actingAs($user);
+
+        $resp = $this->get('/admin')->assertOk();
+        $resp->assertSee('Bangla News');
+        $resp->assertDontSee('English News');
     }
 
     public function test_preferences_accessible_to_all_authenticated(): void

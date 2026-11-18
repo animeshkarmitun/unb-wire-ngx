@@ -198,7 +198,7 @@ class NewsList extends Component
 
         $story = app(StoryRepository::class)->findOrFail($this->selectedId);
         $user = auth()->user();
-        app(RbacService::class)->assertCan($user, 'stories', 'edit');
+        app(RbacService::class)->assertCan($user, app(RbacService::class)->storiesModuleFor($story->language), 'edit');
 
         try {
             app(StoryService::class)->takeOver($story, $user, $this->selectedVersion ?? $story->version);
@@ -238,11 +238,11 @@ class NewsList extends Component
             $svc = app(StoryService::class);
 
             if ($story->status === 'published') {
-                app(RbacService::class)->assertCan($user, 'stories', 'edit');
+                app(RbacService::class)->assertCan($user, app(RbacService::class)->storiesModuleFor($story->language), 'edit');
                 $svc->transition($story, 'archived', $user);
                 $this->dispatch('toast', message: 'Story archived.');
             } else {
-                app(RbacService::class)->assertCan($user, 'stories', 'publish');
+                app(RbacService::class)->assertCan($user, app(RbacService::class)->storiesModuleFor($story->language), 'publish');
                 if ($story->status === 'draft') {
                     $svc->transition($story, 'in_review', $user);
                     $story->refresh();
@@ -267,7 +267,7 @@ class NewsList extends Component
     {
         try {
             $story = app(StoryRepository::class)->findOrFail($id);
-            app(RbacService::class)->assertCan(auth()->user(), 'stories', 'delete');
+            app(RbacService::class)->assertCan(auth()->user(), app(RbacService::class)->storiesModuleFor($story->language), 'delete');
             $story->delete();
             $this->dispatch('toast', message: 'Story moved to trash.');
         } catch (\Throwable $e) {
@@ -282,7 +282,7 @@ class NewsList extends Component
         }
 
         $user = auth()->user();
-        app(RbacService::class)->assertCan($user, 'stories', 'publish');
+        app(RbacService::class)->assertCan($user, app(RbacService::class)->storiesModuleFor($this->language), 'publish');
         $svc = app(StoryService::class);
         $repo = app(StoryRepository::class);
 
@@ -327,7 +327,7 @@ class NewsList extends Component
         }
 
         try {
-            app(RbacService::class)->assertCan(auth()->user(), 'stories', 'delete');
+            app(RbacService::class)->assertCan(auth()->user(), app(RbacService::class)->storiesModuleFor($this->language), 'delete');
             app(StoryRepository::class)->deleteMany($this->selectedStories);
 
             $this->selectedStories = [];
