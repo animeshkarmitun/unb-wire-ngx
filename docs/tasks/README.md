@@ -408,7 +408,7 @@ Build order: `002`–`015` can run in parallel with `001`. E2E tasks start after
 | `M17-PUB-001` | Backdate Story Publishing Support (past published_at timestamp, wizard review UI, audit payload) | — | ✅ | — | 2026-11-18 |
 | `COS-74` | Portal API & media require authentication (P1 security — feed/story/context/search-token 401, media privatized to private disk + signed URLs) | — | ✅ | PR #59 / #61 | 2026-11-18 |
 | `COS-62` | Portal broken "Admin panel" localhost link removed; env-driven `NEXT_PUBLIC_ADMIN_URL` for staff links | — | ✅ | PR #60 | 2026-11-18 |
-| `COS-80` | Dashboard RBAC gate: client business data (top clients, active clients, success rate, Export report) hidden from roles without `clients:view`; KPI cache split | — | 🔧 | — | — |
+| `COS-80` | Dashboard RBAC gate: client business data (top clients, active clients, success rate, Export report) hidden from roles without `clients:view`; KPI cache split | — | ✅ | PR #63 | 2026-11-18 |
 
 ---
 
