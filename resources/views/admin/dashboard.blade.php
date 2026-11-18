@@ -1,10 +1,14 @@
 <x-admin-layout>
     <x-slot:title>Dashboard</x-slot:title>
 
+    @php $canViewClients = app(App\Services\RbacService::class)->can(auth()->user(), 'clients', 'view'); @endphp
+
     <div class="flex items-center justify-between mb-7">
         <h1 class="font-serif text-3xl font-semibold tracking-[-0.01em] text-ink">Dashboard</h1>
         <div class="flex gap-3">
-            <button type="button" @click="$dispatch('toast', { message: 'Export report initiated' })" class="text-sm font-medium px-5 py-[11px] rounded-[10px] bg-panel border border-[#e3e1da] text-ink shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:border-navy-800 hover:text-navy-800">Export report</button>
+            @if ($canViewClients)
+                <button type="button" @click="$dispatch('toast', { message: 'Export report initiated' })" class="text-sm font-medium px-5 py-[11px] rounded-[10px] bg-panel border border-[#e3e1da] text-ink shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:border-navy-800 hover:text-navy-800">Export report</button>
+            @endif
             <a href="{{ route('admin.add-news') }}" class="text-sm font-medium px-5 py-[11px] rounded-[10px] bg-crimson text-white shadow-[0_2px_8px_rgba(229,72,77,0.3)] transition-colors hover:bg-crimson-dark">+ New story</a>
         </div>
     </div>
@@ -30,7 +34,8 @@
             </div>
         </div>
 
-        {{-- Card 2: Active clients --}}
+        {{-- Card 2: Active clients (business data — clients:view) --}}
+        @if ($canViewClients)
         <div class="border rounded-[14px] px-5 pt-[18px] pb-5 shadow-[0_1px_3px_rgba(28,31,46,0.04)] bg-tint-mint border-tint-mint-border">
             <div class="flex items-start justify-between gap-2.5">
                 <div class="text-[13.5px] text-[#5d6172] leading-[1.45] min-h-10 font-medium">Active clients</div>
@@ -44,8 +49,10 @@
                 {{ $deltaClientsText }}
             </div>
         </div>
+        @endif
 
-        {{-- Card 3: Distribution success rate --}}
+        {{-- Card 3: Distribution success rate (business data — clients:view) --}}
+        @if ($canViewClients)
         <div class="border rounded-[14px] px-5 pt-[18px] pb-5 shadow-[0_1px_3px_rgba(28,31,46,0.04)] bg-tint-peach border-tint-peach-border">
             <div class="flex items-start justify-between gap-2.5">
                 <div class="text-[13.5px] text-[#5d6172] leading-[1.45] min-h-10 font-medium">Distribution success rate</div>
@@ -63,6 +70,7 @@
                 {{ $deltaRateText }}
             </div>
         </div>
+        @endif
 
         {{-- Card 4: Exclusive content sent --}}
         <div class="border rounded-[14px] px-5 pt-[18px] pb-5 shadow-[0_1px_3px_rgba(28,31,46,0.04)] bg-tint-rose border-tint-rose-border">
@@ -137,7 +145,8 @@
             @endforelse
         </div>
 
-        {{-- Top clients --}}
+        {{-- Top clients (business data — clients:view) --}}
+        @if ($canViewClients)
         <div class="bg-panel border border-border rounded-[14px] shadow-[0_1px_3px_rgba(28,31,46,0.04)] overflow-hidden">
             <div class="flex items-baseline justify-between px-6 pt-5 pb-3.5">
                 <span class="font-serif text-[19px] font-semibold">Top clients today</span>
@@ -162,6 +171,7 @@
                 </div>
             @endforelse
         </div>
+        @endif
     </section>
 
     {{-- Download FAB --}}
