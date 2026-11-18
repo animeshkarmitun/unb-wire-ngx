@@ -42,10 +42,21 @@ subscriptions; the dashboard showed a fabricated "98.4%" rate. Horizon **was** r
 
 - [x] Tests: media-less story allowed for photo package; excluded-kind story still
       denied; api channel ledgered as `sent`; dashboard null rate (6 new/updated).
-- [x] `php artisan test` — **1006 passed / 0 failed**.
-- [ ] Live: dispatch `FanoutStory` for an existing published story → deliveries rows
-      appear → distribution log populated → dashboard rate from real data.
+- [x] `php artisan test` — **1007 passed / 0 failed** (incl. FTP final-attempt failed-state test, PR #69).
+- [x] **Live verification (2026-11-18):**
+  - Re-fanout of published stories → deliveries table populated (9 sent: 6 api + 3 ftp)
+  - Working FTP (Ittefaq) → `sent`; unreachable dummy FTP hosts → channels auto-paused
+    after threshold (system working as designed)
+  - Jugantor reactivate + re-fanout → honest **Failed** row in the distribution log after
+    real retries — the issue's expected behaviour
+  - Distribution page renders sent + failed entries as editor; dashboard rate from real data
+- [x] **Env fix (server-side, outside repo):** the php containers lacked the `ftp`
+  extension (`FTP_BINARY` Error → flysystem-ftp unusable). Added `ftp` to
+  `/opt/unb-wire-ngx/docker/app/Dockerfile` ext list, rebuilt wire-app + wire-horizon
+  (`docker compose -f compose.wire.yaml build/up -d`, scoped to wire-*; One Group ERP untouched).
 
 ## 5. Completion Notes
 
-_(pending)_
+- Follow-up commits: PR #68 (root-cause fix) + PR #69 (FTP permanent-failure honest state).
+- Note: `recordChannelFailure` fires per FTP attempt, so a dummy host reaches the
+  auto-pause threshold quickly; reactivate from the Clients page once the host is real.
