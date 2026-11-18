@@ -14,6 +14,7 @@ use App\Services\AiService;
 use App\Services\DocxImportService;
 use App\Services\DuplicateDetectionService;
 use App\Services\HtmlSanitizer;
+use App\Services\NoteService;
 use App\Services\RbacService;
 use App\Services\RevisionService;
 use App\Services\StoryService;
@@ -69,6 +70,11 @@ class AddNews extends Component
     public bool $isBackdated = false;
 
     public ?string $backdatedAt = null;
+
+    // COS-76: editor "Needs work" send-back
+    public bool $showNeedsWorkForm = false;
+
+    public string $needsWorkComment = '';
 
     // Step 2: Media fields
     public ?int $featuredMediaId = null;
@@ -982,6 +988,51 @@ class AddNews extends Component
         $this->dispatch('toast', message: 'Sent for review to the desk editor');
     }
 
+    public function toggleNeedsWorkForm(bool $open = true): void
+    {
+        $this->showNeedsWorkForm = $open;
+        if (! $open) {
+            $this->needsWorkComment = '';
+        }
+    }
+
+    /**
+     * COS-76: editor sends an in_review story back to the uploader with a
+     * required comment ("Needs work") — transitions to changes_requested and
+     * attaches the comment as a story note.
+     */
+    public function requestChanges(?RbacService $rbac = null, ?StoryService $svc = null): void
+    {
+        $rbac = $rbac ?? app(RbacService::class);
+        $svc = $svc ?? app(StoryService::class);
+
+        $rbac->assertCan(auth()->user(), 'stories', 'edit');
+
+        $this->validate([
+            'needsWorkComment' => 'required|min:5',
+        ], [
+            'needsWorkComment.required' => 'Please write what needs to be fixed',
+            'needsWorkComment.min' => 'Please describe the changes needed (at least 5 characters)',
+        ]);
+
+        $s = app(StoryRepository::class)->findOrFail($this->storyId);
+
+        if ($s->status !== 'in_review' || (int) $s->owner_id === (int) auth()->id()) {
+            $this->dispatch('toast', message: 'This story cannot be sent back right now');
+
+            return;
+        }
+
+        $svc->transition($s, 'changes_requested', auth()->user());
+        app(NoteService::class)->add($s, auth()->user(), $this->needsWorkComment);
+
+        $this->status = 'changes_requested';
+        $this->showNeedsWorkForm = false;
+        $this->needsWorkComment = '';
+        $this->successState = 'needs_work';
+        $this->dispatch('toast', message: 'Story sent back to '.$this->ownerName.' with your comment');
+    }
+
     public function publish(?RbacService $rbac = null, ?StoryService $svc = null): void
     {
         $rbac = $rbac ?? app(RbacService::class);
@@ -1059,6 +1110,10 @@ class AddNews extends Component
         try {
             // Wizard publish may be invoked from draft by an editor/admin with publish permission.
             // Walk through the workflow so every transition is audited.
+            if ($s->status === 'changes_requested') {
+                $svc->transition($s, 'in_review', auth()->user());
+                $s->refresh();
+            }
             if ($s->status === 'draft') {
                 $svc->transition($s, 'in_review', auth()->user());
                 $s->refresh();
