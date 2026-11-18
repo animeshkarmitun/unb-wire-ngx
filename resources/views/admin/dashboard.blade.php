@@ -60,11 +60,11 @@
                     <x-lucide-activity class="w-[17px] h-[17px] text-white" stroke-width="2" />
                 </div>
             </div>
-            <div class="font-serif text-[34px] font-semibold tracking-[-0.01em] my-2 mb-2.5 text-ink">{{ $successRate }}%</div>
-            <div class="flex items-center gap-[5px] text-[13px] font-semibold {{ $deltaRateDirection === 'up' ? 'text-green' : 'text-crimson' }}">
+            <div class="font-serif text-[34px] font-semibold tracking-[-0.01em] my-2 mb-2.5 text-ink">{{ $successRate === null ? '—' : $successRate.'%' }}</div>
+            <div class="flex items-center gap-[5px] text-[13px] font-semibold {{ $deltaRateDirection === 'flat' ? 'text-[#5d6172]' : ($deltaRateDirection === 'up' ? 'text-green' : 'text-crimson') }}">
                 @if ($deltaRateDirection === 'up')
                     <x-lucide-arrow-up class="w-[11px] h-[11px]" stroke-width="2" />
-                @else
+                @elseif ($deltaRateDirection === 'down')
                     <x-lucide-arrow-down class="w-[11px] h-[11px]" stroke-width="2" />
                 @endif
                 {{ $deltaRateText }}

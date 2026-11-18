@@ -86,6 +86,14 @@ class FanoutStory implements ShouldQueue
                         $this->sendWebhook($story, $ch, $config, $event, $key, $clients);
                     } elseif ($ch->type === 'ftp') {
                         PushFtpDelivery::dispatch($deliveryId);
+                    } elseif ($ch->type === 'api') {
+                        // Pull-based channel: the client pulls via /api/v1/feed with
+                        // its scoped key — ledger the availability immediately.
+                        DB::table('deliveries')->where('idempotency_key', $key)->update([
+                            'status' => 'sent',
+                            'sent_at' => now(),
+                        ]);
+                        $clients->recordChannelSuccess($ch->id);
                     }
                 } catch (\Throwable $e) {
                     if (str_contains($e->getMessage(), 'duplicate') || str_contains($e->getMessage(), 'Unique')) {

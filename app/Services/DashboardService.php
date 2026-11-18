@@ -68,23 +68,24 @@ class DashboardService
                 $activeClients = $this->clients->activeCount();
                 $clientsThisWeek = $this->clients->activeClientsThisWeek($startOfWeek);
 
-                // 3. Distribution success rate (last 7 days vs previous 7 days)
+                // 3. Distribution success rate (last 7 days vs previous 7 days).
+                // No data yet → null (rendered as "no data"), never a fake rate.
                 $recentDel = $this->deliveries->recentCount($sevenDaysAgo);
                 $recentDelOk = $this->deliveries->recentDeliveredCount($sevenDaysAgo);
-                $successRate = $recentDel > 0 ? round(($recentDelOk / $recentDel) * 100, 1) : 98.4;
+                $successRate = $recentDel > 0 ? round(($recentDelOk / $recentDel) * 100, 1) : null;
 
                 $priorDel = $this->deliveries->countBetween($fourteenDaysAgo, $sevenDaysAgo);
                 $priorDelOk = $this->deliveries->deliveredCountBetween($fourteenDaysAgo, $sevenDaysAgo);
-                $priorRate = $priorDel > 0 ? round(($priorDelOk / $priorDel) * 100, 1) : 98.7;
-                $deltaRate = round($successRate - $priorRate, 1);
+                $priorRate = $priorDel > 0 ? round(($priorDelOk / $priorDel) * 100, 1) : null;
+                $deltaRate = $successRate !== null && $priorRate !== null ? round($successRate - $priorRate, 1) : null;
 
                 return [
                     'activeClients' => $activeClients,
                     'deltaClientsText' => '+'.$clientsThisWeek.' this week',
                     'deltaClientsDirection' => 'up',
                     'successRate' => $successRate,
-                    'deltaRateText' => ($deltaRate >= 0 ? '+' : '').$deltaRate.'% from last week',
-                    'deltaRateDirection' => $deltaRate >= 0 ? 'up' : 'down',
+                    'deltaRateText' => $deltaRate === null ? 'no deliveries in the last 7 days' : (($deltaRate >= 0 ? '+' : '').$deltaRate.'% from last week'),
+                    'deltaRateDirection' => $deltaRate === null ? 'flat' : ($deltaRate >= 0 ? 'up' : 'down'),
                 ];
             })
             : [];

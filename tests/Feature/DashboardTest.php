@@ -175,4 +175,13 @@ class DashboardTest extends TestCase
         $this->assertNotEmpty($data['topClients']);
         $this->assertEquals($client->name, $data['topClients'][0]['name']);
     }
+
+    public function test_dashboard_success_rate_is_null_without_deliveries(): void
+    {
+        // COS-75: never fake a rate when no deliveries exist.
+        $data = app(DashboardService::class)->getData($this->admin);
+
+        $this->assertNull($data['successRate']);
+        $this->assertEquals('no deliveries in the last 7 days', $data['deltaRateText']);
+    }
 }

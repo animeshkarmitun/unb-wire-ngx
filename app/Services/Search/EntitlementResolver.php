@@ -104,7 +104,10 @@ class EntitlementResolver
         if (! empty($e['media_kinds'])) {
             $kinds = $story->relationLoaded('media') ? $story->media->pluck('kind')->all() : $story->media()->pluck('kind')->all();
             $kinds = array_unique($kinds);
-            if (empty(array_intersect($e['media_kinds'], $kinds))) {
+
+            // media_kinds filter the media that rides the story — a story with
+            // no media has nothing to filter and must not be blocked (COS-75).
+            if (! empty($kinds) && empty(array_intersect($e['media_kinds'], $kinds))) {
                 return false;
             }
         }
