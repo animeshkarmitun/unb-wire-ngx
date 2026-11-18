@@ -210,4 +210,36 @@ class StoryWorkflowTest extends TestCase
         $this->assertEquals(6, $s->versions()->count());
         $this->assertEquals(4, $s->events()->count()); // created + in_review + approved + published
     }
+
+    public function test_publish_with_backdate_sets_past_published_at_and_records_event_payload(): void
+    {
+        $s = $this->draft();
+        $svc = app(StoryService::class);
+        $s = $svc->transition($s, 'in_review', $this->actor);
+        $s = $svc->transition($s, 'approved', $this->actor);
+
+        $past = now()->subDays(5)->setMicrosecond(0);
+        $s = $svc->transition($s, 'published', $this->actor, 'manual', $past);
+
+        $this->assertEquals('published', $s->status);
+        $this->assertEquals($past->timestamp, $s->published_at->timestamp);
+
+        $event = $s->events()->where('action', 'published')->first();
+        $this->assertNotNull($event);
+        $this->assertTrue($event->payload['is_backdated']);
+        $this->assertEquals($past->toIso8601String(), $event->payload['backdated_to']);
+        $this->assertArrayHasKey('published_at_wallclock', $event->payload);
+    }
+
+    public function test_publish_with_future_backdate_throws_422(): void
+    {
+        $s = $this->draft();
+        $svc = app(StoryService::class);
+        $s = $svc->transition($s, 'in_review', $this->actor);
+        $s = $svc->transition($s, 'approved', $this->actor);
+
+        $future = now()->addDays(2);
+        $this->expectException(UnprocessableEntityHttpException::class);
+        $svc->transition($s, 'published', $this->actor, 'manual', $future);
+    }
 }

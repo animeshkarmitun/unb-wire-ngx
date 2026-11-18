@@ -376,7 +376,7 @@ class MediaSeeder extends Seeder
                 'mime' => ($d['kind'] ?? 'photo') === 'video' ? 'video/mp4' : 'image/jpeg',
                 'size_bytes' => 245000,
                 'checksum' => hash('sha256', $d['title']),
-                'storage_disk' => 'public',
+                'storage_disk' => 'local',
                 'original_path' => $path,
                 'derivatives' => [
                     'grad' => $d['grad'] ?? 'g1',                    'r' => $d['r'] ?? 1.5,
@@ -540,7 +540,7 @@ class MediaSeeder extends Seeder
                     'mime' => 'image/jpeg',
                     'size_bytes' => 180000,
                     'checksum' => hash('sha256', $frame['cap']),
-                    'storage_disk' => 'public',
+                    'storage_disk' => 'local',
                     'original_path' => $fieldPath,
                     'derivatives' => [
                         'grad' => $frame['grad'],
@@ -791,7 +791,7 @@ class MediaSeeder extends Seeder
                 'mime' => 'image/jpeg',
                 'size_bytes' => 450000,
                 'checksum' => hash('sha256', $ap['cap'].$ap['date']),
-                'storage_disk' => 'public',
+                'storage_disk' => 'local',
                 'original_path' => $apPath,
                 'derivatives' => [
                     'grad' => $ap['grad'],
@@ -904,7 +904,7 @@ class MediaSeeder extends Seeder
      */
     private function ensureDemoFile(string $path, string $grad = 'g1'): void
     {
-        $target = storage_path('app/public/'.$path);
+        $target = storage_path('app/private/'.$path);
         if (is_file($target)) {
             return;
         }

@@ -28,7 +28,7 @@
         </label>
         @foreach($media as $m)
           @php
-            $mThumb = !empty($m->original_path) ? Storage::url($m->original_path) : $m->thumbUrl();
+            $mThumb = $m->thumbUrl() ?: $m->staffUrl();
           @endphp
           <div class="photo-card" data-id="{{ $m->id }}" data-type="{{ $m->kind === 'video' ? 'video' : 'photo' }}" data-cap="{{ $m->caption ?: $m->title }}" data-src="{{ $mThumb ?? '' }}">
             <div class="photo-check"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>

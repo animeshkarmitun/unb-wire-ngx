@@ -29,7 +29,7 @@ class IntakeService
         };
         $dest = 'media/uploads/'.Str::ulid().'.'.$ext;
         $stream = fopen($tmpPath, 'rb');
-        Storage::disk('public')->put($dest, $stream);
+        Storage::disk('local')->put($dest, $stream);
         if (is_resource($stream)) {
             fclose($stream);
         }
@@ -54,7 +54,7 @@ class IntakeService
             'mime' => $mime,
             'size_bytes' => (int) $session->size_bytes,
             'checksum' => (string) $checksum,
-            'storage_disk' => 'public',
+            'storage_disk' => 'local',
             'original_path' => $dest,
             'uploaded_by' => $session->user_id,
         ]);

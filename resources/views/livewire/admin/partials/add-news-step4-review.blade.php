@@ -21,6 +21,18 @@
               <div class="rv-row"><span class="k">Category</span><span class="v">{{ $categoryId ? (optional(\App\Models\Category::find($categoryId))->name_en ?: 'Category #'.$categoryId) : 'Not selected' }}</span></div>
               <div class="rv-row"><span class="k">Tags</span><span class="v">{{ count($tags) ? implode(', #', array_map(fn($t) => '#'.$t, $tags)) : '—' }}</span></div>
               <div class="rv-row"><span class="k">Access</span><span class="v">{{ $access === 'exclusive' ? 'Exclusive distribution' : 'Standard — all subscribers' }}</span></div>
+              <div class="rv-row">
+                <span class="k">Publishing</span>
+                <span class="v">
+                  @if($embargoUntil)
+                    Embargo until {{ \Carbon\Carbon::parse($embargoUntil)->setTimezone('Asia/Dhaka')->format('d M Y, h:i A') }} (Dhaka)
+                  @elseif($isBackdated && $backdatedAt)
+                    <span style="color:#d97706;font-weight:600">Backdated to {{ \Carbon\Carbon::parse($backdatedAt)->setTimezone('Asia/Dhaka')->format('d M Y, h:i A') }} (Dhaka)</span>
+                  @else
+                    Immediate (Real-time)
+                  @endif
+                </span>
+              </div>
             </div>
           </div>
 
@@ -43,6 +55,41 @@
               @endif
             </div>
           @endif
+
+          <!-- Backdate Publication Card -->
+          <div class="card" style="margin-top:18px;padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div>
+                <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;cursor:pointer;color:var(--text-primary)">
+                  <input type="checkbox" wire:model.live="isBackdated" style="accent-color:var(--accent);width:16px;height:16px">
+                  <span>Backdate this story (Publish with past date/time)</span>
+                </label>
+                <div style="font-size:12px;color:var(--text-muted);margin-left:24px;margin-top:2px">
+                  Overrides publication timestamp in wire feeds, subscriber portal, and search archives.
+                </div>
+              </div>
+              @if($isBackdated)
+                <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:600">
+                  Backdate Enabled
+                </span>
+              @endif
+            </div>
+
+            @if($isBackdated)
+              <div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--border);display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+                <div style="flex:1;min-width:220px">
+                  <label class="field-label" style="font-size:12px;margin-bottom:4px;display:block">Publication Date &amp; Time (Dhaka)</label>
+                  <input type="datetime-local" class="text-input" wire:model.live="backdatedAt" max="{{ now('Asia/Dhaka')->format('Y-m-d\TH:i') }}" style="width:100%;padding:6px 10px;font-size:13px">
+                  @error('backdatedAt')
+                    <span style="color:var(--crimson);font-size:12px;margin-top:4px;display:block">{{ $message }}</span>
+                  @enderror
+                </div>
+                <div style="font-size:12px;color:var(--text-muted);max-width:260px;line-height:1.4">
+                  Must be in the past. For future scheduled publishing, use <b>Embargo</b> on Step 3.
+                </div>
+              </div>
+            @endif
+          </div>
 
           <div class="publish-note" style="margin-top:18px">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>

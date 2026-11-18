@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Http\Requests\AiAssistRequest;
 use App\Http\Requests\TusCreateRequest;
+use App\Models\Client;
 use App\Models\User;
+use App\Services\ApiKeyService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Validator;
 use Tests\TestCase;
@@ -13,21 +15,23 @@ class FormRequestValidationTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function portalAuthHeader(): array
+    {
+        $client = Client::factory()->create();
+        [, $raw] = app(ApiKeyService::class)->issue($client, 'feed', ['feed:read']);
+
+        return ['Authorization' => 'Bearer '.$raw];
+    }
+
     public function test_feed_request_accepts_valid_limit(): void
     {
-        $user = User::factory()->create();
-
-        $this->actingAs($user);
-        $this->getJson('/api/v1/portal/feed?limit=10')
+        $this->getJson('/api/v1/portal/feed?limit=10', $this->portalAuthHeader())
             ->assertOk();
     }
 
     public function test_feed_request_accepts_since(): void
     {
-        $user = User::factory()->create();
-
-        $this->actingAs($user);
-        $this->getJson('/api/v1/portal/feed?since=2026-01-01')
+        $this->getJson('/api/v1/portal/feed?since=2026-01-01', $this->portalAuthHeader())
             ->assertOk();
     }
 

@@ -37,20 +37,17 @@ class PortalController extends Controller
     public function feed(Request $request): JsonResponse
     {
         $client = $request->attributes->get('client');
-        $clientId = $client?->id ?? 'guest';
-        $key = FeedCache::portalKey($clientId, md5($request->fullUrl()));
+        $key = FeedCache::portalKey($client->id, md5($request->fullUrl()));
 
         $result = Cache::flexible($key, [FeedCache::FRESH, FeedCache::STALE], function () use ($request, $client) {
             $q = Story::with(['category', 'tags', 'media'])->where('status', 'published');
 
-            if ($client) {
-                $ent = $this->entitlementResolver->forClient($client);
-                if (! empty($ent['languages'])) {
-                    $q->whereIn('language', $ent['languages']);
-                }
-                if (! empty($ent['category_ids'])) {
-                    $q->whereIn('category_id', $ent['category_ids']);
-                }
+            $ent = $this->entitlementResolver->forClient($client);
+            if (! empty($ent['languages'])) {
+                $q->whereIn('language', $ent['languages']);
+            }
+            if (! empty($ent['category_ids'])) {
+                $q->whereIn('category_id', $ent['category_ids']);
             }
 
             if ($request->filled('category') && $request->query('category') !== 'All') {
@@ -97,19 +94,12 @@ class PortalController extends Controller
         return response()->json([
             'data' => $result['data'],
             'meta' => $result['meta'],
-        ])->header('Cache-Control', 'public, max-age=60');
+        ])->header('Cache-Control', 'private, max-age=60');
     }
 
     public function context(Request $request, QuotaService $quotaSvc): JsonResponse
     {
         $client = $request->attributes->get('client');
-
-        if (! $client) {
-            return response()->json([
-                'client' => null,
-                'saved_searches' => [],
-            ]);
-        }
 
         $activeSub = ClientPackage::where('client_id', $client->id)
             ->where('starts_at', '<=', now())
@@ -144,8 +134,7 @@ class PortalController extends Controller
     public function show(Request $request, string $publicId): JsonResponse
     {
         $client = $request->attributes->get('client');
-        $clientId = $client?->id ?? 'guest';
-        $key = 'portal:story:'.FeedCache::epoch().':'.$clientId.':'.$publicId;
+        $key = 'portal:story:'.FeedCache::epoch().':'.$client->id.':'.$publicId;
 
         $payload = Cache::flexible($key, [FeedCache::FRESH, FeedCache::STALE], function () use ($publicId, $client) {
             $s = $this->stories->findPublishedByPublicId($publicId);
@@ -154,14 +143,12 @@ class PortalController extends Controller
                 return ['error' => 'Story not found', 'status' => 404];
             }
 
-            if ($client) {
-                $ent = $this->entitlementResolver->forClient($client);
-                if (! empty($ent['languages']) && ! in_array($s->language, $ent['languages'], true)) {
-                    return ['error' => 'Story not found', 'status' => 404];
-                }
-                if (! empty($ent['category_ids']) && ! in_array($s->category_id, $ent['category_ids'])) {
-                    return ['error' => 'Story not found', 'status' => 404];
-                }
+            $ent = $this->entitlementResolver->forClient($client);
+            if (! empty($ent['languages']) && ! in_array($s->language, $ent['languages'], true)) {
+                return ['error' => 'Story not found', 'status' => 404];
+            }
+            if (! empty($ent['category_ids']) && ! in_array($s->category_id, $ent['category_ids'])) {
+                return ['error' => 'Story not found', 'status' => 404];
             }
 
             return ['data' => self::formatStoryDetail($s), 'status' => 200];
@@ -170,7 +157,7 @@ class PortalController extends Controller
         return response()->json(
             isset($payload['data']) ? ['data' => $payload['data']] : ['error' => $payload['error'] ?? 'Story not found'],
             $payload['status'] ?? 404
-        )->header('Cache-Control', 'public, max-age=60');
+        )->header('Cache-Control', 'private, max-age=60');
     }
 
     public function download(Request $request, string $publicId, DownloadGateService $gateService): Response

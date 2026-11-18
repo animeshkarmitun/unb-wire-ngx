@@ -18,14 +18,9 @@ class SearchTenantTokenTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_search_token_returns_jwt_structure(): void
+    public function test_search_token_requires_auth_returns_401(): void
     {
-        $resp = $this->postJson('/api/v1/portal/search-token');
-        $resp->assertOk();
-        $json = $resp->json();
-        $this->assertNotEmpty($json['token']);
-        $this->assertStringContainsString('.', $json['token']);
-        $this->assertEquals('language IN [en, bn]', $json['filter']);
+        $this->postJson('/api/v1/portal/search-token')->assertStatus(401);
     }
 
     public function test_search_token_with_client_entitlement(): void

@@ -29,6 +29,8 @@ class PortalApiTest extends TestCase
 
     private User $owner;
 
+    private string $authHeader;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -38,6 +40,19 @@ class PortalApiTest extends TestCase
         $this->owner = User::factory()->create();
         $this->catEconomy = Category::factory()->create(['name_en' => 'Economy', 'slug' => 'economy']);
         $this->catSports = Category::factory()->create(['name_en' => 'Sports', 'slug' => 'sports']);
+
+        // COS-74: portal read endpoints require authentication — every request
+        // in this suite carries a valid client API key unless testing the 401s.
+        $client = Client::factory()->create();
+        $rawKey = 'unb_live_'.Str::random(16);
+        ClientApiKey::create([
+            'client_id' => $client->id,
+            'name' => 'Suite Key',
+            'key_hash' => hash('sha256', $rawKey),
+            'scopes' => json_encode(['feed:read']),
+            'rate_limit_rpm' => 60,
+        ]);
+        $this->authHeader = 'Bearer '.$rawKey;
     }
 
     // ─── /api/v1/portal/feed ────────────────────────────────────────
@@ -61,7 +76,7 @@ class PortalApiTest extends TestCase
             'owner_id' => $this->owner->id, 'created_by' => $this->owner->id,
         ]);
 
-        $resp = $this->getJson('/api/v1/portal/feed?language=en');
+        $resp = $this->getJson('/api/v1/portal/feed?language=en', ['Authorization' => $this->authHeader]);
 
         $resp->assertOk()->assertJsonCount(1, 'data');
         $this->assertEquals('published', $resp->json('data.0.status'));
@@ -80,11 +95,11 @@ class PortalApiTest extends TestCase
             'headline' => 'Bangla economy story',
         ]);
 
-        $en = $this->getJson('/api/v1/portal/feed?language=en');
+        $en = $this->getJson('/api/v1/portal/feed?language=en', ['Authorization' => $this->authHeader]);
         $en->assertOk()->assertJsonCount(1, 'data');
         $this->assertEquals('en', $en->json('data.0.language'));
 
-        $bn = $this->getJson('/api/v1/portal/feed?language=bn');
+        $bn = $this->getJson('/api/v1/portal/feed?language=bn', ['Authorization' => $this->authHeader]);
         $bn->assertOk()->assertJsonCount(1, 'data');
         $this->assertEquals('bn', $bn->json('data.0.language'));
     }
@@ -102,7 +117,7 @@ class PortalApiTest extends TestCase
             'headline' => 'Sports headline',
         ]);
 
-        $resp = $this->getJson('/api/v1/portal/feed?language=en&category=Economy');
+        $resp = $this->getJson('/api/v1/portal/feed?language=en&category=Economy', ['Authorization' => $this->authHeader]);
 
         $resp->assertOk()->assertJsonCount(1, 'data');
         $this->assertEquals('Economy headline', $resp->json('data.0.headline'));
@@ -121,7 +136,7 @@ class PortalApiTest extends TestCase
             'is_breaking' => false, 'headline' => 'Regular news',
         ]);
 
-        $resp = $this->getJson('/api/v1/portal/feed?language=en&is_breaking=1');
+        $resp = $this->getJson('/api/v1/portal/feed?language=en&is_breaking=1', ['Authorization' => $this->authHeader]);
 
         $resp->assertOk()->assertJsonCount(1, 'data');
         $this->assertEquals('Breaking news', $resp->json('data.0.headline'));
@@ -141,7 +156,7 @@ class PortalApiTest extends TestCase
             'headline' => 'Cricket world cup', 'brief' => 'Bangladesh wins',
         ]);
 
-        $resp = $this->getJson('/api/v1/portal/feed?language=en&search=GDP');
+        $resp = $this->getJson('/api/v1/portal/feed?language=en&search=GDP', ['Authorization' => $this->authHeader]);
 
         $resp->assertOk()->assertJsonCount(1, 'data');
         $this->assertStringContainsString('GDP', $resp->json('data.0.headline'));
@@ -157,14 +172,14 @@ class PortalApiTest extends TestCase
             ]);
         }
 
-        $resp = $this->getJson('/api/v1/portal/feed?language=en&limit=2');
+        $resp = $this->getJson('/api/v1/portal/feed?language=en&limit=2', ['Authorization' => $this->authHeader]);
 
         $resp->assertOk()->assertJsonCount(2, 'data');
     }
 
     public function test_feed_enforces_max_limit_of_100(): void
     {
-        $resp = $this->getJson('/api/v1/portal/feed?language=en&limit=500');
+        $resp = $this->getJson('/api/v1/portal/feed?language=en&limit=500', ['Authorization' => $this->authHeader]);
 
         $resp->assertOk();
         $this->assertLessThanOrEqual(100, count($resp->json('data')));
@@ -180,7 +195,7 @@ class PortalApiTest extends TestCase
             ]);
         }
 
-        $resp = $this->getJson('/api/v1/portal/feed?language=en&page=2&limit=10');
+        $resp = $this->getJson('/api/v1/portal/feed?language=en&page=2&limit=10', ['Authorization' => $this->authHeader]);
 
         $resp->assertOk();
         $this->assertEquals(2, $resp->json('meta.current_page'));
@@ -192,11 +207,11 @@ class PortalApiTest extends TestCase
 
     public function test_feed_returns_cache_control_header(): void
     {
-        $resp = $this->getJson('/api/v1/portal/feed?language=en');
+        $resp = $this->getJson('/api/v1/portal/feed?language=en', ['Authorization' => $this->authHeader]);
 
         $resp->assertOk();
         $cacheControl = $resp->headers->get('Cache-Control');
-        $this->assertStringContainsString('public', $cacheControl);
+        $this->assertStringContainsString('private', $cacheControl);
         $this->assertStringContainsString('max-age=60', $cacheControl);
     }
 
@@ -211,7 +226,7 @@ class PortalApiTest extends TestCase
             'published_at' => now(),
         ]);
 
-        $resp = $this->getJson('/api/v1/portal/feed?language=en');
+        $resp = $this->getJson('/api/v1/portal/feed?language=en', ['Authorization' => $this->authHeader]);
 
         $resp->assertOk();
         $item = $resp->json('data.0');
@@ -241,7 +256,7 @@ class PortalApiTest extends TestCase
             'published_at' => now(),
         ]);
 
-        $resp = $this->getJson("/api/v1/portal/story/{$story->public_id}");
+        $resp = $this->getJson("/api/v1/portal/story/{$story->public_id}", ['Authorization' => $this->authHeader]);
 
         $resp->assertOk();
         $data = $resp->json('data');
@@ -260,7 +275,7 @@ class PortalApiTest extends TestCase
             'owner_id' => $this->owner->id, 'created_by' => $this->owner->id,
         ]);
 
-        $this->getJson("/api/v1/portal/story/{$story->public_id}")->assertNotFound();
+        $this->getJson("/api/v1/portal/story/{$story->public_id}", ['Authorization' => $this->authHeader])->assertNotFound();
     }
 
     public function test_show_returns_404_for_archived_story(): void
@@ -270,25 +285,39 @@ class PortalApiTest extends TestCase
             'owner_id' => $this->owner->id, 'created_by' => $this->owner->id,
         ]);
 
-        $this->getJson("/api/v1/portal/story/{$story->public_id}")->assertNotFound();
+        $this->getJson("/api/v1/portal/story/{$story->public_id}", ['Authorization' => $this->authHeader])->assertNotFound();
     }
 
     public function test_show_returns_404_for_invalid_public_id(): void
     {
-        $this->getJson('/api/v1/portal/story/01ARZ3NDEKTSV4RRFFQ69G5FAV')->assertNotFound();
+        $this->getJson('/api/v1/portal/story/01ARZ3NDEKTSV4RRFFQ69G5FAV', ['Authorization' => $this->authHeader])->assertNotFound();
     }
 
     // ─── /api/v1/portal/search-token ────────────────────────────────
 
-    public function test_search_token_guest_returns_default_public_token(): void
+    public function test_search_token_without_auth_returns_401(): void
     {
-        $resp = $this->postJson('/api/v1/portal/search-token');
+        $this->postJson('/api/v1/portal/search-token')->assertStatus(401);
+    }
 
-        $resp->assertOk();
-        $resp->assertJsonStructure(['token', 'host', 'index', 'filter', 'entitlement', 'expires_at']);
-        $this->assertEquals('main', $resp->json('index'));
-        $this->assertStringContainsString('en', $resp->json('filter'));
-        $this->assertStringContainsString('bn', $resp->json('filter'));
+    public function test_feed_without_auth_returns_401(): void
+    {
+        $this->getJson('/api/v1/portal/feed?language=en')->assertStatus(401);
+    }
+
+    public function test_story_without_auth_returns_401(): void
+    {
+        $story = Story::factory()->published()->create([
+            'language' => 'en', 'category_id' => $this->catEconomy->id,
+            'owner_id' => $this->owner->id, 'created_by' => $this->owner->id,
+        ]);
+
+        $this->getJson("/api/v1/portal/story/{$story->public_id}")->assertStatus(401);
+    }
+
+    public function test_context_without_auth_returns_401(): void
+    {
+        $this->getJson('/api/v1/portal/context')->assertStatus(401);
     }
 
     public function test_search_token_with_valid_api_key_returns_client_entitlement(): void
@@ -353,7 +382,7 @@ class PortalApiTest extends TestCase
         $this->assertNotNull($apiKey->fresh()->last_used_at);
     }
 
-    public function test_search_token_with_revoked_key_falls_back_to_guest(): void
+    public function test_search_token_with_revoked_key_returns_401(): void
     {
         $client = Client::factory()->create();
         $rawKey = 'unb_live_'.Str::random(16);
@@ -370,12 +399,10 @@ class PortalApiTest extends TestCase
             'Authorization' => 'Bearer '.$rawKey,
         ]);
 
-        $resp->assertOk();
-        $this->assertStringContainsString('en', $resp->json('filter'));
-        $this->assertStringContainsString('bn', $resp->json('filter'));
+        $resp->assertStatus(401);
     }
 
-    public function test_search_token_with_expired_key_falls_back_to_guest(): void
+    public function test_search_token_with_expired_key_returns_401(): void
     {
         $client = Client::factory()->create();
         $rawKey = 'unb_live_'.Str::random(16);
@@ -392,19 +419,16 @@ class PortalApiTest extends TestCase
             'Authorization' => 'Bearer '.$rawKey,
         ]);
 
-        $resp->assertOk();
-        $this->assertStringContainsString('en', $resp->json('filter'));
-        $this->assertStringContainsString('bn', $resp->json('filter'));
+        $resp->assertStatus(401);
     }
 
-    public function test_search_token_with_invalid_key_returns_guest_token(): void
+    public function test_search_token_with_invalid_key_returns_401(): void
     {
         $resp = $this->postJson('/api/v1/portal/search-token', [], [
             'Authorization' => 'Bearer unb_live_invalidkey123',
         ]);
 
-        $resp->assertOk();
-        $this->assertStringContainsString('en', $resp->json('filter'));
+        $resp->assertStatus(401);
     }
 
     // ─── /api/v1/portal/context ─────────────────────────────────────
@@ -477,24 +501,15 @@ class PortalApiTest extends TestCase
         $this->assertCount(1, $resp->json('saved_searches'));
     }
 
-    public function test_context_without_auth_returns_null_client(): void
-    {
-        $resp = $this->getJson('/api/v1/portal/context');
-
-        $resp->assertOk();
-        $this->assertNull($resp->json('client'));
-        $this->assertEmpty($resp->json('saved_searches'));
-    }
-
     // ─── Rate Limiting ──────────────────────────────────────────────
 
     public function test_feed_rate_limit_at_60_per_minute(): void
     {
         for ($i = 0; $i < 60; $i++) {
-            $this->getJson('/api/v1/portal/feed?language=en')->assertOk();
+            $this->getJson('/api/v1/portal/feed?language=en', ['Authorization' => $this->authHeader])->assertOk();
         }
 
-        $this->getJson('/api/v1/portal/feed?language=en')->assertStatus(429);
+        $this->getJson('/api/v1/portal/feed?language=en', ['Authorization' => $this->authHeader])->assertStatus(429);
     }
 
     public function test_search_token_rate_limit_at_60_per_minute(): void
@@ -522,16 +537,29 @@ class PortalApiTest extends TestCase
 
     public function test_story_rate_limit_at_120_per_minute(): void
     {
+        // Dedicated key with headroom so the per-key RPM limiter (60) does not
+        // fire before the route throttle (120) under test.
+        $client = Client::factory()->create();
+        $rawKey = 'unb_live_'.Str::random(16);
+        ClientApiKey::create([
+            'client_id' => $client->id,
+            'name' => 'Story Rate Test Key',
+            'key_hash' => hash('sha256', $rawKey),
+            'scopes' => json_encode(['feed:read']),
+            'rate_limit_rpm' => 300,
+        ]);
+        $auth = ['Authorization' => 'Bearer '.$rawKey];
+
         $story = Story::factory()->published()->create([
             'language' => 'en', 'category_id' => $this->catEconomy->id,
             'owner_id' => $this->owner->id, 'created_by' => $this->owner->id,
         ]);
 
         for ($i = 0; $i < 120; $i++) {
-            $this->getJson("/api/v1/portal/story/{$story->public_id}")->assertOk();
+            $this->getJson("/api/v1/portal/story/{$story->public_id}", $auth)->assertOk();
         }
 
-        $this->getJson("/api/v1/portal/story/{$story->public_id}")->assertStatus(429);
+        $this->getJson("/api/v1/portal/story/{$story->public_id}", $auth)->assertStatus(429);
     }
 
     // ─── Portal User (Sanctum) Auth — M13-API-001 ───────────────────

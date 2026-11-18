@@ -6,6 +6,7 @@ use App\Models\MediaAsset;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class PresignedUrlService
 {
@@ -16,6 +17,17 @@ class PresignedUrlService
         if ($variant !== 'original' && ! empty($asset->derivatives[$variant])) {
             $path = is_string($asset->derivatives[$variant]) ? $asset->derivatives[$variant] : ($asset->derivatives[$variant]['path'] ?? $path);
         }
+
+        // Local disks are never web-served (COS-74): hand back a short-TTL
+        // signed URL to the controller-served file route instead.
+        if (in_array($disk, ['local', 'public'], true)) {
+            return URL::temporarySignedRoute(
+                'media.file',
+                now()->addMinutes($ttlMinutes),
+                ['asset' => $asset->public_id, 'variant' => $variant]
+            );
+        }
+
         try {
             return Storage::disk($disk)->temporaryUrl($path, now()->addMinutes($ttlMinutes));
         } catch (\Throwable $e) {
@@ -23,9 +35,6 @@ class PresignedUrlService
             $cdn = rtrim(config('filesystems.disks.s3.url') ?? env('AWS_URL', ''), '/');
             if ($cdn) {
                 return "{$cdn}/{$path}?expires=".now()->addMinutes($ttlMinutes)->timestamp;
-            }
-            if ($disk === 'public' || $disk === 'local') {
-                return url("/storage/{$path}?expires=".now()->addMinutes($ttlMinutes)->timestamp);
             }
             abort(500, 'Storage misconfigured — presigned URL unavailable');
         }

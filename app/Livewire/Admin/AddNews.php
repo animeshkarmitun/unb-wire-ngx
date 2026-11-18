@@ -65,6 +65,11 @@ class AddNews extends Component
 
     public string $aiRawText = '';
 
+    // Backdate publishing
+    public bool $isBackdated = false;
+
+    public ?string $backdatedAt = null;
+
     // Step 2: Media fields
     public ?int $featuredMediaId = null;
 
@@ -156,6 +161,9 @@ class AddNews extends Component
             $this->priority = $s->priority;
             $this->isBreaking = $s->is_breaking;
             $this->embargoUntil = $s->embargo_until ? $s->embargo_until->setTimezone('Asia/Dhaka')->format('Y-m-d\TH:i') : '';
+            if ($s->published_at) {
+                $this->backdatedAt = $s->published_at->setTimezone('Asia/Dhaka')->format('Y-m-d\TH:i');
+            }
             $this->categoryId = (string) $s->category_id;
             $this->subCategoryId = (string) ($s->sub_category_id ?? '');
             $this->aiTouched = $s->ai_touched ?? [];
@@ -170,7 +178,7 @@ class AddNews extends Component
             $mediaRows = $repo->getAttachedMedia($s->id);
 
             foreach ($mediaRows as $m) {
-                $src = ! empty($m->original_path) ? Storage::url($m->original_path) : null;
+                $src = $m->staffUrl();
                 $item = [
                     'id' => (int) $m->id,
                     'cap' => $m->caption_override ?: ($m->caption ?: $m->title),
@@ -507,7 +515,7 @@ class AddNews extends Component
 
         if (! $src) {
             $asset = MediaAsset::find($assetId);
-            $src = $asset?->original_path ? Storage::url($asset->original_path) : null;
+            $src = $asset?->staffUrl();
         }
 
         $found = false;
@@ -557,7 +565,7 @@ class AddNews extends Component
             $this->selectedMediaIds[] = $id;
             if (! $src) {
                 $asset = MediaAsset::find($id);
-                $src = $asset?->original_path ? Storage::url($asset->original_path) : null;
+                $src = $asset?->staffUrl();
             }
             $this->attachedMedia[] = [
                 'id' => $id,
@@ -682,7 +690,7 @@ class AddNews extends Component
             'rights' => 'story',
             'type' => $isVideo ? 'video' : 'photo',
             'grad' => 'g'.(($asset->id % 8) + 1),
-            'src' => Storage::url($asset->original_path),
+            'src' => $asset->staffUrl(),
         ];
 
         $this->mediaUpload = null;
@@ -721,14 +729,14 @@ class AddNews extends Component
             id: $asset->id,
             cap: $asset->title,
             kind: $isVideo ? 'video' : 'photo',
-            src: Storage::url($asset->original_path),
+            src: $asset->staffUrl(),
         );
     }
 
     private function storeUploadedAsset($file): MediaAsset
     {
         $isVideo = str_starts_with($file->getMimeType(), 'video/');
-        $path = $file->store('media/originals', 'public');
+        $path = $file->store('media/originals', 'local');
 
         return MediaAsset::create([
             'kind' => $isVideo ? 'video' : 'photo',
@@ -739,7 +747,7 @@ class AddNews extends Component
             'mime' => $file->getMimeType(),
             'size_bytes' => $file->getSize(),
             'checksum' => hash_file('sha256', $file->getRealPath()) ?: hash('sha256', $file->getClientOriginalName().time()),
-            'storage_disk' => 'public',
+            'storage_disk' => 'local',
             'original_path' => $path,
             'uploaded_by' => auth()->id(),
         ]);
@@ -998,6 +1006,30 @@ class AddNews extends Component
             return;
         }
 
+        $customPublishedAt = null;
+        if ($this->isBackdated) {
+            if (empty($this->backdatedAt)) {
+                $this->addError('backdatedAt', 'Please select a publication date and time');
+                $this->dispatch('toast', message: 'Publish blocked — please select a backdate publication time');
+
+                return;
+            }
+            try {
+                $parsed = Carbon::parse($this->backdatedAt, 'Asia/Dhaka');
+                if ($parsed->isFuture()) {
+                    $this->addError('backdatedAt', 'Backdate publication time cannot be in the future. For future publication, use Embargo on Step 3.');
+                    $this->dispatch('toast', message: 'Backdate cannot be in the future. For future scheduling, use Embargo.');
+
+                    return;
+                }
+                $customPublishedAt = $parsed->utc();
+            } catch (\Throwable $e) {
+                $this->addError('backdatedAt', 'Invalid date/time format');
+
+                return;
+            }
+        }
+
         $this->autosave($rbac, $svc);
         $s = app(StoryRepository::class)->findOrFail($this->storyId);
 
@@ -1036,7 +1068,7 @@ class AddNews extends Component
                 $s->refresh();
             }
             if ($s->status === 'approved') {
-                $svc->transition($s, 'published', auth()->user());
+                $svc->transition($s, 'published', auth()->user(), 'manual', $customPublishedAt);
             }
         } catch (\Throwable $e) {
             $this->dispatch('toast', message: $e->getMessage());

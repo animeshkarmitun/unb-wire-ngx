@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Client;
 use App\Models\User;
+use App\Services\ApiKeyService;
 use App\Support\RateLimitHelper;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -69,16 +71,19 @@ class RateLimitConfigTest extends TestCase
         config(['rate-limiting.limits.portal_feed.attempts' => 60]);
         config(['rate-limiting.dev_multiplier' => 1]);
 
-        $user = User::factory()->create();
-        $this->actingAs($user);
+        // Dedicated key with headroom so the per-key RPM limiter does not fire
+        // before the named route limiter under test.
+        $client = Client::factory()->create();
+        [$key, $raw] = app(ApiKeyService::class)->issue($client, 'feed', ['feed:read'], 300);
+        $auth = ['Authorization' => 'Bearer '.$raw];
 
         // 60 requests should succeed
         for ($i = 0; $i < 60; $i++) {
-            $this->getJson('/api/v1/portal/feed')->assertOk();
+            $this->getJson('/api/v1/portal/feed', $auth)->assertOk();
         }
 
         // 61st should be rate limited
-        $this->getJson('/api/v1/portal/feed')->assertStatus(429);
+        $this->getJson('/api/v1/portal/feed', $auth)->assertStatus(429);
     }
 
     public function test_email_verify_uses_named_limiter(): void

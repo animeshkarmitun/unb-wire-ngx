@@ -45,7 +45,7 @@ class MediaIngestPipelineTest extends TestCase
 
     public function test_patch_stores_bytes_and_hands_off_to_intake_queue(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $payload = 'real-jpeg-bytes-not-discarded';
         $id = $this->createSession(strlen($payload));
 
@@ -63,7 +63,7 @@ class MediaIngestPipelineTest extends TestCase
         $this->assertSame(hash('sha256', $payload), $asset->checksum);
         $this->assertSame('field', $asset->source);
         $this->assertNotNull($asset->batch_id);
-        $this->assertSame($payload, Storage::disk('public')->get($asset->original_path));
+        $this->assertSame($payload, Storage::disk('local')->get($asset->original_path));
 
         $pending = app(MediaRepository::class)->getPendingBatches();
         $this->assertTrue($pending->contains('id', $asset->batch_id));
@@ -71,7 +71,7 @@ class MediaIngestPipelineTest extends TestCase
 
     public function test_chunked_resumable_upload_stores_all_bytes_in_order(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $chunkA = str_repeat('A', 10);
         $chunkB = str_repeat('B', 6);
         $id = $this->createSession(strlen($chunkA) + strlen($chunkB), 'chunked.png');
@@ -81,14 +81,14 @@ class MediaIngestPipelineTest extends TestCase
         $this->patchChunk($id, $chunkB, 10)->assertStatus(204);
 
         $asset = MediaAsset::where('uploaded_by', $this->editor->id)->firstOrFail();
-        $this->assertSame($chunkA.$chunkB, Storage::disk('public')->get($asset->original_path));
+        $this->assertSame($chunkA.$chunkB, Storage::disk('local')->get($asset->original_path));
         $this->assertSame('image/png', $asset->mime);
         $this->assertSame(hash('sha256', $chunkA.$chunkB), $asset->checksum);
     }
 
     public function test_partial_upload_is_not_handed_off_yet(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $id = $this->createSession(50, 'partial.jpg');
 
         $this->patchChunk($id, str_repeat('x', 20), 0)->assertStatus(204);
@@ -99,7 +99,7 @@ class MediaIngestPipelineTest extends TestCase
 
     public function test_completed_session_does_not_double_ingest_on_extra_patch(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $payload = 'exact-bytes';
         $id = $this->createSession(strlen($payload), 'once.jpg');
 

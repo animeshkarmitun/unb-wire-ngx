@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Models\Client;
 use App\Models\ClientUser;
+use App\Services\ApiKeyService;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -218,17 +219,19 @@ class PortalAuthTest extends TestCase
 
     public function test_existing_portal_feed_still_works_with_api_key(): void
     {
-        $resp = $this->getJson('/api/v1/portal/feed?language=en');
+        $client = Client::factory()->create(['status' => 'active']);
+        [, $raw] = app(ApiKeyService::class)->issue($client, 'feed', ['feed:read']);
+
+        $resp = $this->getJson('/api/v1/portal/feed?language=en', [
+            'Authorization' => 'Bearer '.$raw,
+        ]);
 
         $resp->assertOk();
     }
 
-    public function test_existing_portal_context_still_works_without_auth(): void
+    public function test_existing_portal_context_requires_auth(): void
     {
-        $resp = $this->getJson('/api/v1/portal/context');
-
-        $resp->assertOk();
-        $this->assertNull($resp->json('client'));
+        $this->getJson('/api/v1/portal/context')->assertStatus(401);
     }
 
     public function test_login_validates_required_fields(): void
