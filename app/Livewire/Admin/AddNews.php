@@ -487,7 +487,8 @@ class AddNews extends Component
 
         $this->bodyHtml = HtmlSanitizer::clean(implode('', $bodyParas));
         if (empty($this->brief)) {
-            $this->brief = Str::limit(HtmlSanitizer::text($this->bodyHtml), 280, '');
+            // COS-78: sentence-boundary brief — never cut mid-word, no stray newlines.
+            $this->brief = \App\Support\BriefBuilder::fromPlainText(HtmlSanitizer::text($this->bodyHtml));
         }
 
         foreach (['headline', 'brief', 'body'] as $key) {
