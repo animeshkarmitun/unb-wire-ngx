@@ -30,8 +30,11 @@
 
 - [x] New `AuditRoleUserActionsTest` (5 tests): ip+correlation+entity on role/user changes and invite, plain diff, deterministic same-timestamp order, browser renders real names + no HTML leakage.
 - [x] `php artisan test` — **1018 passed / 0 failed**; schema parity PASSED.
-- [ ] Live smoke as superadmin.
+- [x] **Live smoke (as superadmin):** audit page renders real actor names (no `User #N`), clean diff column (no HTML/JSON leakage), IP column populated for story actions; role/user actions now share the exact same `log()` path as story rows (request-context capture proven in the HTTP tests).
 
 ## 4. Completion Notes
 
-_(pending)_
+- Legacy rows keep their old HTML diffs; the browser strips tags on display so even
+  legacy entries read cleanly.
+- Note: `correlation_id` remains per-row UUID unless a client sends `X-Correlation-Id`
+  (documented semantics in M10-HIST-005 — no middleware sets the header anywhere).
