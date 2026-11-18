@@ -323,4 +323,27 @@ class ClientsManagerTest extends TestCase
 
         $this->app->instance(FtpDiskFactory::class, $factory);
     }
+
+    // ─── COS-79: usage column matches the portal QuotaService numbers ───
+
+    public function test_usage_column_shows_unlimited_when_no_tier_quotas(): void
+    {
+        // Seeded clients have no notes.tier_quotas — no fabricated /800.
+        Livewire::test(ClientsManager::class)
+            ->assertSee('Unlimited')
+            ->assertDontSee('/ 800 media');
+    }
+
+    public function test_usage_column_shows_zero_quota_not_clamped(): void
+    {
+        // Basic-tier client with media_quota=0 must read "0 / 0 media",
+        // not "0 / 1" (the old max(1, quota) clamp).
+        $client = Client::where('status', 'active')->firstOrFail();
+        $notes = json_decode($client->notes, true) ?: [];
+        $notes['tier_quotas'] = ['stories_quota' => 200, 'media_quota' => 0];
+        $client->update(['notes' => json_encode($notes)]);
+
+        Livewire::test(ClientsManager::class)
+            ->assertSee('0 / 0 media');
+    }
 }

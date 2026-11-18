@@ -134,9 +134,15 @@ class ClientService
             'activity' => [],
         ], $meta, [
             'tier' => $tier,
+            // COS-79: the exact QuotaService numbers the client portal shows
+            // (month usage; null quota = unlimited) — no fabricated fallbacks.
             'usage' => [
                 'dl' => $downloads,
                 'quota' => $quota['media_quota'] ?? ($quota['stories_quota'] ?? null),
+                'media_used' => $quota['media_used'],
+                'media_quota' => $quota['media_quota'],
+                'stories_used' => $quota['stories_used'],
+                'stories_quota' => $quota['stories_quota'],
                 'api' => $lastKeyUsed ? Carbon::parse($lastKeyUsed)->diffForHumans() : '—',
                 'last' => $lastDownload ? Carbon::parse($lastDownload)->diffForHumans() : '—',
             ],
