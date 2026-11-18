@@ -28,3 +28,11 @@ Completed 2026-11-18 COS-74 LIVE verification (147.93.171.193):
 - Live smoke: unauth feed/context 401; client login + feed/story 200; presigned signed-URL 200 image/jpeg; unsigned 403; presign-no-token 401; /storage/media/ap/... 404
 - Gotcha fixed: docker-exec/root-owned private-media dirs needed go+rX for php-fpm — media:privatize now normalizes perms
 
+
+Completed 2026-11-18 (COS-80/COS-76/COS-75/COS-63 session):
+- COS-80: uploader dashboard business widgets hidden live-verified (tanvir)
+- COS-76: editor Needs-work send-back live (probe story, editor sees button, owner does not) + wizard attached-media 500 regression fixed (PR #66)
+- COS-75: deliveries flow live (9 sent + 1 honest Failed for Jugantor dummy FTP); ftp ext installed server-side
+- COS-63: language-aware RBAC live (tanvir bn 200/en 403; enamul en 200/bn 403; ruma both 200)
+- CI flake noted: FtpConnectionTest connection-failure (Mockery count, pre-existing)
+

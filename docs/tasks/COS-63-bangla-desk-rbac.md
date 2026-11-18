@@ -40,8 +40,15 @@ unlocked both) — unintended cross-desk access.
       200 for Uploader-Bangla; `/admin/news/en` 403 for Uploader-Bangla; sidebar shows
       only the uploader's language.
 - [x] `php artisan test` — **1013 passed / 0 failed**; schema parity PASSED.
-- [ ] Live smoke as `tanvir@unbnews.org` (Uploader-Bangla) + `enamul@unbnews.org`.
+- [x] **Live smoke (147.93.171.193):** tanvir (Uploader-Bangla): bn news **200**, en news
+      **403**, bn wizard **200**, en wizard **403**, sidebar shows Bangla News only;
+      enamul (Uploader-English): en **200**, bn **403**, sidebar English only;
+      ruma (Editor): both **200**.
 
 ## 4. Completion Notes
 
-_(pending)_
+- Pre-existing CI flake observed on the PR run (not related): `FtpConnectionTest >
+  delivery settings test connection failure` (Mockery `make` expectation count vs
+  Livewire update rounds) — passes locally and on the post-merge main run.
+- Note: full sidebar permission cleanup for other items (Clients, Packages, etc.)
+  remains under COS-65.
