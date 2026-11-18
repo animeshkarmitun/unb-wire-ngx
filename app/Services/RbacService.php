@@ -28,4 +28,13 @@ class RbacService
             throw new AuthorizationException("Forbidden: need {$action} on {$module}");
         }
     }
+
+    /**
+     * Stories are split into two RBAC modules by language ('stories' / 'stories_bn').
+     * Every language-aware permission check must resolve the module through this.
+     */
+    public function storiesModuleFor(string $language): string
+    {
+        return $language === 'bn' ? 'stories_bn' : 'stories';
+    }
 }

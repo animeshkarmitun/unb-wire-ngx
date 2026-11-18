@@ -42,6 +42,16 @@ class WireServiceViewTest extends TestCase
             'can_delete' => true,
         ]);
 
+        // COS-63: Bangla pages are gated by the stories_bn module.
+        $role->permissions()->create([
+            'module' => 'stories_bn',
+            'can_view' => true,
+            'can_create' => true,
+            'can_edit' => true,
+            'can_publish' => true,
+            'can_delete' => true,
+        ]);
+
         $role->permissions()->create([
             'module' => 'settings',
             'can_view' => true,

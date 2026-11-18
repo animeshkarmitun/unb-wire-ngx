@@ -46,7 +46,11 @@ class StoryView extends Component
 
     public function getCanEditStoryProperty(): bool
     {
-        return auth()->check() && app(RbacService::class)->can(auth()->user(), 'stories', 'edit');
+        return auth()->check() && app(RbacService::class)->can(
+            auth()->user(),
+            app(RbacService::class)->storiesModuleFor($this->story->language),
+            'edit'
+        );
     }
 
     public function compareVersions(): void
@@ -93,7 +97,7 @@ class StoryView extends Component
 
     public function requestRestore(int $version): void
     {
-        app(RbacService::class)->assertCan(auth()->user(), 'stories', 'edit');
+        app(RbacService::class)->assertCan(auth()->user(), app(RbacService::class)->storiesModuleFor($this->story->language), 'edit');
         $this->restoreTarget = $version;
         $this->showRestoreConfirm = true;
     }
@@ -134,7 +138,7 @@ class StoryView extends Component
 
     public function addNote(): void
     {
-        app(RbacService::class)->assertCan(auth()->user(), 'stories', 'edit');
+        app(RbacService::class)->assertCan(auth()->user(), app(RbacService::class)->storiesModuleFor($this->story->language), 'edit');
         $this->validate([
             'newNote' => 'required|string|min:1|max:2000',
         ]);
@@ -148,7 +152,7 @@ class StoryView extends Component
     public function transitionStatus(string $toStatus): void
     {
         $action = ($toStatus === 'published') ? 'publish' : 'edit';
-        app(RbacService::class)->assertCan(auth()->user(), 'stories', $action);
+        app(RbacService::class)->assertCan(auth()->user(), app(RbacService::class)->storiesModuleFor($this->story->language), $action);
 
         app(StoryService::class)->transition($this->story, $toStatus, auth()->user());
 

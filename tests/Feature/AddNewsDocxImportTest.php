@@ -116,23 +116,10 @@ class AddNewsDocxImportTest extends TestCase
 
     public function test_apply_is_denied_without_stories_edit_permission(): void
     {
+        // COS-63: Business Team has no stories create — the language-aware gate
+        // in AddNews::mount denies the wizard page entirely (403).
         $this->actingAs($this->business);
 
-        Livewire::test(AddNews::class)
-            ->set('docImport', [
-                'blocks' => [['kind' => 'heading', 'text' => 'X']],
-                'assignment' => ['headline'],
-                'author' => null,
-                'dateline_city' => null,
-                'dateline_date' => null,
-                'heading_found' => true,
-                'subhead_found' => false,
-                'byline_found' => false,
-                'words' => 1,
-                'file_name' => 'x.docx',
-            ])
-            ->set('docAssignment', ['headline'])
-            ->call('applyDocImport')
-            ->assertForbidden();
+        $this->get('/admin/add-news')->assertForbidden();
     }
 }
