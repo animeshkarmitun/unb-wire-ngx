@@ -9,10 +9,12 @@ use App\Models\ClientChannel;
 use App\Models\ClientPackage;
 use App\Models\ClientUser;
 use App\Models\Download;
+use App\Notifications\ClientStoryNotification;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 
 class ClientRepository
 {
@@ -195,6 +197,21 @@ class ClientRepository
             $contact = $client?->billing_email ?: ClientUser::where('client_id', $channel->client_id)->orderBy('id')->value('email');
             if ($client && $contact) {
                 Mail::to($contact)->queue(new ChannelPaused($client->name, (string) $channel->type));
+            }
+
+            // FTP channels are client-visible: the portal users must know why
+            // stories stopped arriving via FTP (they can use the portal meanwhile).
+            if (($channel->type ?? '') === 'ftp') {
+                $users = ClientUser::where('client_id', $channel->client_id)->where('status', 'active')->get();
+                if ($users->isNotEmpty()) {
+                    Notification::sendNow($users, new ClientStoryNotification('story.ftp_paused', [
+                        'title' => 'FTP channel paused automatically',
+                        'message' => 'Your FTP channel was paused after '.$failures.' consecutive delivery failures. Stories are still available in the portal — contact UNB support to fix the FTP connection.',
+                        'public_id' => null,
+                        'category' => null,
+                        'urgency' => 'regular',
+                    ]));
+                }
             }
         }
     }

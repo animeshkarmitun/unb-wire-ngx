@@ -617,6 +617,14 @@
                       {{ $pu->clientRole->name }}
                     </span>
                   @endif
+                  @if($puStatus === 'active')
+                    <button type="button" style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:9999px;border:1px solid {{ $pu->can_manage_delivery ? '#a7f3d0' : '#e5e7eb' }};background:{{ $pu->can_manage_delivery ? '#ecfdf5' : '#fff' }};color:{{ $pu->can_manage_delivery ? '#047857' : '#6b7280' }};cursor:pointer"
+                      wire:click="toggleDeliveryManager({{ $pu->id }})"
+                      wire:confirm="{{ $pu->can_manage_delivery ? 'Revoke' : 'Grant' }} FTP management for this portal user?"
+                      title="Whether this user can manage the client's FTP channel from the portal">
+                      {{ $pu->can_manage_delivery ? '✓ FTP manager' : 'FTP manager' }}
+                    </button>
+                  @endif
                 </div>
                 <div style="display:flex;gap:6px;padding:6px 0 10px;flex-wrap:wrap">
                   @if($puStatus === 'active')

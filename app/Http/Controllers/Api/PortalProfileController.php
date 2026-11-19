@@ -24,6 +24,7 @@ class PortalProfileController extends Controller
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'can_manage_delivery' => (bool) $user->can_manage_delivery,
             'client_role' => [
                 'name' => $user->clientRole?->name,
             ],

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\ClientFeedController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\PortalAuthController;
 use App\Http\Controllers\Api\PortalController;
+use App\Http\Controllers\Api\PortalFtpController;
 use App\Http\Controllers\Api\PortalNotificationController;
 use App\Http\Controllers\Api\PortalProfileController;
 use App\Http\Controllers\MediaFileController;
@@ -29,6 +30,14 @@ Route::prefix('v1/portal')->middleware(['portal.session', 'throttle:portal-sessi
     Route::get('/profile', [PortalProfileController::class, 'show']);
     Route::patch('/profile', [PortalProfileController::class, 'update']);
     Route::patch('/password', [PortalProfileController::class, 'updatePassword']);
+
+    // COS-FTP-MGMT: client-managed FTP channel (client admin user only)
+    Route::get('/ftp', [PortalFtpController::class, 'show']);
+    Route::put('/ftp', [PortalFtpController::class, 'update']);
+    Route::post('/ftp/test', [PortalFtpController::class, 'test']);
+    Route::post('/ftp/pause', [PortalFtpController::class, 'pause']);
+    Route::post('/ftp/resume', [PortalFtpController::class, 'resume']);
+    Route::delete('/ftp', [PortalFtpController::class, 'destroy']);
 
     // Notifications
     Route::get('/notifications', [PortalNotificationController::class, 'index']);

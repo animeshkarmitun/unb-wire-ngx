@@ -735,6 +735,20 @@ class ClientsManager extends Component
         $this->dispatch('toast', message: '<b>'.e($user->name).'</b> role updated');
     }
 
+    public function toggleDeliveryManager(int $userId): void
+    {
+        app(RbacService::class)->assertCan(auth()->user(), 'clients', 'edit');
+
+        $user = ClientUser::findOrFail($userId);
+        $user->update(['can_manage_delivery' => ! $user->can_manage_delivery]);
+
+        if ($this->selectedId) {
+            $this->initDrawerFields($this->selectedId);
+        }
+        $state = $user->can_manage_delivery ? 'can now manage FTP delivery' : 'can no longer manage FTP delivery';
+        $this->dispatch('toast', message: '<b>'.e($user->name).'</b> '.$state);
+    }
+
     // ─── Render ─────────────────────────────────────────────────────
 
     public function render(): View
