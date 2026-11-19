@@ -55,7 +55,8 @@ class BriefStoryFlowTest extends TestCase
         $user = User::factory()->create(['role_id' => Role::where('name', 'Editor')->first()->id]);
         $cat = Category::first() ?? Category::factory()->create();
 
-        $bad = str_repeat('Story body sentence. ', 14)."\r\nPartial trailing wor";
+        // 264 chars + \r\n artefact (stories.brief is varchar(280) — CI runs pgsql).
+        $bad = str_repeat('Story body sentence. ', 12)."\r\nPartial trailing wor";
         $story = Story::factory()->create([
             'status' => 'published',
             'language' => 'en',

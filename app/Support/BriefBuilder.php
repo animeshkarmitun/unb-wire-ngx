@@ -24,9 +24,11 @@ class BriefBuilder
             return rtrim($m[1]);
         }
 
-        // Otherwise fall back to a word boundary with an ellipsis.
+        // Otherwise fall back to a word boundary with an ellipsis (ellipsis
+        // included, the result never exceeds the limit — brief is varchar(280)).
         $space = mb_strrpos($cut, ' ');
+        $trim = $limit - mb_strlen('…');
 
-        return ($space === false ? $cut : mb_substr($cut, 0, $space)).'…';
+        return ($space === false || $space > $trim ? mb_substr($cut, 0, $trim) : mb_substr($cut, 0, $space)).'…';
     }
 }

@@ -9,9 +9,10 @@ use App\Models\Category;
 use App\Models\MediaAsset;
 use App\Models\Role;
 use App\Models\Story;
-use App\Services\StoryService;
 use App\Models\Tag;
 use App\Models\User;
+use App\Services\StoryService;
+use Carbon\Carbon;
 use Database\Seeders\CategorySeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\SettingSeeder;
@@ -1085,7 +1086,8 @@ class AddNewsTest extends TestCase
 
     // ─── Edit Existing Story ───────────────────────────────────────
 
-    public function test_mount_with_existing_story_loads_state(): void    {
+    public function test_mount_with_existing_story_loads_state(): void
+    {
         $this->actingAs($this->editor);
         $tag = Tag::create(['name' => 'politics', 'slug' => 'politics']);
         $story = $this->createDraftStory();
@@ -1259,7 +1261,7 @@ class AddNewsTest extends TestCase
         $storyId = $cmp->get('storyId');
         $story = Story::findOrFail($storyId);
         $this->assertEquals('published', $story->status);
-        $expectedUtc = \Carbon\Carbon::parse($past, 'Asia/Dhaka')->utc();
+        $expectedUtc = Carbon::parse($past, 'Asia/Dhaka')->utc();
         $this->assertEquals($expectedUtc->timestamp, $story->published_at->timestamp);
     }
 

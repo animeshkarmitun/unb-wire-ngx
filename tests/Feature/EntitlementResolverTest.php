@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Category;
 use App\Models\Client;
+use App\Models\MediaAsset;
 use App\Models\Package;
 use App\Models\Story;
 use App\Models\User;
@@ -96,12 +97,12 @@ class EntitlementResolverTest extends TestCase
 
         $cat = Category::factory()->create();
         $video = Story::factory()->create(['status' => 'published', 'language' => 'en', 'category_id' => $cat->id]);
-        $asset = \App\Models\MediaAsset::factory()->create(['kind' => 'video']);
+        $asset = MediaAsset::factory()->create(['kind' => 'video']);
         $video->media()->attach($asset->id, ['role' => 'featured']);
         $this->assertFalse($this->resolver->clientAllowed($c, $video));
 
         $photo = Story::factory()->create(['status' => 'published', 'language' => 'en', 'category_id' => $cat->id]);
-        $asset2 = \App\Models\MediaAsset::factory()->create(['kind' => 'photo']);
+        $asset2 = MediaAsset::factory()->create(['kind' => 'photo']);
         $photo->media()->attach($asset2->id, ['role' => 'featured']);
         $this->assertTrue($this->resolver->clientAllowed($c, $photo));
     }

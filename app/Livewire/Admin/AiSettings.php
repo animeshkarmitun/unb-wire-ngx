@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Setting;
+use App\Repositories\AuditLogRepository;
 use App\Services\RbacService;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -120,7 +121,7 @@ class AiSettings extends Component
         );
 
         // COS-68: route through the repository so ip/user-agent/correlation are captured.
-        app(\App\Repositories\AuditLogRepository::class)->log(
+        app(AuditLogRepository::class)->log(
             $this->killed ? 'ai.kill_switch.on' : 'ai.kill_switch.off',
             'setting',
             null,
@@ -176,7 +177,7 @@ class AiSettings extends Component
             ]
         );
 
-        app(\App\Repositories\AuditLogRepository::class)->log(
+        app(AuditLogRepository::class)->log(
             'ai.settings.updated',
             'setting',
             null,

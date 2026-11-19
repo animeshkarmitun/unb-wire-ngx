@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Models\User;
 use App\Services\AuditQueryService;
 use App\Services\RbacService;
 use Livewire\Component;
@@ -77,7 +78,7 @@ class AuditLogBrowser extends Component
         $ids = $results->getCollection()->pluck('actor_id')->filter()->unique();
         $actorNames = $ids->isEmpty()
             ? []
-            : \App\Models\User::whereIn('id', $ids)->pluck('name', 'id')->all();
+            : User::whereIn('id', $ids)->pluck('name', 'id')->all();
 
         return view('livewire.admin.audit-log-browser', [
             'actorNames' => $actorNames,

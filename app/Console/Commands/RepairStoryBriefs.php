@@ -34,6 +34,13 @@ class RepairStoryBriefs extends Command
                 }
 
                 $clean = BriefBuilder::fromPlainText($brief);
+
+                // A brief that still doesn't end with sentence punctuation is a
+                // partial cut — force the sentence/word-boundary cut path.
+                if (! preg_match('/[.!?…।]$/u', $clean)) {
+                    $clean = BriefBuilder::fromPlainText($clean, mb_strlen($clean) - 1);
+                }
+
                 if ($clean === $brief) {
                     continue;
                 }

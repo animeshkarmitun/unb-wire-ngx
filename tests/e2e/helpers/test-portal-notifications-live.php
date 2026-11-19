@@ -1,33 +1,29 @@
 <?php
 
-require __DIR__ . '/../../../vendor/autoload.php';
-$app = require_once __DIR__ . '/../../../bootstrap/app.php';
-$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+require __DIR__.'/../../../vendor/autoload.php';
+$app = require_once __DIR__.'/../../../bootstrap/app.php';
+$kernel = $app->make(Kernel::class);
 $kernel->bootstrap();
 
-use App\Jobs\FanoutStory;
-use App\Models\Category;
 use App\Models\Client;
-use App\Models\ClientPackage;
 use App\Models\ClientUser;
-use App\Models\Package;
-use App\Models\Story;
 use App\Models\User;
 use App\Notifications\ClientStoryNotification;
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 
 echo "=== [TEST 1]: Client User Notification Invariants ===\n";
 
 $client = Client::where('name', 'The Daily Star')->first() ?? Client::first();
-if (!$client) {
+if (! $client) {
     echo "FAIL: No client found\n";
     exit(1);
 }
 
 // Ensure active client user
 $clientUser = ClientUser::where('client_id', $client->id)->first();
-if (!$clientUser) {
+if (! $clientUser) {
     $clientUser = ClientUser::create([
         'client_id' => $client->id,
         'name' => 'Daily Star Desk',
@@ -42,7 +38,7 @@ echo "Client User: {$clientUser->name} <{$clientUser->email}>\n";
 
 // Clear existing notifications for test cleanliness
 $clientUser->notifications()->delete();
-echo "Cleared prior notifications. Count: " . $clientUser->notifications()->count() . "\n";
+echo 'Cleared prior notifications. Count: '.$clientUser->notifications()->count()."\n";
 
 // Seed 3 test notifications: Breaking, Updated, Killed
 $clientUser->notify(new ClientStoryNotification('story.breaking', [
@@ -85,17 +81,17 @@ $token = $clientUser->createToken('portal_test_token')->plainTextToken;
 
 // 1. GET /api/v1/portal/notifications
 $res = Http::withToken($token)->get(url('/api/v1/portal/notifications'));
-echo "GET /api/v1/portal/notifications => HTTP " . $res->status() . "\n";
+echo 'GET /api/v1/portal/notifications => HTTP '.$res->status()."\n";
 if ($res->status() !== 200) {
-    echo "FAIL: Expected 200, got " . $res->status() . "\n";
-    echo $res->body() . "\n";
+    echo 'FAIL: Expected 200, got '.$res->status()."\n";
+    echo $res->body()."\n";
     exit(1);
 }
 
 $json = $res->json();
 $items = $json['data'] ?? [];
 $unreadCount = $json['unread_count'] ?? -1;
-echo "Fetched " . count($items) . " items. Unread count reported: {$unreadCount}\n";
+echo 'Fetched '.count($items)." items. Unread count reported: {$unreadCount}\n";
 if (count($items) !== 3 || $unreadCount !== 3) {
     echo "FAIL: Expected 3 items and 3 unread count\n";
     exit(1);
@@ -105,9 +101,9 @@ if (count($items) !== 3 || $unreadCount !== 3) {
 $targetId = $items[0]['id'];
 echo "Marking item {$targetId} ('{$items[0]['title']}') as read...\n";
 $resRead = Http::withToken($token)->patch(url("/api/v1/portal/notifications/{$targetId}/read"));
-echo "PATCH /api/v1/portal/notifications/{id}/read => HTTP " . $resRead->status() . "\n";
+echo 'PATCH /api/v1/portal/notifications/{id}/read => HTTP '.$resRead->status()."\n";
 if ($resRead->status() !== 200 || $resRead->json('unread_count') !== 2) {
-    echo "FAIL: Expected unread_count 2, got: " . json_encode($resRead->json()) . "\n";
+    echo 'FAIL: Expected unread_count 2, got: '.json_encode($resRead->json())."\n";
     exit(1);
 }
 
@@ -121,7 +117,7 @@ echo "GET ?filter=unread returned exactly 2 unread items.\n";
 
 // 4. POST /api/v1/portal/notifications/mark-all-read
 $resMarkAll = Http::withToken($token)->post(url('/api/v1/portal/notifications/mark-all-read'));
-echo "POST /api/v1/portal/notifications/mark-all-read => HTTP " . $resMarkAll->status() . "\n";
+echo 'POST /api/v1/portal/notifications/mark-all-read => HTTP '.$resMarkAll->status()."\n";
 if ($resMarkAll->status() !== 200 || $resMarkAll->json('unread_count') !== 0) {
     echo "FAIL: Expected 0 unread count after mark-all-read\n";
     exit(1);
@@ -130,7 +126,7 @@ if ($resMarkAll->status() !== 200 || $resMarkAll->json('unread_count') !== 0) {
 // 5. DELETE /api/v1/portal/notifications/{id}
 echo "Deleting item {$targetId}...\n";
 $resDel = Http::withToken($token)->delete(url("/api/v1/portal/notifications/{$targetId}"));
-echo "DELETE /api/v1/portal/notifications/{id} => HTTP " . $resDel->status() . "\n";
+echo 'DELETE /api/v1/portal/notifications/{id} => HTTP '.$resDel->status()."\n";
 if ($resDel->status() !== 200) {
     echo "FAIL: Delete notification failed\n";
     exit(1);
