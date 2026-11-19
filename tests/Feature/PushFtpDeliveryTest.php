@@ -7,6 +7,7 @@ use App\Jobs\PushFtpDelivery;
 use App\Models\Client;
 use App\Models\ClientChannel;
 use App\Models\ClientPackage;
+use App\Models\ClientUser;
 use App\Models\Delivery;
 use App\Models\Package;
 use App\Models\Story;
@@ -16,6 +17,7 @@ use App\Services\Delivery\WireFormatFactory;
 use App\Services\Delivery\WireOutput;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
 use Tests\TestCase;
@@ -209,5 +211,94 @@ class PushFtpDeliveryTest extends TestCase
         $delivery->refresh();
         $this->assertEquals('failed', $delivery->status);
         $this->assertEquals(3, $delivery->attempt_count);
+    }
+
+    public function test_permanent_failure_notifies_client_portal_users()
+    {
+        // COS-77 follow-up: the client's portal users must learn which story
+        // did not reach their FTP channel so they can pull it from the portal.
+        $client = Client::factory()->create(['status' => 'active']);
+        $portalUser = ClientUser::factory()->create([
+            'client_id' => $client->id,
+            'status' => 'active',
+        ]);
+        $channel = ClientChannel::factory()->create([
+            'client_id' => $client->id,
+            'type' => 'ftp',
+            'status' => 'active',
+            'config' => ['host' => 'ftp.example.com', 'username' => 'u', 'password' => 'p'],
+        ]);
+        $story = Story::factory()->create(['status' => 'published', 'language' => 'en', 'headline' => 'FTP fail probe']);
+        $delivery = Delivery::create([
+            'deliverable_type' => 'story',
+            'deliverable_id' => $story->id,
+            'client_id' => $client->id,
+            'channel_id' => $channel->id,
+            'status' => 'queued',
+            'attempt_count' => 2,
+            'idempotency_key' => 'notify-key',
+            'payload_hash' => 'hash',
+            'created_at' => now(),
+        ]);
+
+        $factoryMock = Mockery::mock(FtpDiskFactory::class);
+        $factoryMock->shouldReceive('make')->once()->andThrow(new \Exception('Connection failed'));
+
+        $job = new PushFtpDelivery($delivery->id);
+        try {
+            $job->handle(app(ClientRepository::class), app(WireFormatFactory::class), $factoryMock);
+        } catch (\Exception) {
+            // expected rethrow on final attempt
+        }
+
+        $this->assertDatabaseHas('notifications', [
+            'notifiable_type' => ClientUser::class,
+            'notifiable_id' => $portalUser->id,
+        ]);
+        $row = DB::table('notifications')->where('notifiable_id', $portalUser->id)->first();
+        $payload = json_decode($row->data, true);
+        $this->assertEquals('story.ftp_failed', $payload['event']);
+        $this->assertEquals($story->public_id, $payload['public_id']);
+        $this->assertStringContainsString('FTP delivery failed', $payload['title']);
+        $this->assertStringContainsString('from the portal', $payload['message']);
+    }
+
+    public function test_non_final_failure_does_not_notify()
+    {
+        // Only the permanent (final-attempt) failure notifies — retries stay silent.
+        $client = Client::factory()->create(['status' => 'active']);
+        ClientUser::factory()->create(['client_id' => $client->id, 'status' => 'active']);
+        $channel = ClientChannel::factory()->create([
+            'client_id' => $client->id,
+            'type' => 'ftp',
+            'status' => 'active',
+            'config' => ['host' => 'ftp.example.com'],
+        ]);
+        $story = Story::factory()->create(['status' => 'published', 'language' => 'en']);
+        $delivery = Delivery::create([
+            'deliverable_type' => 'story',
+            'deliverable_id' => $story->id,
+            'client_id' => $client->id,
+            'channel_id' => $channel->id,
+            'status' => 'queued',
+            'attempt_count' => 0,
+            'idempotency_key' => 'retry-key',
+            'payload_hash' => 'hash',
+            'created_at' => now(),
+        ]);
+
+        $factoryMock = Mockery::mock(FtpDiskFactory::class);
+        $factoryMock->shouldReceive('make')->once()->andThrow(new \Exception('Connection failed'));
+
+        $job = new PushFtpDelivery($delivery->id);
+        try {
+            $job->handle(app(ClientRepository::class), app(WireFormatFactory::class), $factoryMock);
+        } catch (\Exception) {
+            // expected rethrow on retryable attempt
+        }
+
+        $this->assertDatabaseMissing('notifications', [
+            'notifiable_type' => ClientUser::class,
+        ]);
     }
 }
