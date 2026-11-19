@@ -301,4 +301,46 @@ class PushFtpDeliveryTest extends TestCase
             'notifiable_type' => ClientUser::class,
         ]);
     }
+
+    public function test_terminal_delivery_is_skipped_by_duplicate_jobs()
+    {
+        // A delivery already failed (or sent) must not be re-pushed or
+        // re-notified by a replayed/duplicate queue job.
+        $client = Client::factory()->create(['status' => 'active']);
+        ClientUser::factory()->create(['client_id' => $client->id, 'status' => 'active']);
+        $channel = ClientChannel::factory()->create([
+            'client_id' => $client->id,
+            'type' => 'ftp',
+            'status' => 'active',
+            'config' => ['host' => 'ftp.example.com'],
+        ]);
+        $story = Story::factory()->create(['status' => 'published', 'language' => 'en']);
+        $delivery = Delivery::create([
+            'deliverable_type' => 'story',
+            'deliverable_id' => $story->id,
+            'client_id' => $client->id,
+            'channel_id' => $channel->id,
+            'status' => 'failed',
+            'attempt_count' => 3,
+            'idempotency_key' => 'terminal-key',
+            'payload_hash' => 'hash',
+            'created_at' => now(),
+        ]);
+
+        $factoryMock = Mockery::mock(FtpDiskFactory::class);
+        $factoryMock->shouldNotReceive('make');
+
+        (new PushFtpDelivery($delivery->id))->handle(
+            app(ClientRepository::class),
+            app(WireFormatFactory::class),
+            $factoryMock
+        );
+
+        $delivery->refresh();
+        $this->assertEquals('failed', $delivery->status);
+        $this->assertEquals(3, $delivery->attempt_count);
+        $this->assertDatabaseMissing('notifications', [
+            'notifiable_type' => ClientUser::class,
+        ]);
+    }
 }
