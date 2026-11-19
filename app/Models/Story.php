@@ -31,6 +31,7 @@ class Story extends Model
         'dateline_city',
         'dateline_at',
         'published_at',
+        'corrected_at',
         'embargo_until',
         'is_breaking',
         'priority',
@@ -49,6 +50,7 @@ class Story extends Model
     protected $casts = [
         'dateline_at' => 'datetime',
         'published_at' => 'datetime',
+        'corrected_at' => 'datetime',
         'embargo_until' => 'datetime',
         'locked_at' => 'datetime',
         'deleted_at' => 'datetime',

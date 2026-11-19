@@ -87,6 +87,11 @@ class StoryService
         }
 
         $story = DB::transaction(function () use ($story, $data, $actor) {
+            // COS-77: a save on a published story is a correction — mark it so
+            // clients can tell the text changed after they may have used it.
+            if ($story->status === 'published') {
+                $data['corrected_at'] = now();
+            }
             $story->update(array_merge($data, ['version' => $story->version + 1]));
             $this->revisions->snapshot($story->refresh(), $actor);
 
