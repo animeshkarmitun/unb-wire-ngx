@@ -18,6 +18,7 @@ class ClientUser extends Model
         'email',
         'password',
         'client_role_id',
+        'can_manage_delivery',
         'status',
         'last_login_at',
     ];
@@ -29,6 +30,7 @@ class ClientUser extends Model
     protected $casts = [
         'password' => 'hashed',
         'last_login_at' => 'datetime',
+        'can_manage_delivery' => 'boolean',
     ];
 
     public function client(): BelongsTo

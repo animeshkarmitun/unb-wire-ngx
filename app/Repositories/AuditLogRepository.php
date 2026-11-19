@@ -18,10 +18,12 @@ class AuditLogRepository
         ?string $ip = null,
         ?string $userAgent = null,
         ?string $correlationId = null,
+        ?string $actorType = null,
+        ?int $actorId = null,
     ): void {
         DB::table('audit_logs')->insert([
-            'actor_type' => 'user',
-            'actor_id' => auth()->id(),
+            'actor_type' => $actorType ?? 'user',
+            'actor_id' => $actorId ?? auth()->id(),
             'action' => $action,
             'entity_type' => $entityType,
             'entity_id' => $entityId,
