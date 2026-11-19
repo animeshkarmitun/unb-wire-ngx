@@ -206,7 +206,7 @@ class PortalController extends Controller
     {
         $media = collect($s->media);
         if ($mediaSvc !== null) {
-            // COS-79: per-asset entitlements — package-linked assets require an
+            // COS-79: per-asset entitlements â€” package-linked assets require an
             // active linked package; embargo/body-role rules remain. Batched
             // link data avoids per-asset queries across feed pages.
             $client = request()->attributes->get('client');
@@ -234,15 +234,15 @@ class PortalController extends Controller
             'status' => $s->status,
             'is_breaking' => (bool) $s->is_breaking,
             'tags' => $s->tags->pluck('name')->values()->all(),
-            'caps' => $s->media->reject(fn ($m) => $m->isEmbargoed() || $m->pivot?->role === 'body')->pluck('caption')->filter()->values()->all(),
-            'media' => $s->media->reject(fn ($m) => $m->isEmbargoed() || $m->pivot?->role === 'body')->values()->map(fn ($m) => [
+            'caps' => $media->reject(fn ($m) => $m->isEmbargoed() || $m->pivot?->role === 'body')->pluck('caption')->filter()->values()->all(),
+            'media' => $media->reject(fn ($m) => $m->isEmbargoed() || $m->pivot?->role === 'body')->values()->map(fn ($m) => [
                 'id' => $m->id,
                 'public_id' => $m->public_id,
                 'caption' => $m->caption ?: $m->title,
                 'kind' => $m->kind,
                 'credit' => $m->credit ?? 'UNB',
             ])->values()->all(),
-            'has_video' => $s->media->reject(fn ($m) => $m->isEmbargoed())->where('kind', 'video')->isNotEmpty(),
+            'has_video' => $media->reject(fn ($m) => $m->isEmbargoed())->where('kind', 'video')->isNotEmpty(),
         ];
     }
 
