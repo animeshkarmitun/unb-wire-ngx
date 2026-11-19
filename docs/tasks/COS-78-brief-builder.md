@@ -26,8 +26,13 @@ so clients receive it in the portal feed and Word/XML exports.
 ## 3. Verification
 
 - [x] `BriefBuilderTest` (4 unit tests) + `BriefStoryFlowTest` (doc-import + repair command).
-- [x] `php artisan test` — **1026 passed / 0 failed**.
-- [ ] Live: run `stories:repair-briefs` on the test server; verify the reported story's brief.
+- [x] `php artisan test` — **1026 passed / 0 failed**; pint clean; schema parity PASSED.
+- [x] **Live:** `stories:repair-briefs` executed on the test server — **41 briefs repaired**
+      (75 checked); the reported story (`01M77Y67A1AF86TDPM69863E6Z`) now ends
+      "…must go hand in hand." — complete sentence, no mid-word cut, no `\r\n`.
+- [x] CI-green follow-up (PR #78): BriefBuilder ellipsis counted inside the varchar(280)
+      limit; repair force-cuts punctuation-less briefs; 9 files of accumulated pint style
+      debt fixed (pint --test was red on main).
 
 ## 4. Related (flagged, not implemented — product decision)
 
