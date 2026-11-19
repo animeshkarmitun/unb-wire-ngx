@@ -120,7 +120,7 @@ class ApPhotoManagerTest extends TestCase
         $response->assertSee('AP Photo Manager');
         $response->assertSee('Sync log');
         $response->assertSee('Sync now');
-        $response->assertSee('AP wire auto-syncs every 15 minutes');
+        $response->assertSee('AP wire sync');
         $response->assertSee('Zelenskyy speaks during a press conference in Kyiv');
         $response->assertSee('Bangladesh players celebrate a wicket at Mirpur');
     }
@@ -257,12 +257,19 @@ class ApPhotoManagerTest extends TestCase
 
     public function test_sync_now_dispatches_toast_and_updates_sync_state(): void
     {
+        // COS-72: lastSyncTime derives from real AP assets — no fake timestamps.
         $this->actingAs($this->admin);
 
-        Livewire::test(ApPhotoManager::class)
+        $expected = MediaAsset::where('source', 'ap')
+            ->whereDate('created_at', now()->toDateString())
+            ->count();
+
+        $cmp = Livewire::test(ApPhotoManager::class)
             ->call('syncNow')
-            ->assertDispatched('toast')
-            ->assertSet('todaySyncCount', 0);
+            ->assertDispatched('toast');
+
+        $this->assertEquals($expected, $cmp->instance()->todaySyncCount);
+        $this->assertNotSame('9:14 PM', $cmp->instance()->lastSyncTime);
     }
 
     public function test_toggle_sync_log_shows_and_hides_modal(): void
