@@ -18,10 +18,9 @@ use App\Services\NoteService;
 use App\Services\RbacService;
 use App\Services\RevisionService;
 use App\Services\StoryService;
+use App\Support\BriefBuilder;
 use App\Support\DisplayPrefs;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -488,7 +487,7 @@ class AddNews extends Component
         $this->bodyHtml = HtmlSanitizer::clean(implode('', $bodyParas));
         if (empty($this->brief)) {
             // COS-78: sentence-boundary brief — never cut mid-word, no stray newlines.
-            $this->brief = \App\Support\BriefBuilder::fromPlainText(HtmlSanitizer::text($this->bodyHtml));
+            $this->brief = BriefBuilder::fromPlainText(HtmlSanitizer::text($this->bodyHtml));
         }
 
         foreach (['headline', 'brief', 'body'] as $key) {

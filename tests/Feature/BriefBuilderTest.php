@@ -2,17 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\Admin\AddNews;
-use App\Models\Category;
-use App\Models\Role;
-use App\Models\Story;
-use App\Models\User;
 use App\Support\BriefBuilder;
-use Database\Seeders\CategorySeeder;
-use Database\Seeders\RoleSeeder;
-use Database\Seeders\SettingSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Livewire\Livewire;
 use Tests\TestCase;
 
 /**

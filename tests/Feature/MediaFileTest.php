@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Client;
 use App\Models\MediaAsset;
+use App\Models\Role;
 use App\Models\User;
 use App\Services\ApiKeyService;
 use Database\Seeders\RoleSeeder;
@@ -137,7 +138,7 @@ class MediaFileTest extends TestCase
 
     public function test_staff_with_media_view_permission_can_fetch_file(): void
     {
-        $editorRole = \App\Models\Role::where('name', 'Editor')->first();
+        $editorRole = Role::where('name', 'Editor')->first();
         $user = User::factory()->create(['role_id' => $editorRole?->id]);
         $asset = $this->makeAsset();
 
