@@ -7,6 +7,7 @@ use App\Models\Story;
 use App\Repositories\MediaRepository;
 use App\Repositories\StoryRepository;
 use App\Services\RbacService;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Livewire\Component;
 
@@ -56,7 +57,9 @@ class ApPhotoManager extends Component
 
     public bool $isSyncing = false;
 
-    public string $lastSyncTime = '9:14 PM';
+    // COS-72: honest state — derived from real data in mount(), never a
+    // hardcoded time (the old '9:14 PM' default rendered in the future).
+    public string $lastSyncTime = 'never';
 
     public int $todaySyncCount = 0;
 
@@ -68,6 +71,22 @@ class ApPhotoManager extends Component
     public function mount(): void
     {
         app(RbacService::class)->assertCan(auth()->user(), 'media', 'view');
+        $this->refreshSyncStatus();
+    }
+
+    /**
+     * COS-72: "Last synced" reflects the newest AP-source asset (Dhaka time),
+     * or 'never' when the AP wire is not connected.
+     */
+    private function refreshSyncStatus(): void
+    {
+        $last = MediaAsset::where('source', 'ap')->max('created_at');
+        $this->lastSyncTime = $last
+            ? Carbon::parse($last)->setTimezone('Asia/Dhaka')->format('g:i A')
+            : 'never';
+        $this->todaySyncCount = MediaAsset::where('source', 'ap')
+            ->whereDate('created_at', now()->toDateString())
+            ->count();
     }
 
     public function updatedSearch(): void
@@ -155,8 +174,9 @@ class ApPhotoManager extends Component
 
     public function syncNow(): void
     {
-        $this->lastSyncTime = now()->setTimezone('Asia/Dhaka')->format('g:i A');
-        $this->dispatch('toast', message: 'AP feed not configured — add partner credentials to enable sync');
+        // COS-72: honest state — no AP partner integration is connected yet,
+        // so nothing is synced and the last-synced time stays real.
+        $this->dispatch('toast', message: 'AP feed not configured - add partner credentials to enable sync');
     }
 
     public function toggleSyncLog(): void
