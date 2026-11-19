@@ -47,6 +47,12 @@ class PushFtpDelivery implements ShouldQueue
             return;
         }
 
+        // A delivery that already reached a terminal state (sent/failed) is
+        // done — replayed or duplicate jobs must not re-push or re-notify.
+        if (in_array($delivery->status, ['sent', 'failed'], true)) {
+            return;
+        }
+
         $config = is_string($channel->config) ? json_decode($channel->config, true) : ($channel->config ?? []);
         $format = $config['wire_format'] ?? 'json-unb-v1';
 
