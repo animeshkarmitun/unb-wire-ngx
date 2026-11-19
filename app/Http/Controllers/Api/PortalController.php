@@ -200,6 +200,9 @@ class PortalController extends Controller
             'category' => $s->category->name_en ?? 'General',
             'language' => $s->language,
             'published_at' => $s->published_at?->toIso8601String(),
+            // COS-77: clients can tell a published story was corrected.
+            'corrected_at' => $s->corrected_at?->toIso8601String(),
+            'is_corrected' => $s->corrected_at !== null,
             'status' => $s->status,
             'is_breaking' => (bool) $s->is_breaking,
             'tags' => $s->tags->pluck('name')->values()->all(),
