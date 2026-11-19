@@ -133,6 +133,28 @@ async function moveIssue(identifier, stateName) {
   return `${issue.identifier} -> ${state.name}`;
 }
 
+async function labelIssue(identifier, labelName) {
+  const issue = await getIssue(identifier);
+  const teamLabels = await gql(
+    `query($teamId: ID!) { issueLabels(filter: { team: { id: { eq: $teamId } } }, first: 50) { nodes { id name } } }`,
+    { teamId: await (async () => (await gql(`query { issue(id: "${issue.id}") { team { id } } }`)).issue.team.id)() }
+  );
+  let label = teamLabels.issueLabels.nodes.find(l => l.name.toLowerCase() === String(labelName).toLowerCase());
+  if (!label) {
+    const created = await gql(
+      `mutation($input: IssueLabelCreateInput!) { issueLabelCreate(input: $input) { issueLabel { id } } }`,
+      { input: { name: String(labelName), teamId: (await gql(`query { issue(id: "${issue.id}") { team { id } } }`)).issue.team.id } }
+    );
+    label = created.issueLabelCreate.issueLabel;
+  }
+  const current = issue.labels.nodes.map(l => l.id);
+  await gql(
+    `mutation($id: String!, $labelIds: [String!]) { issueUpdate(id: $id, input: { labelIds: $labelIds }) { success } }`,
+    { id: issue.id, labelIds: [...new Set([...current, label.id])] }
+  );
+  return `${issue.identifier} -> labeled ${label.name}`;
+}
+
 // CLI handling
 const [,, cmd, arg1] = process.argv;
 
@@ -181,6 +203,15 @@ if (!cmd || cmd === 'list') {
   moveIssue(arg1, process.argv[4])
     .then(r => console.log(r))
     .catch(console.error);
+} else if (cmd === 'label') {
+  // Usage: node scripts/linear-client.cjs label COS-74 "Blocked"
+  if (!arg1 || !process.argv[4]) {
+    console.error('Usage: node scripts/linear-client.cjs label <IDENTIFIER> <LABEL NAME>');
+    process.exit(1);
+  }
+  labelIssue(arg1, process.argv[4])
+    .then(r => console.log(r))
+    .catch(console.error);
 } else {
-  console.log('Usage: node scripts/linear-client.cjs [list|get|comment|move] [args]');
+  console.log('Usage: node scripts/linear-client.cjs [list|get|comment|move|label] [args]');
 }
