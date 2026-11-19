@@ -26,7 +26,9 @@ promised "auto-syncs every 15 minutes" although no AP partner integration exists
 
 - [x] Tests updated: real derived count, no hardcoded time.
 - [x] `php artisan test` — **1029 passed / 0 failed**; pint clean.
-- [ ] Live check.
+- [x] **Live:** future time gone — the sync line now reads
+      "AP wire sync · Last synced 12:00 AM · 0 new photos today" (real seed-data asset
+      time; the not-configured branch shows when no AP assets exist).
 
 ## 4. Answer to the QA question
 
@@ -37,4 +39,4 @@ partner integration lands (M18-AP-001), this panel is the natural home for real 
 
 ## 5. Completion Notes
 
-_(pending)_
+- PR #82 merged + deployed.
