@@ -415,7 +415,7 @@ Build order: `002`–`015` can run in parallel with `001`. E2E tasks start after
 | `COS-68/67/70/69/71` | Audit batch: role/user actions route through log() (ip+correlation), actor names, readable diffs, id tiebreaker, seconds, full filter list | — | ✅ | PR #73 | 2026-11-18 |
 | `COS-79` | Admin Clients usage column shows portal QuotaService truth (no fabricated /800, no 0-clamp); tier-rules product decisions flagged | — | ✅ | PR #75 | 2026-11-18 |
 | `COS-78` | `BriefBuilder` (sentence-boundary briefs, no mid-word cuts/newlines) + `stories:repair-briefs` data repair (41 live); `is_breaking` auto-clear flagged as product decision | — | ✅ | PR #77 / #78 | 2026-11-19 |
-| `COS-77` | `stories.corrected_at` set on published edits; portal payloads expose `corrected_at` + `is_corrected` | — | 🔧 | — | — |
+| `COS-77` | `stories.corrected_at` set on published edits; portal payloads expose `corrected_at` + `is_corrected` (live-verified) | — | ✅ | PR #80 | 2026-11-19 |
 
 ---
 

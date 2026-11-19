@@ -27,7 +27,10 @@ it changed.
 - [x] `StoryCorrectionTest` (3 tests): published edit sets `corrected_at`; draft edits
       don't; portal payloads expose the flag.
 - [x] `php artisan test` — **1029 passed / 0 failed**; pint clean; schema parity PASSED.
-- [ ] Live verification after merge.
+- [x] **Live:** migration run on the server; a real published story corrected via
+      `updateDraft` → client API payload returns
+      `is_corrected: true`, `corrected_at: 2026-11-19T08:32:05+00:00`,
+      `published_at` unchanged (2026-11-17). Exactly the QA expectation.
 
 ## 4. QA side-questions answered (in the Linear comment)
 
