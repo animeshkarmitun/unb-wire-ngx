@@ -29,27 +29,38 @@ class MediaEntitlementService
      */
     public function visibleMediaFor(Client $client, iterable $media): array
     {
+        $assetIds = collect($media)->pluck('id')->unique()->all();
+        $linked = $this->linkedPackageIds($assetIds);
+        $activeIds = $this->activePackageIds($client);
+
+        return $this->visibleMediaForWithLinks($client, $media, $linked, $activeIds);
+    }
+
+    /**
+     * Same as visibleMediaFor but with pre-batched link/active data — lets
+     * callers (feed pages) resolve many stories without N+1 queries.
+     *
+     * @param  iterable<MediaAsset>  $media
+     * @param  array<int, array<int, int>>  $linked
+     * @param  array<int, int>  $activeIds
+     * @return array<int, MediaAsset>
+     */
+    public function visibleMediaForWithLinks(Client $client, iterable $media, array $linked, array $activeIds): array
+    {
         $assets = collect($media)->reject(fn (MediaAsset $m) => $m->isEmbargoed());
         if ($assets->isEmpty()) {
             return [];
         }
 
-        $assetIds = $assets->pluck('id')->unique()->all();
-        $linked = $this->linkedPackageIds($assetIds); // asset_id => [package_id, ...]
-        $activeIds = $this->activePackageIds($client); // [package_id, ...]
+        $kinds = app(EntitlementResolver::class)->forClient($client)['media_kinds'] ?? null;
         $activeIds = array_map('intval', $activeIds);
 
         return $assets
-            ->filter(function (MediaAsset $m) use ($client, $linked, $activeIds) {
-                // Kind gate from the effective entitlement filter.
-                $kinds = app(EntitlementResolver::class)
-                    ->forClient($client)['media_kinds'] ?? null;
+            ->filter(function (MediaAsset $m) use ($kinds, $linked, $activeIds) {
                 if (is_array($kinds) && $kinds !== [] && ! in_array($m->kind, $kinds, true)) {
                     return false;
                 }
 
-                // Package-linked (special/restricted) assets: need an active
-                // subscription to at least one linked package.
                 $packageIds = $linked[(int) $m->id] ?? null;
                 if ($packageIds !== null && $packageIds !== []) {
                     return ! empty(array_intersect($packageIds, $activeIds));

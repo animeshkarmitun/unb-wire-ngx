@@ -502,10 +502,9 @@ class ClientService
 
     public function updatePackage(Client $client, string $packageName, array $addons, string $effectiveText): void
     {
+        $packageModel = Package::where('name', $packageName)->first();
         $tier = str_starts_with($packageName, 'Premium') ? 'Premium'
             : (str_starts_with($packageName, 'Standard') ? 'Standard' : 'Basic');
-
-        $packageModel = Package::where('name', $packageName)->first();
 
         $meta = $this->getClientMeta($client);
         $meta['tier'] = $tier;

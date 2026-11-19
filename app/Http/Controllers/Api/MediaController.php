@@ -54,6 +54,31 @@ class MediaController extends Controller
         if ($client) {
             $quotaSvc->assertCanDownloadMedia($client);
 
+            // COS-79: package-linked (special) assets require an active
+            // subscription to at least one linked package/add-on.
+            $linkedIds = DB::table('package_media')->where('asset_id', $asset->id)->pluck('package_id')->all();
+            if ($linkedIds !== []) {
+                $activeIds = DB::table('client_packages')
+                    ->join('packages', 'packages.id', '=', 'client_packages.package_id')
+                    ->where('client_packages.client_id', $client->id)
+                    ->where('client_packages.status', 'active')
+                    ->where('packages.status', 'active')
+                    ->where(function ($q) {
+                        $q->whereNull('client_packages.starts_at')->orWhere('client_packages.starts_at', '<=', now());
+                    })
+                    ->where(function ($q) {
+                        $q->whereNull('client_packages.ends_at')->orWhere('client_packages.ends_at', '>', now());
+                    })
+                    ->pluck('packages.id')
+                    ->all();
+
+                if (empty(array_intersect(array_map('intval', $linkedIds), array_map('intval', $activeIds)))) {
+                    return response()->json([
+                        'message' => "This asset requires a package add-on your subscription doesn't include.",
+                    ], 403);
+                }
+            }
+
             if ($client->clientPackages()->where('status', 'active')->exists()) {
                 $rows = DB::table('client_packages')
                     ->join('packages', 'packages.id', '=', 'client_packages.package_id')

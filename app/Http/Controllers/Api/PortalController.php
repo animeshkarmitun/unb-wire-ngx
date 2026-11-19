@@ -7,6 +7,7 @@ use App\Models\ClientPackage;
 use App\Models\Story;
 use App\Repositories\StoryRepository;
 use App\Services\Billing\QuotaService;
+use App\Services\Delivery\MediaEntitlementService;
 use App\Services\Download\DownloadGateService;
 use App\Services\Search\EntitlementResolver;
 use App\Services\Search\TenantTokenIssuer;
@@ -74,11 +75,17 @@ class PortalController extends Controller
             $total = (clone $q)->count();
             $lastPage = max(1, (int) ceil($total / $limit));
 
+            // COS-79: batch-resolve per-asset media entitlements for this page.
+            $mediaSvc = app(MediaEntitlementService::class);
             $stories = $q->orderByDesc('published_at')
                 ->orderByDesc('id')
                 ->forPage($page, $limit)
-                ->get()
-                ->map(fn ($s) => self::formatStoryList($s));
+                ->get();
+
+            $linked = $mediaSvc->linkedPackageIds($stories->flatMap->media->pluck('id')->unique()->all());
+            $activeIds = $mediaSvc->activePackageIds($client);
+
+            $stories = $stories->map(fn ($s) => self::formatStoryList($s, $mediaSvc, $linked, $activeIds));
 
             return [
                 'data' => $stories,
@@ -151,7 +158,12 @@ class PortalController extends Controller
                 return ['error' => 'Story not found', 'status' => 404];
             }
 
-            return ['data' => self::formatStoryDetail($s), 'status' => 200];
+            // COS-79: filter per-asset media entitlements for this client.
+            $mediaSvc = app(MediaEntitlementService::class);
+            $linked = $mediaSvc->linkedPackageIds($s->media->pluck('id')->unique()->all());
+            $activeIds = $mediaSvc->activePackageIds($client);
+
+            return ['data' => self::formatStoryDetail($s, $mediaSvc, $linked, $activeIds), 'status' => 200];
         });
 
         return response()->json(
@@ -190,8 +202,24 @@ class PortalController extends Controller
         }
     }
 
-    private static function formatStoryList($s): array
+    private static function formatStoryList($s, ?MediaEntitlementService $mediaSvc = null, array $linked = [], array $activeIds = []): array
     {
+        $media = collect($s->media);
+        if ($mediaSvc !== null) {
+            // COS-79: per-asset entitlements — package-linked assets require an
+            // active linked package; embargo/body-role rules remain. Batched
+            // link data avoids per-asset queries across feed pages.
+            $client = request()->attributes->get('client');
+            $allowed = collect($mediaSvc->visibleMediaForWithLinks(
+                $client,
+                $media,
+                $linked,
+                $activeIds
+            ))->pluck('id')->all();
+
+            $media = $media->filter(fn ($m) => in_array($m->id, $allowed, true) || $m->pivot?->role === 'body');
+        }
+
         return [
             'public_id' => $s->public_id,
             'headline' => $s->headline,
@@ -218,9 +246,9 @@ class PortalController extends Controller
         ];
     }
 
-    private static function formatStoryDetail($s): array
+    private static function formatStoryDetail($s, ?MediaEntitlementService $mediaSvc = null, array $linked = [], array $activeIds = []): array
     {
-        return array_merge(self::formatStoryList($s), [
+        return array_merge(self::formatStoryList($s, $mediaSvc, $linked, $activeIds), [
             'body_html' => $s->body_html,
         ]);
     }

@@ -31,7 +31,7 @@
     </div>
     <div class="stat-card">
       <div class="stat-num amber" id="stRenew">{{ $stats['renew'] }}</div>
-      <div class="stat-label">Renewals due ≤ 45 days</div>
+      <div class="stat-label">Renewals due â‰¤ 45 days</div>
     </div>
     <div class="stat-card">
       <div class="stat-num red" id="stIssues">{{ $stats['issues'] }}</div>
@@ -43,7 +43,7 @@
   <div class="toolbar">
     <div class="toolbar-search">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="text" wire:model.live.debounce.300ms="search" id="clSearch" placeholder="Search client, city, contact…">
+      <input type="text" wire:model.live.debounce.300ms="search" id="clSearch" placeholder="Search client, city, contactâ€¦">
     </div>
     <div class="st-chips" id="statusChips">
       @foreach(['all' => 'All', 'active' => 'Active', 'paused' => 'Paused', 'deactivated' => 'Deactivated'] as $stKey => $stLabel)
@@ -70,7 +70,7 @@
     <span class="bulk-count" id="bulkCount">{{ count($selectedIds) }} selected</span>
     <button type="button" class="bulk-btn" wire:click="bulkPause" id="bulkPause">Pause selected</button>
     <select class="bulk-select" wire:model="bulkPackage" id="bulkPkg">
-      <option value="">Change package…</option>
+      <option value="">Change packageâ€¦</option>
       <option value="Premium Wire + Media">Premium Wire + Media</option>
       <option value="Standard Wire">Standard Wire</option>
       <option value="Basic Headlines">Basic Headlines</option>
@@ -111,7 +111,7 @@
         $uiStatus = $c->status === 'suspended' ? 'paused' : ($c->status === 'closed' ? 'deactivated' : 'active');
         $issue = $this->clientHasIssue($c);
         $dl = $meta['usage']['dl'] ?? 0;
-        // COS-79: QuotaService truth — null quota = unlimited, 0 = none (never fabricated).
+        // COS-79: QuotaService truth â€” null quota = unlimited, 0 = none (never fabricated).
         $mediaUsed = $meta['usage']['media_used'] ?? 0;
         $mediaQuota = $meta['usage']['media_quota'] ?? null;
         $storiesUsed = $meta['usage']['stories_used'] ?? 0;
@@ -153,26 +153,26 @@
               <span class="chan-health fail">Delivery issue</span>
             @endif
           </span>
-          <span class="cl-type">{{ $meta['display_type'] ?? $c->type }} · {{ $meta['city'] ?? 'Dhaka' }}</span>
+          <span class="cl-type">{{ $meta['display_type'] ?? $c->type }} Â· {{ $meta['city'] ?? 'Dhaka' }}</span>
         </span>
         <span class="cl-chs cl-hide-m">
           {{-- Portal --}}
-          <span class="ch-ic {{ $portalOn ? 'on' : '' }}" title="Portal — {{ $portalOn ? 'on' : 'off' }}">
+          <span class="ch-ic {{ $portalOn ? 'on' : '' }}" title="Portal â€” {{ $portalOn ? 'on' : 'off' }}">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             <span class="ch-dot"></span>
           </span>
           {{-- Email --}}
-          <span class="ch-ic {{ ($emailMeta['on'] ?? false) ? 'on' : '' }}" title="Email — {{ ($emailMeta['on'] ?? false) ? 'on' : 'off' }}">
+          <span class="ch-ic {{ ($emailMeta['on'] ?? false) ? 'on' : '' }}" title="Email â€” {{ ($emailMeta['on'] ?? false) ? 'on' : 'off' }}">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
             <span class="ch-dot"></span>
           </span>
           {{-- FTP --}}
-          <span class="ch-ic {{ $ftpHealth === 'fail' ? 'fail' : ($ftpOn ? 'on' : '') }}" title="FTP/SFTP — {{ $ftpHealth === 'fail' ? 'failing' : ($ftpOn ? 'on' : 'off') }}">
+          <span class="ch-ic {{ $ftpHealth === 'fail' ? 'fail' : ($ftpOn ? 'on' : '') }}" title="FTP/SFTP â€” {{ $ftpHealth === 'fail' ? 'failing' : ($ftpOn ? 'on' : 'off') }}">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             <span class="ch-dot"></span>
           </span>
           {{-- API --}}
-          <span class="ch-ic {{ $apiHealth === 'fail' ? 'fail' : ($apiOn ? 'on' : '') }}" title="API — {{ $apiHealth === 'fail' ? 'failing' : ($apiOn ? 'on' : 'off') }}">
+          <span class="ch-ic {{ $apiHealth === 'fail' ? 'fail' : ($apiOn ? 'on' : '') }}" title="API â€” {{ $apiHealth === 'fail' ? 'failing' : ($apiOn ? 'on' : 'off') }}">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
             <span class="ch-dot"></span>
           </span>
@@ -191,7 +191,7 @@
         </span>
       </div>
     @empty
-      <div class="cl-empty">No clients match — try clearing the search or status filter.</div>
+      <div class="cl-empty">No clients match â€” try clearing the search or status filter.</div>
     @endforelse
   </div>
 
@@ -241,13 +241,13 @@
             <div class="dr-name" id="drName">{{ $selected->name }}</div>
             <div class="dr-sub" id="drSub">
               <span class="cl-status {{ $selStatus }}"><i></i>{{ ucfirst($selStatus) }}</span>
-              <span>{{ $selMeta['display_type'] ?? $selected->type }} · {{ $selMeta['city'] ?? 'Dhaka' }} · since {{ $selMeta['since'] ?? '2020' }}</span>
+              <span>{{ $selMeta['display_type'] ?? $selected->type }} Â· {{ $selMeta['city'] ?? 'Dhaka' }} Â· since {{ $selMeta['since'] ?? '2020' }}</span>
               @if($selIssue)
                 <span class="chan-health fail">Delivery issue</span>
               @endif
             </div>
           </div>
-          <button type="button" class="dr-close" wire:click="closeDrawer" id="drClose" title="Close" aria-label="Close client details">✕</button>
+          <button type="button" class="dr-close" wire:click="closeDrawer" id="drClose" title="Close" aria-label="Close client details">âœ•</button>
         </div>
 
         <div class="dr-actions" id="drActions">
@@ -280,14 +280,14 @@
               @foreach($selMeta['contacts'] as $con)
                 <div class="dr-kv">
                   <span class="k">{{ $con['r'] ?? 'Desk' }}</span>
-                  <span class="v">{{ $con['n'] ?? 'Contact' }} · <a href="mailto:{{ $con['e'] }}" style="color:var(--blue, #3b6fe0)">{{ $con['e'] }}</a></span>
+                  <span class="v">{{ $con['n'] ?? 'Contact' }} Â· <a href="mailto:{{ $con['e'] }}" style="color:var(--blue, #3b6fe0)">{{ $con['e'] }}</a></span>
                 </div>
               @endforeach
             @elseif($selected->clientUsers->isNotEmpty())
               @foreach($selected->clientUsers as $u)
                 <div class="dr-kv">
                   <span class="k">Desk</span>
-                  <span class="v">{{ $u->name }} · <a href="mailto:{{ $u->email }}" style="color:var(--blue, #3b6fe0)">{{ $u->email }}</a></span>
+                  <span class="v">{{ $u->name }} Â· <a href="mailto:{{ $u->email }}" style="color:var(--blue, #3b6fe0)">{{ $u->email }}</a></span>
                 </div>
               @endforeach
             @else
@@ -316,9 +316,9 @@
             <div class="dr-kv">
               <span class="k">Renewal</span>
               <span class="v">
-                {{ $endsAt ? $endsAt->format('j M Y') : '—' }}
+                {{ $endsAt ? $endsAt->format('j M Y') : 'â€”' }}
                 @if($renewDueSoon)
-                  · <b style="color:#b7791f">due soon</b>
+                  Â· <b style="color:#b7791f">due soon</b>
                 @endif
               </span>
             </div>
@@ -332,7 +332,7 @@
                 <div class="usage-label">{{ $selUsageQuota !== null ? 'Quota usage ('.$selPct.'%)' : 'No quota cap' }}</div>
               </div>
               <div class="usage-box">
-                <div class="usage-num">{{ $selMeta['usage']['api'] ?? '—' }}</div>
+                <div class="usage-num">{{ $selMeta['usage']['api'] ?? 'â€”' }}</div>
                 <div class="usage-label">API calls</div>
               </div>
               <div class="usage-box">
@@ -354,11 +354,11 @@
 
           <div class="dr-sec">
             <div class="dr-sec-title">Internal note</div>
-            <textarea class="note-area" wire:model="clientNoteText" id="noteArea" placeholder="Context for the newsroom — billing, preferences, escalation history…">{{ $clientNoteText }}</textarea>
+            <textarea class="note-area" wire:model="clientNoteText" id="noteArea" placeholder="Context for the newsroom â€” billing, preferences, escalation historyâ€¦">{{ $clientNoteText }}</textarea>
             <div style="margin-top:9px;text-align:right">
               <button type="button" class="btn btn-outline btn-sm" wire:click="saveNote" id="noteSave" wire:loading.attr="disabled">
                 <span wire:loading.remove wire:target="saveNote">Save note</span>
-                <span wire:loading wire:target="saveNote">Saving…</span>
+                <span wire:loading wire:target="saveNote">Savingâ€¦</span>
               </button>
             </div>
           </div>
@@ -406,12 +406,12 @@
                 @foreach($emList as $em)
                   <span class="mini-chip">
                     {{ $em }}
-                    <button type="button" wire:click="removeEmailRecipient('{{ $em }}')" title="Remove email">✕</button>
+                    <button type="button" wire:click="removeEmailRecipient('{{ $em }}')" title="Remove email">âœ•</button>
                   </span>
                 @endforeach
               </div>
               <div class="chip-input-row">
-                <input class="chan-input" wire:model="newEmailRecipient" wire:keydown.enter="addEmailRecipient" id="emAdd" placeholder="Add recipient email…">
+                <input class="chan-input" wire:model="newEmailRecipient" wire:keydown.enter="addEmailRecipient" id="emAdd" placeholder="Add recipient emailâ€¦">
                 <button type="button" class="key-btn" wire:click="addEmailRecipient" id="emAddBtn">Add</button>
               </div>
             </div>
@@ -425,7 +425,7 @@
               </span>
               <span>
                 <span class="chan-name">FTP / SFTP auto-push</span>
-                <div class="chan-sub">{{ $this->ftpHost ? $this->ftpHost . ' · port ' . $this->ftpPort : 'Not configured' }}</div>
+                <div class="chan-sub">{{ $this->ftpHost ? $this->ftpHost . ' Â· port ' . $this->ftpPort : 'Not configured' }}</div>
               </span>
               <span class="chan-health {{ $ftFail ? 'fail' : ($ftOn ? 'ok' : 'off') }}">
                 {{ $ftFail ? 'Failing' : ($ftOn ? 'Healthy' : 'Off') }}
@@ -457,16 +457,16 @@
               <div style="display:flex;gap:8px;align-items:center">
                 <button type="button" class="btn btn-outline btn-sm" wire:click="testFtpConnection" id="ftTest" wire:loading.attr="disabled">
                   <span wire:loading.remove wire:target="testFtpConnection">Test connection</span>
-                  <span wire:loading wire:target="testFtpConnection">Testing…</span>
+                  <span wire:loading wire:target="testFtpConnection">Testingâ€¦</span>
                 </button>
                 <button type="button" class="btn btn-navy btn-sm" wire:click="saveFtpCredentials" id="ftSave" wire:loading.attr="disabled">
                   <span wire:loading.remove wire:target="saveFtpCredentials">Save credentials</span>
-                  <span wire:loading wire:target="saveFtpCredentials">Saving…</span>
+                  <span wire:loading wire:target="saveFtpCredentials">Savingâ€¦</span>
                 </button>
               </div>
               @if($ftFail)
                 <div class="test-note" style="color:var(--crimson-dark, #d13438)">
-                  ⚠ Last push failed — auth timeout. Fix credentials or ask client to whitelist UNB IPs.
+                  âš  Last push failed â€” auth timeout. Fix credentials or ask client to whitelist UNB IPs.
                 </div>
               @endif
             </div>
@@ -480,7 +480,7 @@
               </span>
               <span>
                 <span class="chan-name">API access</span>
-                <div class="chan-sub">{{ $apOn ? 'Live key · JSON feed + webhooks' : 'Not enabled' }}</div>
+                <div class="chan-sub">{{ $apOn ? 'Live key Â· JSON feed + webhooks' : 'Not enabled' }}</div>
               </span>
               <span class="chan-health {{ $apOn ? 'ok' : 'off' }}">{{ $apOn ? 'Healthy' : 'Off' }}</span>
               <label class="switch">
@@ -500,10 +500,10 @@
               <div class="chan-field" style="margin-bottom:0">
                 <label>Webhook URL</label>
                 <div class="flex gap-2">
-                  <input class="chan-input" wire:model="webhookUrl" placeholder="https://…" id="apiHook">
+                  <input class="chan-input" wire:model="webhookUrl" placeholder="https://â€¦" id="apiHook">
                   <button type="button" class="key-btn" wire:click="saveWebhookUrl" wire:loading.attr="disabled">
                     <span wire:loading.remove wire:target="saveWebhookUrl">Save</span>
-                    <span wire:loading wire:target="saveWebhookUrl">Saving…</span>
+                    <span wire:loading wire:target="saveWebhookUrl">Savingâ€¦</span>
                   </button>
                 </div>
               </div>
@@ -515,7 +515,7 @@
           <div class="pkg-current">
             <div class="pkg-name">{{ $selPkg }}</div>
             <div class="pkg-since">
-              Current package · since {{ $selMeta['since'] ?? 'Mar 2014' }} · renews {{ $endsAt ? $endsAt->format('j M Y') : '—' }}
+              Current package Â· since {{ $selMeta['since'] ?? 'Mar 2014' }} Â· renews {{ $endsAt ? $endsAt->format('j M Y') : 'â€”' }}
             </div>
           </div>
 
@@ -523,9 +523,9 @@
             <div class="dr-sec-title">Change package</div>
             @php
               $pkgOptions = [
-                ['Premium Wire + Media', 'Full wire + photos/videos + priority support', '৳85k/mo'],
-                ['Standard Wire', 'Full text wire + 200 photos/mo', '৳45k/mo'],
-                ['Basic Headlines', 'Headlines + briefs only, no media', '৳18k/mo'],
+                ['Premium Wire + Media', 'Full wire + photos/videos + priority support', 'à§³85k/mo'],
+                ['Standard Wire', 'Full text wire + 200 photos/mo', 'à§³45k/mo'],
+                ['Basic Headlines', 'Headlines + briefs only, no media', 'à§³18k/mo'],
               ];
             @endphp
             @foreach($pkgOptions as $opt)
@@ -545,12 +545,12 @@
             <label class="addon-check">
               <input type="checkbox" wire:model="drawerAddons" value="AP World pack">
               AP World pack (photos + world wire)
-              <span class="ap">+৳30k/mo</span>
+              <span class="ap">+à§³30k/mo</span>
             </label>
             <label class="addon-check">
               <input type="checkbox" wire:model="drawerAddons" value="Bangla service">
               Bangla service
-              <span class="ap">+৳20k/mo</span>
+              <span class="ap">+à§³20k/mo</span>
             </label>
           </div>
 
@@ -558,13 +558,34 @@
             <div class="dr-sec-title">Effective</div>
             <select class="select-input" wire:model="drawerEffective" id="pkgWhen" style="width:100%">
               <option value="Immediately (prorated)">Immediately (prorated)</option>
-              <option value="Next billing cycle — {{ $endsAt ? $endsAt->format('j M Y') : 'Soon' }}">
-                Next billing cycle — {{ $endsAt ? $endsAt->format('j M Y') : 'Soon' }}
+              <option value="Next billing cycle â€” {{ $endsAt ? $endsAt->format('j M Y') : 'Soon' }}">
+                Next billing cycle â€” {{ $endsAt ? $endsAt->format('j M Y') : 'Soon' }}
               </option>
             </select>
             <div style="margin-top:13px;text-align:right">
               <button type="button" class="btn btn-primary btn-sm" wire:click="applyPackageChange" id="pkgApply">Apply changes</button>
             </div>
+
+            {{-- COS-79: per-client quota overrides (System Admin only) --}}
+            @if(auth()->user()?->isSuperAdmin())
+              <div style="margin-top:18px;padding-top:14px;border-top:1px dashed #e3e1da">
+                <div class="dr-sec-title" style="margin-bottom:10px">Quota overrides <span style="font-weight:400;color:#7c7f8c">(blank = inherit package)</span></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <div>
+                    <label style="font-size:11px;color:#7c7f8c;display:block;margin-bottom:3px">Stories / month</label>
+                    <input type="number" min="0" class="select-input" style="width:100%" wire:model.live="overrideStoriesQuota" placeholder="Inherit">
+                  </div>
+                  <div>
+                    <label style="font-size:11px;color:#7c7f8c;display:block;margin-bottom:3px">Media downloads / month</label>
+                    <input type="number" min="0" class="select-input" style="width:100%" wire:model.live="overrideMediaQuota" placeholder="Inherit">
+                  </div>
+                </div>
+                <div style="margin-top:10px;text-align:right;display:flex;gap:8px;justify-content:flex-end">
+                  <button type="button" class="btn btn-outline btn-sm" wire:click="clearQuotaOverrides" wire:confirm="Clear quota overrides for this client? They will inherit their package defaults.">Clear</button>
+                  <button type="button" class="btn btn-primary btn-sm" wire:click="saveQuotaOverrides">Save overrides</button>
+                </div>
+              </div>
+            @endif
           </div>
 
         {{-- Activity Tab --}}
@@ -622,7 +643,7 @@
                       wire:click="toggleDeliveryManager({{ $pu->id }})"
                       wire:confirm="{{ $pu->can_manage_delivery ? 'Revoke' : 'Grant' }} FTP management for this portal user?"
                       title="Whether this user can manage the client's FTP channel from the portal">
-                      {{ $pu->can_manage_delivery ? '✓ FTP manager' : 'FTP manager' }}
+                      {{ $pu->can_manage_delivery ? 'âœ“ FTP manager' : 'FTP manager' }}
                     </button>
                   @endif
                 </div>
@@ -630,7 +651,7 @@
                   @if($puStatus === 'active')
                     <select class="select-input" style="font-size:12px;padding:4px 8px;width:auto"
                       wire:change="updatePortalUserRole({{ $pu->id }}, $event.target.value)">
-                      <option value="">Change role…</option>
+                      <option value="">Change roleâ€¦</option>
                       @foreach($this->clientRoles as $rId => $rName)
                         <option value="{{ $rId }}" {{ $pu->client_role_id == $rId ? 'selected' : '' }}>{{ $rName }}</option>
                       @endforeach
@@ -668,7 +689,7 @@
     <div class="modal">
       <div class="mo-head">
         <div class="mo-title">Pause client</div>
-        <button type="button" class="mo-close" wire:click="$set('showPauseModal', false)" aria-label="Close pause dialog">✕</button>
+        <button type="button" class="mo-close" wire:click="$set('showPauseModal', false)" aria-label="Close pause dialog">âœ•</button>
       </div>
       <div class="mo-body">
         @php $pClient = $pauseClientId ? \App\Models\Client::find($pauseClientId) : null; @endphp
@@ -687,7 +708,7 @@
         </div>
         <div class="field">
           <label class="field-label">Internal note</label>
-          <textarea class="text-area" wire:model="pauseNote" id="pauseNote" placeholder="e.g. — Accounts following up on July invoice…"></textarea>
+          <textarea class="text-area" wire:model="pauseNote" id="pauseNote" placeholder="e.g. â€” Accounts following up on July invoiceâ€¦"></textarea>
         </div>
         <div class="field" style="margin-bottom:0">
           <label class="field-label">Auto-resume on (optional)</label>
@@ -706,7 +727,7 @@
     <div class="modal">
       <div class="mo-head">
         <div class="mo-title">Deactivate client</div>
-        <button type="button" class="mo-close" wire:click="$set('showDeactModal', false)" aria-label="Close deactivate dialog">✕</button>
+        <button type="button" class="mo-close" wire:click="$set('showDeactModal', false)" aria-label="Close deactivate dialog">âœ•</button>
       </div>
       <div class="mo-body">
         @php $dClient = $deactClientId ? \App\Models\Client::find($deactClientId) : null; @endphp
@@ -715,7 +736,7 @@
         </div>
         <label class="addon-check" style="font-weight:600">
           <input type="checkbox" wire:model.live="deactConfirmed" id="deactCheck">
-          I understand — deactivate this client
+          I understand â€” deactivate this client
         </label>
       </div>
       <div class="mo-actions">
@@ -730,12 +751,12 @@
     <div class="modal modal-lg">
       <div class="mo-head">
         <div class="mo-title">Onboard new client</div>
-        <button type="button" class="mo-close" wire:click="closeOnboard" aria-label="Close onboard wizard">✕</button>
+        <button type="button" class="mo-close" wire:click="closeOnboard" aria-label="Close onboard wizard">âœ•</button>
       </div>
       <div class="wiz-steps" id="wizSteps">
-        <div class="wiz-step {{ $wizStep === 1 ? 'active' : ($wizStep > 1 ? 'done' : '') }}" data-ws="1">1 · Details</div>
-        <div class="wiz-step {{ $wizStep === 2 ? 'active' : ($wizStep > 2 ? 'done' : '') }}" data-ws="2">2 · Package &amp; channels</div>
-        <div class="wiz-step {{ $wizStep === 3 ? 'active' : '' }}" data-ws="3">3 · Review &amp; activate</div>
+        <div class="wiz-step {{ $wizStep === 1 ? 'active' : ($wizStep > 1 ? 'done' : '') }}" data-ws="1">1 Â· Details</div>
+        <div class="wiz-step {{ $wizStep === 2 ? 'active' : ($wizStep > 2 ? 'done' : '') }}" data-ws="2">2 Â· Package &amp; channels</div>
+        <div class="wiz-step {{ $wizStep === 3 ? 'active' : '' }}" data-ws="3">3 Â· Review &amp; activate</div>
       </div>
       <div class="mo-body">
         {{-- Step 1 Details --}}
@@ -786,7 +807,7 @@
                   <span class="pn">Premium Wire + Media</span>
                   <span class="pd" style="display:block">Full wire + photos/videos + priority support</span>
                 </span>
-                <span class="pp">৳85k/mo</span>
+                <span class="pp">à§³85k/mo</span>
               </label>
               <label class="pkg-opt {{ $wPackage === 'Standard Wire' ? 'sel' : '' }}">
                 <input type="radio" wire:model="wPackage" value="Standard Wire" name="wpkg">
@@ -794,7 +815,7 @@
                   <span class="pn">Standard Wire</span>
                   <span class="pd" style="display:block">Full text wire + 200 photos/mo</span>
                 </span>
-                <span class="pp">৳45k/mo</span>
+                <span class="pp">à§³45k/mo</span>
               </label>
               <label class="pkg-opt {{ $wPackage === 'Basic Headlines' ? 'sel' : '' }}">
                 <input type="radio" wire:model="wPackage" value="Basic Headlines" name="wpkg">
@@ -802,7 +823,7 @@
                   <span class="pn">Basic Headlines</span>
                   <span class="pd" style="display:block">Headlines + briefs only, no media</span>
                 </span>
-                <span class="pp">৳18k/mo</span>
+                <span class="pp">à§³18k/mo</span>
               </label>
             </div>
           </div>
@@ -811,12 +832,12 @@
             <label class="addon-check">
               <input type="checkbox" wire:model="wAddons" value="AP World pack">
               AP World pack (photos + world wire)
-              <span class="ap">+৳30k/mo</span>
+              <span class="ap">+à§³30k/mo</span>
             </label>
             <label class="addon-check">
               <input type="checkbox" wire:model="wAddons" value="Bangla service">
               Bangla service
-              <span class="ap">+৳20k/mo</span>
+              <span class="ap">+à§³20k/mo</span>
             </label>
           </div>
           <div class="field" style="margin-bottom:0">
@@ -846,9 +867,9 @@
             Review the setup. Activating creates the portal account, provisions selected channels, and emails credentials to the client contact.
           </div>
           <div class="wiz-review" id="wizReview">
-            <div class="dr-kv"><span class="k">Organisation</span><span class="v">{{ $wName ?: '—' }}</span></div>
-            <div class="dr-kv"><span class="k">Type / city</span><span class="v">{{ $wType }} · {{ $wCity ?: 'Dhaka' }}</span></div>
-            <div class="dr-kv"><span class="k">Contact</span><span class="v">{{ $wContact ?: '—' }} · {{ $wEmail ?: '—' }}</span></div>
+            <div class="dr-kv"><span class="k">Organisation</span><span class="v">{{ $wName ?: 'â€”' }}</span></div>
+            <div class="dr-kv"><span class="k">Type / city</span><span class="v">{{ $wType }} Â· {{ $wCity ?: 'Dhaka' }}</span></div>
+            <div class="dr-kv"><span class="k">Contact</span><span class="v">{{ $wContact ?: 'â€”' }} Â· {{ $wEmail ?: 'â€”' }}</span></div>
             <div class="dr-kv"><span class="k">Package</span><span class="v">{{ $wPackage }}{{ !empty($wAddons) ? ' + ' . implode(', ', $wAddons) : '' }}</span></div>
             <div class="dr-kv">
               <span class="k">Channels</span>
@@ -859,7 +880,7 @@
                   if (in_array('ftp', $wChannels)) $wizChans[] = 'FTP/SFTP';
                   if (in_array('api', $wChannels)) $wizChans[] = 'API';
                 @endphp
-                {{ implode(' · ', $wizChans) }}
+                {{ implode(' Â· ', $wizChans) }}
               </span>
             </div>
           </div>
@@ -867,9 +888,9 @@
       </div>
 
       <div class="mo-actions">
-        <button type="button" class="btn btn-outline" wire:click="wizBack" id="wizBack" style="{{ $wizStep > 1 ? 'visibility:visible' : 'visibility:hidden' }}">← Back</button>
+        <button type="button" class="btn btn-outline" wire:click="wizBack" id="wizBack" style="{{ $wizStep > 1 ? 'visibility:visible' : 'visibility:hidden' }}">â† Back</button>
         @if($wizStep < 3)
-          <button type="button" class="btn btn-navy" wire:click="wizNext" id="wizNext">Continue →</button>
+          <button type="button" class="btn btn-navy" wire:click="wizNext" id="wizNext">Continue â†’</button>
         @else
           <button type="button" class="btn btn-primary" wire:click="activateClient" id="wizActivate">Activate client</button>
         @endif
@@ -882,7 +903,7 @@
     <div class="modal">
       <div class="mo-head">
         <div class="mo-title">Invite portal user</div>
-        <button type="button" class="mo-close" wire:click="closePortalInviteModal" aria-label="Close invite dialog">✕</button>
+        <button type="button" class="mo-close" wire:click="closePortalInviteModal" aria-label="Close invite dialog">âœ•</button>
       </div>
       <div class="mo-body">
         <div class="field-hint" style="margin-bottom:14px">
@@ -901,7 +922,7 @@
         <div class="field" style="margin-bottom:0">
           <label class="field-label">Client role</label>
           <select class="select-input" wire:model="portalInviteRoleId" id="portalInviteRole" style="width:100%">
-            <option value="">— No role —</option>
+            <option value="">â€” No role â€”</option>
             @foreach($this->clientRoles as $rId => $rName)
               <option value="{{ $rId }}">{{ $rName }}</option>
             @endforeach

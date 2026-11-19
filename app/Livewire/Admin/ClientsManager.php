@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Client;
+use App\Models\ClientEntitlementOverride;
 use App\Models\ClientUser;
 use App\Models\Package;
 use App\Models\Role;
@@ -67,6 +68,11 @@ class ClientsManager extends Component
     public array $drawerAddons = [];
 
     public string $drawerEffective = 'Immediately (prorated)';
+
+    // COS-79: per-client quota overrides (System Admin only)
+    public string $overrideStoriesQuota = '';
+
+    public string $overrideMediaQuota = '';
 
     // Modals
     public bool $showPauseModal = false;
@@ -260,10 +266,79 @@ class ClientsManager extends Component
         $this->showApiKey = false;
         $this->confirmRegen = false;
 
-        // Package tab fields
-        $this->drawerPackageName = $client->clientPackages->first()?->package?->name ?? ($meta['package_name'] ?? 'Standard Wire');
+        // Package tab fields (base package only — add-ons are separate rows now)
+        $baseSubscription = $client->clientPackages->first(function ($subscription) {
+            $filter = (array) ($subscription->package?->entitlement_filter ?? []);
+
+            return $subscription->package && empty($filter['is_addon']);
+        });
+        $this->drawerPackageName = $baseSubscription?->package?->name ?? ($meta['package_name'] ?? 'Standard Wire');
         $this->drawerAddons = $meta['addons'] ?? [];
         $this->drawerEffective = 'Immediately (prorated)';
+
+        // COS-79: load existing per-client quota overrides (blank = inherit)
+        $override = $client->entitlementOverride;
+        $this->overrideStoriesQuota = ($override && $override->override_stories_quota)
+            ? ($override->stories_quota === null ? '' : (string) $override->stories_quota)
+            : '';
+        $this->overrideMediaQuota = ($override && $override->override_media_quota)
+            ? ($override->media_quota === null ? '' : (string) $override->media_quota)
+            : '';
+    }
+
+    /**
+     * COS-79: save/clear per-client quota overrides (System Admin only).
+     * Blank input = inherit package defaults (override flag cleared).
+     */
+    public function saveQuotaOverrides(RbacService $rbac): void
+    {
+        if (! auth()->user()?->isSuperAdmin()) {
+            $this->dispatch('toast', message: 'Only a System Admin can change quota overrides');
+
+            return;
+        }
+        if (! $this->selectedId) {
+            return;
+        }
+
+        $this->validate([
+            'overrideStoriesQuota' => 'nullable|integer|min:0|max:100000000',
+            'overrideMediaQuota' => 'nullable|integer|min:0|max:100000000',
+        ]);
+
+        ClientEntitlementOverride::updateOrCreate(
+            ['client_id' => $this->selectedId],
+            [
+                'override_stories_quota' => $this->overrideStoriesQuota !== '',
+                'stories_quota' => $this->overrideStoriesQuota !== '' ? (int) $this->overrideStoriesQuota : null,
+                'override_media_quota' => $this->overrideMediaQuota !== '',
+                'media_quota' => $this->overrideMediaQuota !== '' ? (int) $this->overrideMediaQuota : null,
+                'updated_by' => auth()->id(),
+            ]
+        );
+
+        $usage = app(QuotaService::class)->getUsage(Client::find($this->selectedId));
+        $this->dispatch('toast', message: 'Quota overrides saved — effective: '
+            .($usage['stories_quota'] === null ? 'unlimited stories' : number_format($usage['stories_quota']).' stories')
+            .' / '
+            .($usage['media_quota'] === null ? 'unlimited media' : number_format($usage['media_quota']).' media'));
+    }
+
+    public function clearQuotaOverrides(RbacService $rbac): void
+    {
+        if (! auth()->user()?->isSuperAdmin()) {
+            $this->dispatch('toast', message: 'Only a System Admin can change quota overrides');
+
+            return;
+        }
+        if (! $this->selectedId) {
+            return;
+        }
+
+        ClientEntitlementOverride::where('client_id', $this->selectedId)->delete();
+        $this->overrideStoriesQuota = '';
+        $this->overrideMediaQuota = '';
+        $this->dispatch('toast', message: 'Quota overrides cleared — inheriting package defaults');
     }
 
     // ─── Note & Channel Operations ──────────────────────────────────
