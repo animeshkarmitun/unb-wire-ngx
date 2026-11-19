@@ -23,8 +23,11 @@
 ## 2. Verification
 
 - [x] `php artisan test` — **1029 passed / 0 failed**; pint clean.
-- [ ] Live smoke as uploader + superadmin.
+- [x] **Live smoke:** uploader (enamul) sidebar — Packages/Clients/Distribution/Roles/AI
+      links hidden, Field apps show "soon" placeholders, dashboard business widgets stay
+      hidden (COS-80); `/admin/packages` → styled 403 with friendly copy, no developer
+      wording or permission names.
 
 ## 3. Completion Notes
 
-_(pending)_
+- PR #83 merged + deployed.
