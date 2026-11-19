@@ -44,6 +44,8 @@ class MediaDownloadEntitlementTest extends TestCase
         $textPkg = Package::factory()->create([
             'name' => 'Text Only Wire',
             'status' => 'active',
+            'stories_quota' => 500,
+            'media_quota' => 0,
             'entitlement_filter' => [
                 'languages' => ['en', 'bn'],
                 'category_ids' => null,
@@ -51,15 +53,7 @@ class MediaDownloadEntitlementTest extends TestCase
             ],
         ]);
 
-        $client = Client::factory()->create([
-            'status' => 'active',
-            'notes' => json_encode([
-                'tier_quotas' => [
-                    'stories_quota' => 500,
-                    'media_quota' => 0,
-                ],
-            ]),
-        ]);
+        $client = Client::factory()->create(['status' => 'active']);
 
         ClientPackage::create([
             'client_id' => $client->id,

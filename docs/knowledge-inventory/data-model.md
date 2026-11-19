@@ -34,11 +34,11 @@
 | Domain | Tables |
 |---|---|
 | Identity & access | `roles`, `role_permissions`, `users` (+`date_format`, `density` — M12-PROFILE-002), `devices` (retained, DEC-011) |
-| Clients | `clients`, `client_users`, `client_api_keys` |
+| Clients | `clients`, `client_users`, `client_api_keys`, `client_entitlement_overrides` (DEC-020) |
 | Taxonomy | `categories`, `tags`, `story_tag`, `media_tag` |
 | Stories | `stories`, `story_versions`, `story_notes` (+`is_internal`), `story_events`, `story_media` (role `featured`,`inline`,`body` — body = editor-embedded, auto-pruned on removal) |
 | Media | `media_batches` (+`assignment_id`), `media_assets`, `media_reviews`, `upload_sessions`, `assignments` (reintroduced, DEC-011) |
-| Distribution | `packages`, `package_media`, `client_packages`, `client_channels`, `deliveries` (**monthly RANGE partitions live** — DEC-018; PK `(id, created_at)`, unique `(idempotency_key, created_at)` + app-level check-then-insert; `partitions:ensure` + 12-month sweep-to-archive) |
+| Distribution | `packages` (+stories/media quotas — DEC-020), `package_media` (per-asset package/add-on visibility), `client_packages`, `client_channels`, `deliveries` (**monthly RANGE partitions live** — DEC-018; PK `(id, created_at)`, unique `(idempotency_key, created_at)` + app-level check-then-insert; `partitions:ensure` + 12-month sweep-to-archive) |
 | AI & ops | `ai_generations` (partitioning deferred), `ai_token_usage_daily`, `settings`, `notifications`, `audit_logs` (grant-restricted, pgsql REVOKE), `downloads`, `index_outbox` |
 | Billing | `invoices`, `invoice_lines` (ratified M5, DEC-011) |
 

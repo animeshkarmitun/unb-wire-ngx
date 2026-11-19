@@ -7,14 +7,18 @@
     <div class="topbar">
         <h1>Packages &amp; add-ons</h1>
         <div class="topbar-actions">
-            <button class="btn btn-outline" wire:click="openAoModal">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                New add-on
-            </button>
-            <button class="btn btn-primary" wire:click="openPkgModal">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                New package
-            </button>
+            @if($isSystemAdmin)
+                <button class="btn btn-outline" wire:click="openAoModal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    New add-on
+                </button>
+                <button class="btn btn-primary" wire:click="openPkgModal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    New package
+                </button>
+            @else
+                <span class="text-xs text-muted">View only — System Admin manages packages</span>
+            @endif
         </div>
     </div>
 
@@ -65,15 +69,26 @@
                             <span>{{ $p->wire }}</span>
                         </div>
 
-                        {{-- 2. Photo Quota --}}
-                        <div class="pkg-feat {{ $p->quota === 'No photos' ? 'no' : '' }}">
-                            @if($p->quota === 'No photos')
+                        {{-- COS-79: numeric monthly quotas; viewing/access is listed separately. --}}
+                        <div class="pkg-feat">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>{{ $p->stories_quota === null ? 'Unlimited stories' : number_format($p->stories_quota).' stories / month' }}</span>
+                        </div>
+                        <div class="pkg-feat {{ $p->media_quota === 0 ? 'no' : '' }}">
+                            @if($p->media_quota === 0)
                                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                <span>No photo downloads</span>
                             @else
                                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                                <span>{{ $p->quota }}{{ $p->quota === 'Unlimited' ? ' photo downloads' : ' / month' }}</span>
                             @endif
+                            <span>{{ $p->media_quota === null ? 'Unlimited media downloads' : number_format($p->media_quota).' original downloads / month' }}</span>
+                        </div>
+                        <div class="pkg-feat {{ $p->photos ? '' : 'no' }}">
+                            @if($p->photos)
+                                <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            @else
+                                <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            @endif
+                            <span>{{ $p->photos ? 'Story-accompanying photos viewable' : 'No story photos' }}</span>
                         </div>
 
                         {{-- 3. Video Clips --}}
@@ -134,7 +149,8 @@
                     </div>
                 </div>
 
-                {{-- Actions --}}
+                {{-- Mutations are System Admin only (server actions enforce too). --}}
+                @if($isSystemAdmin)
                 <div class="pkg-actions">
                     <button class="pk-btn" wire:click="openPkgModal({{ $p->id }})" title="Edit package">
                         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
@@ -161,14 +177,17 @@
                         </button>
                     @endif
                 </div>
+                @endif
             </div>
         @endforeach
 
-        {{-- Create New Package Card --}}
-        <button class="pkg-new" wire:click="openPkgModal" id="pkgNewCard">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Create a new package
-        </button>
+        @if($isSystemAdmin)
+            {{-- Create New Package Card --}}
+            <button class="pkg-new" wire:click="openPkgModal" id="pkgNewCard">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Create a new package
+            </button>
+        @endif
     </div>
 
     {{-- SECTION 2: Add-ons --}}
@@ -202,13 +221,12 @@
                 <span class="ao-price">৳{{ number_format($a->price) }}<span> /mo</span></span>
 
                 <span class="ao-status {{ $a->status }}"
-                      style="cursor:pointer"
-                      title="Click to toggle live / draft"
-                      wire:click="toggleAoStatus({{ $a->id }})"
+                      @if($isSystemAdmin) style="cursor:pointer" title="Click to toggle live / draft" wire:click="toggleAoStatus({{ $a->id }})" @endif
                       id="ao-status-{{ $a->id }}">
                     {{ $a->status }}
                 </span>
 
+                @if($isSystemAdmin)
                 <span class="ao-actions">
                     <button class="ao-btn" wire:click="openAoModal({{ $a->id }})" title="Edit add-on">
                         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
@@ -217,6 +235,7 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
                 </span>
+                @endif
             </div>
         @endforeach
     </div>
@@ -265,29 +284,33 @@
                                 <textarea class="text-area" wire:model.live="pkgDesc" id="pDesc" placeholder="Who this package is for…"></textarea>
                             </div>
 
+                            <div class="field">
+                                <label class="field-label">Wire access</label>
+                                <select class="select-input" wire:model.live="pkgWire" id="pWire" style="width:100%">
+                                    <option value="Full wire — all categories">Full wire — all categories</option>
+                                    <option value="Full wire — excluding exclusives">Full wire — excluding exclusives</option>
+                                    <option value="Headlines + briefs only">Headlines + briefs only</option>
+                                </select>
+                            </div>
+
                             <div class="ed-2col">
                                 <div class="field">
-                                    <label class="field-label">Wire access</label>
-                                    <select class="select-input" wire:model.live="pkgWire" id="pWire" style="width:100%">
-                                        <option value="Full wire — all categories">Full wire — all categories</option>
-                                        <option value="Full wire — excluding exclusives">Full wire — excluding exclusives</option>
-                                        <option value="Headlines + briefs only">Headlines + briefs only</option>
-                                    </select>
+                                    <label class="field-label">Stories / month <span class="text-muted">(blank = unlimited)</span></label>
+                                    <input class="text-input" type="number" min="0" wire:model.live="pkgStoriesQuota" placeholder="e.g. 200">
+                                    @error('pkgStoriesQuota') <span class="text-xs text-crimson mt-1 block">{{ $message }}</span> @enderror
                                 </div>
                                 <div class="field">
-                                    <label class="field-label">Photo quota / month</label>
-                                    <select class="select-input" wire:model.live="pkgQuota" id="pQuota" style="width:100%">
-                                        <option value="Unlimited">Unlimited</option>
-                                        <option value="2,000 photos">2,000 photos</option>
-                                        <option value="800 photos">800 photos</option>
-                                        <option value="200 photos">200 photos</option>
-                                        <option value="No photos">No photos</option>
-                                    </select>
+                                    <label class="field-label">Original media downloads / month <span class="text-muted">(blank = unlimited; 0 = none)</span></label>
+                                    <input class="text-input" type="number" min="0" wire:model.live="pkgMediaQuota" placeholder="e.g. 400">
+                                    @error('pkgMediaQuota') <span class="text-xs text-crimson mt-1 block">{{ $message }}</span> @enderror
                                 </div>
                             </div>
 
                             <div class="field" style="margin-bottom:6px">
                                 <label class="field-label">Included</label>
+                                <label class="feat-check">
+                                    <input type="checkbox" wire:model.live="pkgPhotos" id="pPhotos"> Story-accompanying photos viewable
+                                </label>
                                 <label class="feat-check">
                                     <input type="checkbox" wire:model.live="pkgVideo" id="pVideo"> Video clips
                                 </label>
@@ -321,15 +344,25 @@
                                         <span>{{ $pkgWire }}</span>
                                     </div>
 
-                                    {{-- Photo Quota --}}
-                                    <div class="prev-feat {{ $pkgQuota === 'No photos' ? 'no' : '' }}">
-                                        @if($pkgQuota === 'No photos')
+                                    <div class="prev-feat">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                        <span>{{ $pkgStoriesQuota === '' ? 'Unlimited stories' : number_format((int) $pkgStoriesQuota).' stories / month' }}</span>
+                                    </div>
+                                    <div class="prev-feat {{ $pkgMediaQuota === '0' ? 'no' : '' }}">
+                                        @if($pkgMediaQuota === '0')
                                             <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                            <span>No photo downloads</span>
                                         @else
                                             <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                                            <span>{{ $pkgQuota }}{{ $pkgQuota === 'Unlimited' ? ' photo downloads' : ' / month' }}</span>
                                         @endif
+                                        <span>{{ $pkgMediaQuota === '' ? 'Unlimited media downloads' : number_format((int) $pkgMediaQuota).' original downloads / month' }}</span>
+                                    </div>
+                                    <div class="prev-feat {{ ! $pkgPhotos ? 'no' : '' }}">
+                                        @if($pkgPhotos)
+                                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                        @else
+                                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                        @endif
+                                        <span>{{ $pkgPhotos ? 'Story-accompanying photos viewable' : 'No story photos' }}</span>
                                     </div>
 
                                     {{-- Video clips --}}

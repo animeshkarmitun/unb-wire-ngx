@@ -418,6 +418,7 @@ Build order: `002`–`015` can run in parallel with `001`. E2E tasks start after
 | `COS-77` | `stories.corrected_at` set on published edits; portal payloads expose `corrected_at` + `is_corrected` (live-verified) | — | ✅ | PR #80 | 2026-11-19 |
 | `COS-72` | AP manager honest sync state: Last synced derived from real data (no hardcoded future time); no fake auto-sync promise (M18-AP is backlog) | — | ✅ | PR #82 | 2026-11-19 |
 | `COS-66/64/65` | UI batch: human 403 error page, field-app "soon" placeholders, full RBAC-mirrored sidebar | — | ✅ | PR #83 | 2026-11-19 |
+| `COS-FTP-MGMT` | Client-managed FTP channel from the portal (add/edit/test/pause/resume/remove, admin-user gate, staff notify + audit, FTP notifications tab, auto-pause client notify) | — | ✅ | PR #88 | 2026-11-19 |
 
 ---
 
@@ -431,9 +432,20 @@ Build order: `002`–`015` can run in parallel with `001`. E2E tasks start after
 
 ---
 
-## 27. How to Add a Task
+## 27. COS-79 Package Quota & Add-on Entitlement Overhaul — In Progress
+
+| Task ID | Title | Dependencies | Status | Review | Completed |
+|---------|-------|--------------|--------|--------|-----------|
+| `COS-79-001` | Numeric package quota columns + client quota override table + legacy backfill | DEC-020 | ⏳ | — | — |
+| `COS-79-002` | Effective package/add-on entitlement + quota resolver (base union, override precedence) | COS-79-001 | ⏳ | — | — |
+| `COS-79-003` | System Admin-only package/override administration + subscription-safe delete | COS-79-001/002 | ⏳ | — | — |
+| `COS-79-004` | Per-asset add-on enforcement across fanout, portal, search, downloads | COS-79-002/003 | ⏳ | — | — |
+| `COS-79-005` | Quota surface parity, migration rollout, live tier matrix | COS-79-001…004 | ⏳ | — | — |
+
+---
+
+## 28. How to Add a Task
 
 1. Study the provided UI design / wireframe and derive functional requirements.
 2. Decompose into an atomic task file in `docs/tasks/<TASK-ID>-<slug>.md` using `docs/task-decomposition-protocol.md`.
 3. Add a new row to the table above.
-

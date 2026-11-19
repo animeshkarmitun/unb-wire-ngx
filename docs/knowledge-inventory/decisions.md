@@ -18,6 +18,7 @@
 | `DEC-006` | v1 Stack Lock per app-data NFR §16 | 2026-08-26 | Accepted |
 | `DEC-007` | Canonical Domain Contracts from app-data FRD & DB Design | 2026-08-26 | Accepted |
 | `DEC-008` | Field Apps (MoJo / Photo Desk PWA) Deferred | 2026-08-26 | Accepted |
+| `DEC-020` | Package quotas, client overrides, and per-asset add-on entitlements (COS-79) | 2026-11-19 | Accepted |
 
 ---
 
@@ -370,3 +371,47 @@ M15-SCALE-004 routes admin newsroom search through a new Meilisearch **`staff`**
 
 - Staff rows pass the CHECK; `ProcessIndexOutbox` builds staff payloads (same field set as main).
 - **Process note:** pgsql-guarded CHECK/CHECK-enum migrations must be verified against a pgsql DB (feature suite is sqlite) — extend the pgsql verification habit to new outbox/search writes.
+
+---
+
+## `DEC-020`: Package quotas, client overrides, and per-asset add-on entitlements (COS-79)
+
+### Context
+
+Quota and access values were split across free-text strings in `packages.entitlement_filter`,
+`clients.notes.tier_quotas`, hardcoded Clients UI fallbacks, and static Add News copy. This
+made Admin, portal, delivery, and media access disagree. The owner confirmed Basic gets
+full text + Word/XML export + accompanying images; media download quota is separate;
+special images may be restricted to add-on packages. Package mutation/deletion is System
+Admin-only, and package deletion must protect existing subscribers.
+
+### Decision
+
+- Numeric package defaults live on `packages.stories_quota` and `packages.media_quota`;
+  `null` = unlimited, `0` = none. Initial defaults (editable by System Admin): Premium
+  2000/1000, Standard 800/400, Basic 200/0.
+- Per-client quota exceptions live in `client_entitlement_overrides`, not
+  `clients.notes`. Per-dimension override-presence flags distinguish inherit from an
+  explicit `null` (unlimited) override. Existing `notes.tier_quotas` is migrated.
+- Active base-package quotas union by maximum; `null` on any active base package means
+  unlimited. Add-ons grant asset access only; they do not silently increase quota.
+- Story text entitlement is separate from media entitlement. Basic receives full story
+  text/export and ordinary accompanying images; `media_quota=0` blocks original
+  downloads but not authorized inline viewing. Special assets linked by `package_media`
+  require an active linked package/add-on; inaccessible media is filtered without hiding
+  the otherwise-entitled story.
+- Only System Admin mutates packages/quotas/overrides. Any package referenced by
+  `client_packages` cannot be hard-deleted; archive it instead.
+- Preserve the existing calendar-month usage calculation in this rollout; quota counting
+  semantics are not redefined by COS-79.
+
+### Consequences
+
+- Package quotas, client overrides, portal context, Clients usage, media downloads,
+  delivery fanout, and media search resolve from one explicit contract.
+- Existing client-specific quota values survive migration as overrides; seeded clients
+  without legacy overrides inherit package defaults (no fabricated `/800` fallback).
+- Basic can see accompanying images while its zero media-download quota still blocks
+  original downloads.
+- System Admin UI controls package defaults; subscription history is protected from
+  destructive deletion.

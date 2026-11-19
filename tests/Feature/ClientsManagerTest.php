@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Livewire\Admin\ClientsManager;
 use App\Models\Client;
+use App\Models\ClientEntitlementOverride;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Delivery\FtpDiskFactory;
@@ -339,9 +340,13 @@ class ClientsManagerTest extends TestCase
         // Basic-tier client with media_quota=0 must read "0 / 0 media",
         // not "0 / 1" (the old max(1, quota) clamp).
         $client = Client::where('status', 'active')->firstOrFail();
-        $notes = json_decode($client->notes, true) ?: [];
-        $notes['tier_quotas'] = ['stories_quota' => 200, 'media_quota' => 0];
-        $client->update(['notes' => json_encode($notes)]);
+        ClientEntitlementOverride::create([
+            'client_id' => $client->id,
+            'override_stories_quota' => true,
+            'stories_quota' => 200,
+            'override_media_quota' => true,
+            'media_quota' => 0,
+        ]);
 
         Livewire::test(ClientsManager::class)
             ->assertSee('0 / 0 media');

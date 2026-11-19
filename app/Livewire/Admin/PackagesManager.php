@@ -32,7 +32,11 @@ class PackagesManager extends Component
 
     public string $pkgWire = 'Full wire — all categories';
 
-    public string $pkgQuota = 'Unlimited';
+    public string $pkgStoriesQuota = '';
+
+    public string $pkgMediaQuota = '';
+
+    public bool $pkgPhotos = true;
 
     public bool $pkgVideo = true;
 
@@ -66,12 +70,23 @@ class PackagesManager extends Component
         $rbac->assertCan(auth()->user(), 'packages', 'view');
     }
 
+    private function assertSystemAdmin(): void
+    {
+        abort_unless(auth()->user()?->isSuperAdmin(), 403, 'Only a System Admin can change package entitlements.');
+    }
+
+    private function isSystemAdmin(): bool
+    {
+        return (bool) auth()->user()?->isSuperAdmin();
+    }
+
     // ==========================================
     // PACKAGE EDITOR & ACTIONS
     // ==========================================
 
     public function openPkgModal(?int $id = null): void
     {
+        $this->assertSystemAdmin();
         $this->resetValidation();
         $this->editingPkgId = $id;
 
@@ -84,7 +99,9 @@ class PackagesManager extends Component
             $this->pkgDesc = $p->description ?? '';
             $this->pkgGrad = $filter['grad'] ?? 'g1';
             $this->pkgWire = $filter['wire'] ?? 'Full wire — all categories';
-            $this->pkgQuota = $filter['quota'] ?? 'Unlimited';
+            $this->pkgStoriesQuota = $p->stories_quota === null ? '' : (string) $p->stories_quota;
+            $this->pkgMediaQuota = $p->media_quota === null ? '' : (string) $p->media_quota;
+            $this->pkgPhotos = in_array('photo', (array) ($filter['media_kinds'] ?? []), true);
             $this->pkgVideo = (bool) ($filter['video'] ?? true);
             $this->pkgExcl = (bool) ($filter['excl'] ?? false);
             $this->pkgApi = (bool) ($filter['api'] ?? true);
@@ -95,7 +112,9 @@ class PackagesManager extends Component
             $this->pkgDesc = '';
             $this->pkgGrad = 'g1';
             $this->pkgWire = 'Full wire — all categories';
-            $this->pkgQuota = 'Unlimited';
+            $this->pkgStoriesQuota = '';
+            $this->pkgMediaQuota = '';
+            $this->pkgPhotos = true;
             $this->pkgVideo = true;
             $this->pkgExcl = false;
             $this->pkgApi = true;
@@ -120,6 +139,7 @@ class PackagesManager extends Component
 
     public function savePkg(string $status, RbacService $rbac): void
     {
+        $this->assertSystemAdmin();
         if ($this->editingPkgId) {
             $rbac->assertCan(auth()->user(), 'packages', 'edit');
         } else {
@@ -129,6 +149,8 @@ class PackagesManager extends Component
         $this->validate([
             'pkgName' => 'required|string|max:120',
             'pkgPrice' => 'required|numeric|min:0',
+            'pkgStoriesQuota' => 'nullable|integer|min:0|max:100000000',
+            'pkgMediaQuota' => 'nullable|integer|min:0|max:100000000',
         ], [
             'pkgName.required' => 'Package name is required',
             'pkgPrice.required' => 'Set a monthly price',
@@ -139,14 +161,16 @@ class PackagesManager extends Component
             'is_addon' => false,
             'grad' => $this->pkgGrad,
             'wire' => $this->pkgWire,
-            'quota' => $this->pkgQuota,
             'video' => $this->pkgVideo,
             'excl' => $this->pkgExcl,
             'api' => $this->pkgApi,
             'support' => $this->pkgSupport,
             'ui_status' => $status === 'live' ? 'live' : 'draft',
             'languages' => ['en', 'bn'],
-            'media_kinds' => $this->pkgQuota === 'No photos' ? [] : ['photo', 'video'],
+            'media_kinds' => array_values(array_filter([
+                $this->pkgPhotos ? 'photo' : null,
+                $this->pkgVideo ? 'video' : null,
+            ])),
         ];
 
         $dbStatus = $status === 'live' ? 'active' : 'archived';
@@ -158,6 +182,8 @@ class PackagesManager extends Component
                 'price_monthly' => $this->pkgPrice,
                 'description' => $this->pkgDesc ?: null,
                 'entitlement_filter' => $filter,
+                'stories_quota' => $this->pkgStoriesQuota === '' ? null : (int) $this->pkgStoriesQuota,
+                'media_quota' => $this->pkgMediaQuota === '' ? null : (int) $this->pkgMediaQuota,
                 'status' => $dbStatus,
             ]);
 
@@ -177,6 +203,8 @@ class PackagesManager extends Component
                 'description' => $this->pkgDesc ?: null,
                 'price_monthly' => $this->pkgPrice,
                 'entitlement_filter' => $filter,
+                'stories_quota' => $this->pkgStoriesQuota === '' ? null : (int) $this->pkgStoriesQuota,
+                'media_quota' => $this->pkgMediaQuota === '' ? null : (int) $this->pkgMediaQuota,
                 'status' => $dbStatus,
             ]);
 
@@ -188,6 +216,7 @@ class PackagesManager extends Component
 
     public function duplicatePkg(int $id, RbacService $rbac): void
     {
+        $this->assertSystemAdmin();
         $rbac->assertCan(auth()->user(), 'packages', 'create');
 
         $orig = Package::findOrFail($id);
@@ -207,6 +236,8 @@ class PackagesManager extends Component
             'name' => $newName,
             'kind' => $orig->kind,
             'description' => $orig->description,
+            'stories_quota' => $orig->stories_quota,
+            'media_quota' => $orig->media_quota,
             'price_monthly' => $orig->price_monthly,
             'entitlement_filter' => $filter,
             'status' => 'archived', // Draft in DB
@@ -217,6 +248,7 @@ class PackagesManager extends Component
 
     public function openArchiveModal(int $id, RbacService $rbac): void
     {
+        $this->assertSystemAdmin();
         $rbac->assertCan(auth()->user(), 'packages', 'edit');
 
         $this->archiveTargetId = $id;
@@ -229,7 +261,9 @@ class PackagesManager extends Component
                 return empty($f['is_addon']);
             });
 
-        $this->reassignPkgId = $alt?->id;
+        // Existing subscribers stay on the archived package by default;
+        // an explicit replacement remains available in the dialog.
+        $this->reassignPkgId = null;
         $this->showArchiveModal = true;
     }
 
@@ -242,6 +276,7 @@ class PackagesManager extends Component
 
     public function confirmArchive(RbacService $rbac): void
     {
+        $this->assertSystemAdmin();
         $rbac->assertCan(auth()->user(), 'packages', 'edit');
 
         if (! $this->archiveTargetId) {
@@ -278,6 +313,7 @@ class PackagesManager extends Component
 
     public function restorePkg(int $id, RbacService $rbac): void
     {
+        $this->assertSystemAdmin();
         $rbac->assertCan(auth()->user(), 'packages', 'edit');
 
         $pkg = Package::findOrFail($id);
@@ -295,13 +331,14 @@ class PackagesManager extends Component
     public function deletePkg(int $id, RbacService $rbac): void
     {
         try {
+            $this->assertSystemAdmin();
             $rbac->assertCan(auth()->user(), 'packages', 'delete');
 
             $pkg = Package::findOrFail($id);
             $clientCount = ClientPackage::where('package_id', $pkg->id)->count();
 
             if ($clientCount > 0) {
-                $this->dispatch('toast', message: 'Reassign clients before deleting');
+                $this->dispatch('toast', message: 'This package has subscription history and cannot be deleted. Archive it instead.');
 
                 return;
             }
@@ -319,6 +356,7 @@ class PackagesManager extends Component
 
     public function openAoModal(?int $id = null): void
     {
+        $this->assertSystemAdmin();
         $this->resetValidation();
         $this->editingAoId = $id;
 
@@ -357,6 +395,7 @@ class PackagesManager extends Component
 
     public function saveAo(RbacService $rbac): void
     {
+        $this->assertSystemAdmin();
         if ($this->editingAoId) {
             $rbac->assertCan(auth()->user(), 'packages', 'edit');
         } else {
@@ -429,6 +468,7 @@ class PackagesManager extends Component
 
     public function toggleAoStatus(int $id, RbacService $rbac): void
     {
+        $this->assertSystemAdmin();
         $rbac->assertCan(auth()->user(), 'packages', 'edit');
 
         $ao = Package::findOrFail($id);
@@ -449,15 +489,14 @@ class PackagesManager extends Component
     public function deleteAo(int $id, RbacService $rbac): void
     {
         try {
+            $this->assertSystemAdmin();
             $rbac->assertCan(auth()->user(), 'packages', 'delete');
 
             $ao = Package::findOrFail($id);
-            $clientCount = ClientPackage::where('package_id', $ao->id)
-                ->where('status', 'active')
-                ->count();
+            $clientCount = ClientPackage::where('package_id', $ao->id)->count();
 
             if ($clientCount > 0) {
-                $this->dispatch('toast', message: '<b>'.$clientCount.'</b> clients use this add-on — remove it from them first');
+                $this->dispatch('toast', message: '<b>'.$clientCount.'</b> subscriptions reference this add-on — archive it instead');
 
                 return;
             }
@@ -532,8 +571,10 @@ class PackagesManager extends Component
                 'grad' => $grad,
                 'status' => $uiStatus,
                 'wire' => $filter['wire'] ?? 'Full wire — all categories',
-                'quota' => $filter['quota'] ?? 'Unlimited',
-                'video' => (bool) ($filter['video'] ?? true),
+                'stories_quota' => $p->stories_quota,
+                'media_quota' => $p->media_quota,
+                'photos' => in_array('photo', (array) ($filter['media_kinds'] ?? []), true),
+                'video' => (bool) ($filter['video'] ?? in_array('video', (array) ($filter['media_kinds'] ?? []), true)),
                 'excl' => (bool) ($filter['excl'] ?? false),
                 'api' => (bool) ($filter['api'] ?? true),
                 'support' => (bool) ($filter['support'] ?? false),
@@ -605,6 +646,7 @@ class PackagesManager extends Component
             ],
             'archiveTargetPkg' => $archiveTargetPkg,
             'reassignOptions' => $reassignOptions,
+            'isSystemAdmin' => $this->isSystemAdmin(),
         ]);
     }
 }

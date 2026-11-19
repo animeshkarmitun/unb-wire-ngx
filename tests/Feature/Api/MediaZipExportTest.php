@@ -42,11 +42,12 @@ class MediaZipExportTest extends TestCase
     {
         $client = Client::factory()->create([
             'status' => 'active',
-            'notes' => json_encode(['tier_quotas' => $quotas]),
         ]);
 
         $pkg = Package::factory()->create([
             'status' => 'active',
+            'stories_quota' => $quotas['stories_quota'] ?? null,
+            'media_quota' => $quotas['media_quota'] ?? null,
             'entitlement_filter' => $packageFilter,
         ]);
 

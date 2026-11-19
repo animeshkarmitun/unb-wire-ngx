@@ -2,11 +2,12 @@
 
 namespace App\Services\Delivery;
 
+use App\Models\MediaAsset;
 use App\Models\Story;
 
 class WebhookPayloadBuilder
 {
-    public function build(Story $story, string $event): array
+    public function build(Story $story, string $event, ?iterable $visibleMedia = null): array
     {
         $story->loadMissing(['category', 'tags', 'media', 'owner']);
 
@@ -17,6 +18,10 @@ class WebhookPayloadBuilder
                 'name' => $story->category->name_en ?? $story->category->name ?? $story->category->slug,
             ];
         }
+
+        $media = $visibleMedia ?? ($story->media
+            ? $story->media->reject(fn (MediaAsset $m) => $m->isEmbargoed() || $m->pivot?->role === 'body')
+            : collect());
 
         return [
             'event' => $event,
@@ -32,12 +37,15 @@ class WebhookPayloadBuilder
                 'category' => $category,
                 'tags' => $story->tags ? $story->tags->pluck('name')->toArray() : [],
                 'published_at' => $story->published_at ? $story->published_at->toIso8601String() : null,
-                'media' => $story->media ? $story->media->reject(fn ($m) => $m->isEmbargoed() || $m->pivot?->role === 'body')->values()->map(fn ($m) => [
-                    'public_id' => trim((string) $m->public_id),
-                    'kind' => $m->kind,
-                    'caption' => $m->pivot?->caption_override ?: $m->caption,
-                    'download_url' => url("/api/v1/media/{$m->id}/download"),
-                ])->toArray() : [],
+                'media' => collect($media)
+                    ->reject(fn ($m) => $m->pivot?->role === 'body')
+                    ->values()
+                    ->map(fn ($m) => [
+                        'public_id' => trim((string) $m->public_id),
+                        'kind' => $m->kind,
+                        'caption' => $m->pivot?->caption_override ?: $m->caption,
+                        'download_url' => url("/api/v1/media/{$m->id}/download"),
+                    ])->toArray(),
             ],
         ];
     }
