@@ -50,13 +50,20 @@
 
 ## 3. Verification plan
 
-- [ ] `PortalFtpTest`: admin-only gate (403 for non-admin user), masked payload, PUT
-      validation + immediate save, test endpoint, pause/resume, remove semantics,
-      audit rows (`client_user` actor), staff notification, cross-client isolation.
-- [ ] `php artisan test`; pint; schema parity.
-- [ ] Live smoke: portal login as The Daily Star admin user → view/edit/test/pause;
-      notifications tab.
+- [x] `PortalFtpTest` (13 tests): admin-only gate (403 for non-manager, 401 unauth),
+      masked payload (password never returned), PUT validation + immediate save +
+      keep-existing-password, protocol validation, pause/resume + client notify,
+      remove semantics (disable+wipe with history / delete when unused), audit rows
+      (`client_user` actor + ip + correlation), staff notification, single-channel
+      invariant, admin toggle grant/revoke.
+- [x] `php artisan test` — **1045 passed / 0 failed**; pint clean; schema parity PASSED.
+- [x] **Live smoke (147.93.171.193):** migration run; portal rebuilt; Daily Star admin
+      user → `GET /ftp` returns the real channel masked (`has_password=true`, no
+      password field), pause → resume **200**, non-manager user → **403**; portal
+      `/ftp` page renders 200.
 
 ## 4. Completion notes
 
-_(pending)_
+- PR #88 merged + deployed (+ server migration + portal rebuild).
+- Login payload note: `login` response doesn't include the flag (added later to the
+  profile payload only) — the portal reads it from `/profile`; harmless.

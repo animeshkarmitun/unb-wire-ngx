@@ -3,6 +3,7 @@
 namespace Tests\Feature\Services;
 
 use App\Models\Client;
+use App\Models\ClientEntitlementOverride;
 use App\Models\MediaAsset;
 use App\Services\Media\MediaZipExportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -34,7 +35,11 @@ class MediaZipExportServiceTest extends TestCase
 
     public function test_export_throws_when_quota_insufficient(): void
     {
-        $this->client->update(['notes' => json_encode(['tier_quotas' => ['media_quota' => 0]])]);
+        ClientEntitlementOverride::create([
+            'client_id' => $this->client->id,
+            'override_media_quota' => true,
+            'media_quota' => 0,
+        ]);
 
         $asset = MediaAsset::factory()->create(['kind' => 'photo']);
 

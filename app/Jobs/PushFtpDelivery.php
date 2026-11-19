@@ -8,6 +8,7 @@ use App\Models\Story;
 use App\Notifications\ClientStoryNotification;
 use App\Repositories\ClientRepository;
 use App\Services\Delivery\FtpDiskFactory;
+use App\Services\Delivery\MediaEntitlementService;
 use App\Services\Delivery\WireFormatFactory;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -48,13 +49,20 @@ class PushFtpDelivery implements ShouldQueue
         }
 
         // A delivery that already reached a terminal state (sent/failed) is
-        // done — replayed or duplicate jobs must not re-push or re-notify.
+        // done â€” replayed or duplicate jobs must not re-push or re-notify.
         if (in_array($delivery->status, ['sent', 'failed'], true)) {
             return;
         }
 
         $config = is_string($channel->config) ? json_decode($channel->config, true) : ($channel->config ?? []);
         $format = $config['wire_format'] ?? 'json-unb-v1';
+
+        // COS-79: filter the wire payload media per receiving client's
+        // entitlements before formatting (special/package-linked assets only
+        // ride to entitled subscribers). Story text is untouched.
+        $story->setRelation('media', collect(
+            app(MediaEntitlementService::class)->visibleMediaFor($delivery->client, $story->media)
+        ));
 
         try {
             $wireOutput = $wireFormatFactory->generate($story, $format);
@@ -77,7 +85,7 @@ class PushFtpDelivery implements ShouldQueue
                 $clients->recordChannelFailure($delivery->channel_id);
             }
 
-            // Permanent failure after the final attempt → honest 'failed' state
+            // Permanent failure after the final attempt â†’ honest 'failed' state
             // in the distribution log instead of an eternally queued row.
             if ($delivery->attempt_count >= $this->tries) {
                 $delivery->update(['status' => 'failed']);
@@ -104,7 +112,7 @@ class PushFtpDelivery implements ShouldQueue
             }
 
             Notification::sendNow($users, new ClientStoryNotification('story.ftp_failed', [
-                'title' => 'FTP delivery failed — '.$story->headline,
+                'title' => 'FTP delivery failed â€” '.$story->headline,
                 'message' => 'This story could not be delivered to your FTP channel after repeated attempts. You can read or download it from the portal.',
                 'story_id' => $story->id,
                 'public_id' => (string) $story->public_id,

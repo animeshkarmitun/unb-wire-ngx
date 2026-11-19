@@ -17,12 +17,16 @@ class Package extends Model
         'kind',
         'description',
         'entitlement_filter',
+        'stories_quota',
+        'media_quota',
         'price_monthly',
         'status',
     ];
 
     protected $casts = [
         'entitlement_filter' => 'array',
+        'stories_quota' => 'integer',
+        'media_quota' => 'integer',
         'price_monthly' => 'decimal:2',
     ];
 

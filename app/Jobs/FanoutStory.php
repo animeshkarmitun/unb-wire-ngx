@@ -9,6 +9,7 @@ use App\Models\Story;
 use App\Notifications\ClientStoryNotification;
 use App\Repositories\ClientRepository;
 use App\Repositories\DeliveryRepository;
+use App\Services\Delivery\MediaEntitlementService;
 use App\Services\Delivery\TriggerMatcher;
 use App\Services\Delivery\WebhookPayloadBuilder;
 use App\Services\Delivery\WebhookSigner;
@@ -88,7 +89,7 @@ class FanoutStory implements ShouldQueue
                         PushFtpDelivery::dispatch($deliveryId);
                     } elseif ($ch->type === 'api') {
                         // Pull-based channel: the client pulls via /api/v1/feed with
-                        // its scoped key — ledger the availability immediately.
+                        // its scoped key â€” ledger the availability immediately.
                         DB::table('deliveries')->where('idempotency_key', $key)->update([
                             'status' => 'sent',
                             'sent_at' => now(),
@@ -173,7 +174,10 @@ class FanoutStory implements ShouldQueue
 
     private function sendWebhook(Story $story, ClientChannel $ch, array $config, string $event, string $idempotencyKey, ClientRepository $clients): void
     {
-        $payload = app(WebhookPayloadBuilder::class)->build($story, $event);
+        // COS-79: filter the payload media per receiving client's entitlements —
+        // special/package-linked assets only ride to entitled subscribers.
+        $client = Client::find($ch->client_id);
+        $payload = app(WebhookPayloadBuilder::class)->build($story, $event, $client ? app(MediaEntitlementService::class)->visibleMediaFor($client, $story->media) : null);
         $jsonPayload = json_encode($payload);
         $secret = $config['signing_secret'] ?? '';
         $headers = app(WebhookSigner::class)->headers($jsonPayload, $secret, $event);
@@ -228,7 +232,7 @@ class FanoutStory implements ShouldQueue
 
             $title = match ($action) {
                 'killed' => '[KILLED] Advisory: '.($story->headline ?? 'Story Withdrawn'),
-                default => ($isBreaking ? '🚨 [BREAKING] ' : '').($story->headline ?? 'New Story'),
+                default => ($isBreaking ? 'ðŸš¨ [BREAKING] ' : '').($story->headline ?? 'New Story'),
             };
 
             $urgency = $story->is_breaking ? 'breaking' : ($story->priority ?? 'routine');

@@ -70,7 +70,6 @@ class EntitlementResolver
             ->join('packages', 'packages.id', '=', 'client_packages.package_id')
             ->where('client_packages.client_id', $client->id)
             ->where('client_packages.status', 'active')
-            ->where('packages.status', 'active')
             ->where(function ($q) {
                 $q->whereNull('client_packages.ends_at')->orWhere('client_packages.ends_at', '>', now());
             })

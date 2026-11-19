@@ -357,15 +357,17 @@ Indexes: `(status, created_at DESC)` (field intake queue), `(kind, status)`,
 | kind | varchar(12) | 'news','photos','bundle' |
 | description | text null | |
 | entitlement_filter | jsonb | declarative: {languages:[], category_ids:[]|null=all, media_kinds:[]} — **same shape is compiled into the Meilisearch tenant-token filter** (NFR §1) so search entitlements and delivery entitlements can never drift |
+| stories_quota | integer null | null = unlimited; numeric values are the package default monthly story quota (DEC-020) |
+| media_quota | integer null | null = unlimited; 0 = no original-media downloads; inline/view access is controlled separately by asset entitlement (DEC-020) |
 | price_monthly | numeric(10,2) null | |
 | status | varchar(12) default 'active' | CHECK ('active','archived') — ratified DEC-011 |
 | timestamps | | |
 
-### `package_media` (pivot — which media assets ride which package)
+### `package_media` (pivot — which media assets ride which package / add-on)
 package_id FK packages → cascade, asset_id FK media_assets → cascade,
-added_at timestamptz default now(). PK (package_id, asset_id).
-Written by approval (urgent → Exclusive) and bulk "add to package"; read by
-fan-out planning and the portal's media entitlement check.
+added_at timestamptz default now(). PK (package_id, asset_id). A linked asset is
+visible only to clients with an active linked package/add-on; unlinked ordinary story
+media is governed by effective `media_kinds` (DEC-020).
 
 ### `client_packages`
 | column | type | notes |
@@ -378,8 +380,24 @@ fan-out planning and the portal's media entitlement check.
 | status | varchar(12) default 'active' | CHECK ('active','expired','cancelled') — ratified DEC-011 |
 | created_at | | UNIQUE (client_id, package_id, starts_at) |
 
-Effective entitlement of a client = union of active packages, computed in app,
-cached (CacheAside), baked into tenant tokens at issue time.
+### `client_entitlement_overrides` (optional per-client quota exceptions — DEC-020)
+| column | type | notes |
+|---|---|---|
+| id | identity PK | |
+| client_id | FK clients → cascade, unique | one override row per client |
+| override_stories_quota | boolean default false | false = inherit package; true = use `stories_quota` (including null = explicit unlimited) |
+| stories_quota | integer null | override value when flag=true; 0 = none; null = unlimited |
+| override_media_quota | boolean default false | false = inherit package; true = use `media_quota` (including null = explicit unlimited) |
+| media_quota | integer null | override value when flag=true; 0 = no downloads; null = unlimited |
+| updated_by | FK users → set null | System Admin who last changed the override |
+| timestamps | | |
+
+Effective quota = explicit client override when its flag is true; otherwise the union of active **base** packages (max numeric quota; null on any base package means unlimited). Add-ons grant asset access and do not silently increase quotas. Legacy `clients.notes.tier_quotas` is migrated into this table and is no longer read by the application.
+
+Effective language/category entitlement = union of active packages; media visibility is
+resolved per asset using `media_kinds` plus `package_media` add-on links. Story text
+visibility is not removed solely because an attached image is unavailable. Entitlements
+are computed in app, cached (CacheAside), and baked into tenant tokens at issue time.
 
 ### `client_channels` (how each client receives content)
 | column | type | notes |

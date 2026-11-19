@@ -123,18 +123,39 @@
               <div class="dist-preview">
                 <div class="dist-title">Who gets what</div>
                 <div id="distRows">
-                  <div class="dist-row">
-                    <span class="dist-dot" style="background:var(--green)"></span>
-                    <div><span class="dist-tier">Premium</span> · <span class="dist-gets">Full story + featured image + {{ count($attachedMedia) }} media attachments</span></div>
-                  </div>
-                  <div class="dist-row">
-                    <span class="dist-dot" style="background:var(--blue)"></span>
-                    <div><span class="dist-tier">Standard</span> · <span class="dist-gets">Full text · no media downloads</span></div>
-                  </div>
-                  <div class="dist-row">
-                    <span class="dist-dot" style="background:var(--muted-2)"></span>
-                    <div><span class="dist-tier">Basic</span> · <span class="dist-gets">Headline + brief only</span></div>
-                  </div>
+                  @php
+                    $tiers = \App\Models\Package::whereIn('code', ['PREMIUM-BUNDLE', 'STANDARD-NEWS', 'BASIC-NEWS'])
+                        ->where('status', 'active')
+                        ->orderByRaw("CASE WHEN code = 'PREMIUM-BUNDLE' THEN 1 WHEN code = 'STANDARD-NEWS' THEN 2 ELSE 3 END")
+                        ->get(['id', 'name', 'stories_quota', 'media_quota', 'entitlement_filter']);
+                  @endphp
+                  @foreach($tiers as $t)
+                    @php
+                      $filter = (array) ($t->entitlement_filter ?? []);
+                      $photos = in_array('photo', (array) ($filter['media_kinds'] ?? []), true);
+                      $gets = $t->stories_quota === null
+                          ? 'Unlimited stories'
+                          : number_format($t->stories_quota).' stories / month';
+                      if ($photos) {
+                          $gets .= ' · story images viewable';
+                      }
+                      if ($t->media_quota !== 0) {
+                          $gets .= $t->media_quota === null
+                              ? ' · unlimited original downloads'
+                              : ' · '.number_format($t->media_quota).' original downloads / month';
+                      }
+                    @endphp
+                    <div class="dist-row">
+                      <span class="dist-dot" style="background:{{ $t->code === 'PREMIUM-BUNDLE' ? 'var(--green)' : ($t->code === 'STANDARD-NEWS' ? 'var(--blue)' : 'var(--muted-2)') }}"></span>
+                      <div><span class="dist-tier">{{ $t->name }}</span> · <span class="dist-gets">{{ $gets }}</span></div>
+                    </div>
+                  @endforeach
+                  @if(count($attachedMedia) > 0)
+                    <div class="dist-row">
+                      <span class="dist-dot" style="background:var(--amber)"></span>
+                      <div><span class="dist-tier">Attachments</span> · <span class="dist-gets">{{ count($attachedMedia) }} media ride this story — special images require their linked package/add-on</span></div>
+                    </div>
+                  @endif
                 </div>
               </div>
             </div>

@@ -30,7 +30,7 @@ class PackagesManagerTest extends TestCase
         $this->seed(ClientSeeder::class);
 
         $adminRole = Role::where('name', 'Admin')->firstOrFail();
-        $this->admin = User::factory()->create(['role_id' => $adminRole->id]);
+        $this->admin = User::factory()->superadmin()->create(['role_id' => $adminRole->id]);
 
         $this->actingAs($this->admin);
     }
@@ -47,7 +47,7 @@ class PackagesManagerTest extends TestCase
             ->assertSee('Add-ons')
             ->assertSee('Premium Wire + Media')
             ->assertSee('Standard Wire')
-            ->assertSee('Basic Headlines')
+            ->assertSee('Basic Wire + Images')
             ->assertSee('District Wire')
             ->assertSee('AP World pack')
             ->assertSee('Bangla service')
@@ -63,7 +63,8 @@ class PackagesManagerTest extends TestCase
             ->set('pkgPrice', '35000')
             ->set('pkgGrad', 'g3')
             ->set('pkgWire', 'Full wire — all categories')
-            ->set('pkgQuota', '2,000 photos')
+            ->set('pkgStoriesQuota', '2000')
+            ->set('pkgMediaQuota', '1000')
             ->set('pkgVideo', true)
             ->call('savePkg', 'draft')
             ->assertSet('showPkgModal', false)
@@ -74,7 +75,8 @@ class PackagesManagerTest extends TestCase
         $this->assertEquals('archived', $draft->status);
         $this->assertEquals('draft', $draft->entitlement_filter['ui_status']);
         $this->assertEquals('g3', $draft->entitlement_filter['grad']);
-        $this->assertEquals('2,000 photos', $draft->entitlement_filter['quota']);
+        $this->assertSame(2000, $draft->stories_quota);
+        $this->assertSame(1000, $draft->media_quota);
 
         // 2. Create and publish live
         Livewire::test(PackagesManager::class)
@@ -97,7 +99,7 @@ class PackagesManagerTest extends TestCase
 
         Livewire::test(PackagesManager::class)
             ->call('openPkgModal', $pkg->id)
-            ->assertSet('pkgName', 'Basic Headlines')
+            ->assertSet('pkgName', 'Basic Wire + Images')
             ->assertSet('pkgPrice', '18000')
             ->set('pkgPrice', '22000')
             ->set('pkgDesc', 'Updated small portal plan')
@@ -182,7 +184,7 @@ class PackagesManagerTest extends TestCase
         $premPkg = Package::where('code', 'PREMIUM-BUNDLE')->firstOrFail();
         Livewire::test(PackagesManager::class)
             ->call('deletePkg', $premPkg->id)
-            ->assertDispatched('toast', message: 'Reassign clients before deleting');
+            ->assertDispatched('toast', message: 'This package has subscription history and cannot be deleted. Archive it instead.');
 
         $this->assertNotNull(Package::find($premPkg->id));
     }

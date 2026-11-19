@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Client;
 use App\Models\ClientApiKey;
 use App\Models\ClientChannel;
+use App\Models\ClientEntitlementOverride;
 use App\Models\ClientPackage;
 use App\Models\ClientUser;
 use App\Models\Delivery;
@@ -438,9 +439,15 @@ class PortalApiTest extends TestCase
         $client = Client::factory()->create([
             'name' => 'The Daily Star',
             'notes' => json_encode([
-                'tier_quotas' => ['stories_quota' => 500, 'media_quota' => 150],
                 'saved_searches' => [['name' => 'Test', 'q' => 'test']],
             ]),
+        ]);
+        ClientEntitlementOverride::create([
+            'client_id' => $client->id,
+            'override_stories_quota' => true,
+            'stories_quota' => 500,
+            'override_media_quota' => true,
+            'media_quota' => 150,
         ]);
 
         $package = Package::first() ?? Package::factory()->create(['name' => 'Premium']);
@@ -580,9 +587,13 @@ class PortalApiTest extends TestCase
     {
         [$client, $user, $token] = $this->createPortalUser([
             'name' => 'Prothom Alo',
-            'notes' => json_encode([
-                'tier_quotas' => ['stories_quota' => 200, 'media_quota' => 50],
-            ]),
+        ]);
+        ClientEntitlementOverride::create([
+            'client_id' => $client->id,
+            'override_stories_quota' => true,
+            'stories_quota' => 200,
+            'override_media_quota' => true,
+            'media_quota' => 50,
         ]);
 
         $package = Package::first() ?? Package::factory()->create(['name' => 'Standard']);

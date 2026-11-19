@@ -40,10 +40,14 @@ class QuotaEnforcementTest extends TestCase
     {
         $client = Client::factory()->create([
             'status' => 'active',
-            'notes' => json_encode(['tier_quotas' => $quotas]),
         ]);
 
-        $pkg = Package::factory()->create(['status' => 'active', 'entitlement_filter' => ['languages' => ['en', 'bn'], 'category_ids' => null]]);
+        $pkg = Package::factory()->create([
+            'status' => 'active',
+            'stories_quota' => $quotas['stories_quota'] ?? null,
+            'media_quota' => $quotas['media_quota'] ?? null,
+            'entitlement_filter' => ['languages' => ['en', 'bn'], 'category_ids' => null, 'is_addon' => false],
+        ]);
         DB::table('client_packages')->insert([
             'client_id' => $client->id,
             'package_id' => $pkg->id,

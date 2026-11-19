@@ -89,9 +89,16 @@ stateDiagram-v2
 The old Public/Standard/Enterprise tier model is **replaced** (DEC-007):
 
 - **Packages** declare `entitlement_filter`: `{languages, category_ids|null=all,
-  media_kinds}` — declarative JSONB, compiled identically into delivery fan-out,
+  media_kinds}` - declarative JSONB, compiled identically into delivery fan-out,
   portal visibility, and Meilisearch tenant-token filters. A client can never see
   in search what delivery would not send.
+- **COS-79 / DEC-020:** package quotas are numeric package defaults (`stories_quota`,
+  `media_quota`; null = unlimited, 0 = none) with explicit per-client quota overrides.
+  Base-package quotas union by max (null wins); add-ons grant per-asset access but do
+  not silently increase quota. Basic receives full text, Word/XML exports, and ordinary
+  accompanying images; its media download quota is separate. Special assets linked via
+  `package_media` require an active linked package/add-on. Media entitlement filters the
+  asset, not the whole story.
 - **Client subscriptions** attach clients to packages with start/end dates;
   overlapping subscriptions union their entitlements; expiry cuts delivery + portal
   + API at once (FR-DST-003).

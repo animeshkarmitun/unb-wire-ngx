@@ -20,7 +20,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ClientService
 {
-    // ─── Query & Stats ───────────────────────────────────────────────
+    // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Query & Stats Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     public function getFilteredClientsQuery(
         string $search = '',
@@ -119,8 +119,13 @@ class ClientService
         $lastDownload = DB::table('downloads')->where('client_id', $client->id)->max('created_at');
         $lastKeyUsed = DB::table('client_api_keys')->where('client_id', $client->id)->max('last_used_at');
         $quota = app(QuotaService::class)->getUsage($client);
-        $pkgName = (string) ($client->clientPackages->first()?->package?->name ?? '');
-        $tier = str_contains(strtolower($pkgName), 'premium') ? 'Premium' : (str_contains(strtolower($pkgName), 'basic') ? 'Basic' : ($pkgName !== '' ? 'Standard' : '—'));
+        $baseSubscription = $client->clientPackages->first(function ($subscription) {
+            $filter = (array) ($subscription->package?->entitlement_filter ?? []);
+
+            return $subscription->package && empty($filter['is_addon']);
+        });
+        $pkgName = (string) ($baseSubscription?->package?->name ?? '');
+        $tier = str_contains(strtolower($pkgName), 'premium') ? 'Premium' : (str_contains(strtolower($pkgName), 'basic') ? 'Basic' : ($pkgName !== '' ? 'Standard' : 'Ã¢â‚¬â€'));
 
         return array_merge([
             'ini' => strtoupper(substr($client->name, 0, 2)),
@@ -135,7 +140,7 @@ class ClientService
         ], $meta, [
             'tier' => $tier,
             // COS-79: the exact QuotaService numbers the client portal shows
-            // (month usage; null quota = unlimited) — no fabricated fallbacks.
+            // (month usage; null quota = unlimited) Ã¢â‚¬â€ no fabricated fallbacks.
             'usage' => [
                 'dl' => $downloads,
                 'quota' => $quota['media_quota'] ?? ($quota['stories_quota'] ?? null),
@@ -143,13 +148,13 @@ class ClientService
                 'media_quota' => $quota['media_quota'],
                 'stories_used' => $quota['stories_used'],
                 'stories_quota' => $quota['stories_quota'],
-                'api' => $lastKeyUsed ? Carbon::parse($lastKeyUsed)->diffForHumans() : '—',
-                'last' => $lastDownload ? Carbon::parse($lastDownload)->diffForHumans() : '—',
+                'api' => $lastKeyUsed ? Carbon::parse($lastKeyUsed)->diffForHumans() : 'Ã¢â‚¬â€',
+                'last' => $lastDownload ? Carbon::parse($lastDownload)->diffForHumans() : 'Ã¢â‚¬â€',
             ],
         ]);
     }
 
-    // ─── Onboarding ─────────────────────────────────────────────────
+    // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Onboarding Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     public function onboardClient(
         string $name,
@@ -178,14 +183,7 @@ class ClientService
         $grad = 'g'.(1 + ($totalClients % 8));
         $code = strtoupper(Str::slug(substr($name, 0, 4))).rand(10, 99);
 
-        $quota = $tier === 'Premium' ? 2000 : ($tier === 'Standard' ? 800 : 200);
-        $mediaQuota = match ($tier) {
-            'Premium' => 1000,
-            'Standard' => 400,
-            default => 0,
-        };
-
-        DB::transaction(function () use ($name, $email, $type, $city, $packageName, $addons, $channels, $tier, $packageModel, $clientRoleId, $initials, $grad, $code, $quota, $mediaQuota, $contact) {
+        DB::transaction(function () use ($name, $email, $type, $city, $packageName, $addons, $channels, $tier, $packageModel, $clientRoleId, $initials, $grad, $code, $contact) {
             $clientId = DB::table('clients')->insertGetId([
                 'public_id' => (string) Str::ulid(),
                 'name' => $name,
@@ -201,16 +199,11 @@ class ClientService
                     'display_type' => $type,
                     'city' => $city ?: 'Dhaka',
                     'tier' => $tier,
-                    'tier_quotas' => [
-                        'stories_quota' => $quota,
-                        'media_quota' => $mediaQuota,
-                    ],
                     'since' => now()->format('M Y'),
                     'addons' => $addons,
-                    'usage' => ['dl' => 0, 'quota' => $quota, 'api' => in_array('api', $channels) ? '0' : '—', 'last' => 'Just now'],
                     'note_text' => '',
                     'activity' => [
-                        ['c' => '#16a34a', 't' => "Client onboarded — {$packageName}", 'w' => 'Just now'],
+                        ['c' => '#16a34a', 't' => "Client onboarded Ã¢â‚¬â€ {$packageName}", 'w' => 'Just now'],
                     ],
                 ]),
                 'created_at' => now(),
@@ -223,6 +216,7 @@ class ClientService
                 'email' => $email,
                 'password' => Hash::make('password'),
                 'client_role_id' => $clientRoleId,
+                'can_manage_delivery' => true,
                 'status' => 'active',
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -237,6 +231,22 @@ class ClientService
                     'status' => 'active',
                     'created_at' => now(),
                 ]);
+            }
+
+            // Add-ons are active package subscriptions too; notes.addons is
+            // presentation metadata only and is not an entitlement source.
+            foreach ($addons as $addonName) {
+                $addon = Package::where('name', $addonName)->where('status', 'active')->first();
+                if ($addon && $packageModel?->id !== $addon->id) {
+                    DB::table('client_packages')->insertOrIgnore([
+                        'client_id' => $clientId,
+                        'package_id' => $addon->id,
+                        'starts_at' => now(),
+                        'ends_at' => now()->addYear(),
+                        'status' => 'active',
+                        'created_at' => now(),
+                    ]);
+                }
             }
 
             if (in_array('ftp', $channels)) {
@@ -277,7 +287,7 @@ class ClientService
         return Client::where('code', $code)->firstOrFail();
     }
 
-    // ─── Channel Operations ─────────────────────────────────────────
+    // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Channel Operations Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     public function toggleChannel(Client $client, string $type): void
     {
@@ -470,7 +480,7 @@ class ClientService
 
         $meta = $this->getClientMeta($client);
         $meta['activity'] = array_merge([
-            ['c' => '#f0a832', 't' => 'API key regenerated — old key invalidated', 'w' => 'Just now'],
+            ['c' => '#f0a832', 't' => 'API key regenerated Ã¢â‚¬â€ old key invalidated', 'w' => 'Just now'],
         ], $meta['activity'] ?? []);
         $client->update(['notes' => json_encode($meta)]);
 
@@ -488,7 +498,7 @@ class ClientService
         }
     }
 
-    // ─── Subscriptions & Packages ───────────────────────────────────
+    // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Subscriptions & Packages Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     public function updatePackage(Client $client, string $packageName, array $addons, string $effectiveText): void
     {
@@ -503,17 +513,37 @@ class ClientService
         $meta['addons'] = $addons;
         $addonsStr = ! empty($addons) ? ' + '.implode(', ', $addons) : '';
 
-        $effective = strtolower(explode(' —', $effectiveText)[0]);
+        $effective = strtolower(explode(' Ã¢â‚¬â€', $effectiveText)[0]);
         $meta['activity'] = array_merge([
-            ['c' => '#3b6fe0', 't' => "Package updated → {$packageName}{$addonsStr} ({$effective})", 'w' => 'Just now'],
+            ['c' => '#3b6fe0', 't' => "Package updated Ã¢â€ â€™ {$packageName}{$addonsStr} ({$effective})", 'w' => 'Just now'],
         ], $meta['activity'] ?? []);
 
         $client->update(['notes' => json_encode($meta)]);
 
         if ($packageModel) {
+            // Deactivate prior base subscriptions instead of stacking them;
+            // entitlement resolver reads only active rows (COS-79).
+            $oldBaseIds = DB::table('client_packages')
+                ->join('packages', 'packages.id', '=', 'client_packages.package_id')
+                ->where('client_packages.client_id', $client->id)
+                ->where('client_packages.status', 'active')
+                ->get(['client_packages.id', 'packages.entitlement_filter'])
+                ->filter(function ($row) {
+                    $filter = is_string($row->entitlement_filter)
+                        ? json_decode($row->entitlement_filter, true)
+                        : (array) $row->entitlement_filter;
+
+                    return empty($filter['is_addon']);
+                })
+                ->pluck('id');
+
+            if ($oldBaseIds->isNotEmpty()) {
+                DB::table('client_packages')->whereIn('id', $oldBaseIds)->update(['status' => 'expired']);
+            }
+
             ClientPackage::updateOrCreate(
-                ['client_id' => $client->id, 'status' => 'active'],
-                ['package_id' => $packageModel->id, 'starts_at' => now()]
+                ['client_id' => $client->id, 'status' => 'active', 'package_id' => $packageModel->id],
+                ['starts_at' => now()]
             );
         }
     }
@@ -532,7 +562,7 @@ class ClientService
             $meta['tier'] = $tier;
             $meta['package_name'] = $packageName;
             $meta['activity'] = array_merge([
-                ['c' => '#3b6fe0', 't' => 'Package changed → '.$packageName, 'w' => 'Just now'],
+                ['c' => '#3b6fe0', 't' => 'Package changed Ã¢â€ â€™ '.$packageName, 'w' => 'Just now'],
             ], $meta['activity'] ?? []);
 
             $client->update([
@@ -540,9 +570,29 @@ class ClientService
             ]);
 
             if ($packageModel) {
+                // Deactivate prior base subscriptions instead of stacking them
+                // (COS-79); entitlement resolver reads only active rows.
+                $oldBaseIds = DB::table('client_packages')
+                    ->join('packages', 'packages.id', '=', 'client_packages.package_id')
+                    ->where('client_packages.client_id', $client->id)
+                    ->where('client_packages.status', 'active')
+                    ->get(['client_packages.id', 'packages.entitlement_filter'])
+                    ->filter(function ($row) {
+                        $filter = is_string($row->entitlement_filter)
+                            ? json_decode($row->entitlement_filter, true)
+                            : (array) $row->entitlement_filter;
+
+                        return empty($filter['is_addon']);
+                    })
+                    ->pluck('id');
+
+                if ($oldBaseIds->isNotEmpty()) {
+                    DB::table('client_packages')->whereIn('id', $oldBaseIds)->update(['status' => 'expired']);
+                }
+
                 ClientPackage::updateOrCreate(
-                    ['client_id' => $client->id, 'status' => 'active'],
-                    ['package_id' => $packageModel->id, 'starts_at' => now()]
+                    ['client_id' => $client->id, 'status' => 'active', 'package_id' => $packageModel->id],
+                    ['starts_at' => now()]
                 );
             }
             $count++;
@@ -551,17 +601,17 @@ class ClientService
         return $count;
     }
 
-    // ─── Lifecycle & Status ─────────────────────────────────────────
+    // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Lifecycle & Status Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     public function pauseClient(Client $client, string $reason, ?string $resumeDate, string $note): void
     {
         $meta = $this->getClientMeta($client);
         $meta['pause_reason'] = $reason;
-        $resumeStr = $resumeDate ? ' · auto-resume '.$resumeDate : '';
-        $noteStr = trim($note) ? ' — '.trim($note) : '';
+        $resumeStr = $resumeDate ? ' Ã‚Â· auto-resume '.$resumeDate : '';
+        $noteStr = trim($note) ? ' Ã¢â‚¬â€ '.trim($note) : '';
 
         $meta['activity'] = array_merge([
-            ['c' => '#f0a832', 't' => "Deliveries paused — reason: {$reason}{$resumeStr}{$noteStr}", 'w' => 'Just now'],
+            ['c' => '#f0a832', 't' => "Deliveries paused Ã¢â‚¬â€ reason: {$reason}{$resumeStr}{$noteStr}", 'w' => 'Just now'],
         ], $meta['activity'] ?? []);
 
         $client->update([
@@ -590,7 +640,7 @@ class ClientService
 
         $meta = $this->getClientMeta($client);
         $meta['activity'] = array_merge([
-            ['c' => '#7c7f8c', 't' => 'Client deactivated — access revoked, records kept', 'w' => 'Just now'],
+            ['c' => '#7c7f8c', 't' => 'Client deactivated Ã¢â‚¬â€ access revoked, records kept', 'w' => 'Just now'],
         ], $meta['activity'] ?? []);
 
         $client->update([
@@ -624,7 +674,7 @@ class ClientService
         foreach ($activeClients as $client) {
             $meta = $this->getClientMeta($client);
             $meta['activity'] = array_merge([
-                ['c' => '#f0a832', 't' => 'Deliveries paused — bulk action', 'w' => 'Just now'],
+                ['c' => '#f0a832', 't' => 'Deliveries paused Ã¢â‚¬â€ bulk action', 'w' => 'Just now'],
             ], $meta['activity'] ?? []);
             $meta['pause_reason'] = 'Client requested';
 
@@ -646,7 +696,7 @@ class ClientService
         $client->update(['notes' => json_encode($meta)]);
     }
 
-    // ─── CSV Export ─────────────────────────────────────────────────
+    // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ CSV Export Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     public function exportCsv(Collection $clients, bool $selectedOnly = false): StreamedResponse
     {
@@ -673,7 +723,7 @@ class ClientService
                     $chans[] = 'api';
                 }
 
-                $renewal = $client->clientPackages->first()?->ends_at?->format('j M Y') ?? '—';
+                $renewal = $client->clientPackages->first()?->ends_at?->format('j M Y') ?? 'Ã¢â‚¬â€';
                 $dl = $meta['usage']['dl'] ?? 0;
                 $quota = $meta['usage']['quota'] ?? 800;
 
