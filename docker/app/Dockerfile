@@ -12,6 +12,9 @@ RUN apk add --no-cache \
     git \
     curl \
     libpng-dev \
+    libjpeg-turbo-dev \
+    libwebp-dev \
+    freetype-dev \
     libxml2-dev \
     zip \
     unzip \
@@ -23,8 +26,10 @@ RUN apk add --no-cache \
     nodejs \
     npm
 
+# Configure GD with JPEG, WebP, and FreeType support (COS-6 WebP pipeline).
 # ftp is required by league/flysystem-ftp (PushFtpDelivery / FTP channels).
-RUN docker-php-ext-install \
+RUN docker-php-ext-configure gd --with-jpeg --with-webp --with-freetype \
+    && docker-php-ext-install \
     pdo_pgsql \
     pgsql \
     ftp \
