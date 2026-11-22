@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\MediaAsset;
+use App\Support\ImageWebpConverter;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Storage;
@@ -32,39 +33,45 @@ class GenerateDerivatives implements ShouldQueue
             return;
         }
 
-        $src = @imagecreatefromstring($bytes);
-        if (! $src) {
+        if (! is_string($bytes) || $bytes === '') {
             return;
         }
 
-        $width = imagesx($src);
-        $height = imagesy($src);
-        $variants = ['thumb' => 400, 'small' => 800, 'medium' => 1200, 'large' => 1600];
-        $derivatives = $asset->derivatives ?? [];
-
-        foreach ($variants as $variant => $maxWidth) {
-            $scale = $width > 0 ? min(1, $maxWidth / $width) : 1;
-            $tw = max(1, (int) round($width * $scale));
-            $th = max(1, (int) round($height * $scale));
-
-            $dst = imagecreatetruecolor($tw, $th);
-            imagealphablending($dst, false);
-            imagesavealpha($dst, true);
-            $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
-            imagefilledrectangle($dst, 0, 0, $tw, $th, $transparent);
-            imagecopyresampled($dst, $src, 0, 0, 0, 0, $tw, $th, $width, $height);
-
-            ob_start();
-            imagewebp($dst, null, 82);
-            $data = ob_get_clean();
-            imagedestroy($dst);
-
-            $path = "media/derivatives/{$asset->public_id}/{$variant}.webp";
-            Storage::disk($asset->storage_disk)->put($path, $data);
-            $derivatives[$variant] = ['path' => $path, 'width' => $tw, 'height' => $th];
+        // COS-6: generate a 1:1 full-resolution WebP counterpart alongside the
+        // original file for photo-library uploads, plus the 4 responsive WebP variants.
+        $fullWebp = ImageWebpConverter::convertBytes($bytes, null, 85);
+        if (! $fullWebp) {
+            return;
         }
 
-        imagedestroy($src);
+        $derivatives = $asset->derivatives ?? [];
+        $fullPath = "media/derivatives/{$asset->public_id}/full.webp";
+        Storage::disk($asset->storage_disk)->put($fullPath, $fullWebp['bytes']);
+        $derivatives['webp'] = [
+            'path' => $fullPath,
+            'width' => $fullWebp['width'],
+            'height' => $fullWebp['height'],
+            'size_bytes' => $fullWebp['size_bytes'],
+        ];
+
+        $variants = ['thumb' => 400, 'small' => 800, 'medium' => 1200, 'large' => 1600];
+
+        foreach ($variants as $variant => $maxWidth) {
+            $converted = ImageWebpConverter::convertBytes($bytes, $maxWidth, 82);
+            if (! $converted) {
+                continue;
+            }
+
+            $path = "media/derivatives/{$asset->public_id}/{$variant}.webp";
+            Storage::disk($asset->storage_disk)->put($path, $converted['bytes']);
+            $derivatives[$variant] = [
+                'path' => $path,
+                'width' => $converted['width'],
+                'height' => $converted['height'],
+                'size_bytes' => $converted['size_bytes'],
+            ];
+        }
+
         $asset->update(['derivatives' => $derivatives]);
     }
 }

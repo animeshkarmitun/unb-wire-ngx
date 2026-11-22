@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Jobs\GenerateDerivatives;
 use App\Jobs\ProcessIndexOutbox;
 use App\Models\AiGeneration;
 use App\Models\Category;
@@ -20,7 +21,10 @@ use App\Services\RevisionService;
 use App\Services\StoryService;
 use App\Support\BriefBuilder;
 use App\Support\DisplayPrefs;
+use App\Support\ImageWebpConverter;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -87,6 +91,10 @@ class AddNews extends Component
     public $mediaUpload; // Livewire temporary upload
 
     public $archiveUpload; // Upload tile inside the archive modal
+
+    // COS-6: story accompanying images convert to WebP by default unless
+    // the uploader explicitly opts to keep the original image format.
+    public bool $keepOriginalFormat = false;
 
     // Step 3: Organize & Access fields
     public string $categoryId = '';
@@ -757,22 +765,59 @@ class AddNews extends Component
 
     private function storeUploadedAsset($file): MediaAsset
     {
-        $isVideo = str_starts_with($file->getMimeType(), 'video/');
-        $path = $file->store('media/originals', 'local');
+        $mime = (string) $file->getMimeType();
+        $isVideo = str_starts_with($mime, 'video/');
+        $realPath = $file->getRealPath();
+        $rawBytes = (! $isVideo && is_string($realPath) && is_file($realPath))
+            ? (string) file_get_contents($realPath)
+            : '';
 
-        return MediaAsset::create([
+        // COS-6: accompanying story images convert to WebP by default unless
+        // the uploader checked "Keep original image format".
+        $converted = (! $isVideo && ! $this->keepOriginalFormat && $rawBytes !== '')
+            ? ImageWebpConverter::convertBytes($rawBytes, null, 85)
+            : null;
+
+        if ($converted !== null) {
+            $path = 'media/originals/'.Str::ulid().'.webp';
+            Storage::disk('local')->put($path, $converted['bytes']);
+            $storedMime = 'image/webp';
+            $sizeBytes = $converted['size_bytes'];
+            $width = $converted['width'];
+            $height = $converted['height'];
+            $checksum = hash('sha256', $converted['bytes']);
+        } else {
+            $path = $file->store('media/originals', 'local');
+            $storedMime = $mime;
+            $sizeBytes = (int) $file->getSize();
+            $dims = (! $isVideo && is_string($realPath) && is_file($realPath)) ? @getimagesize($realPath) : false;
+            $width = is_array($dims) ? ($dims[0] ?? null) : null;
+            $height = is_array($dims) ? ($dims[1] ?? null) : null;
+            $checksum = (is_string($realPath) && is_file($realPath) ? hash_file('sha256', $realPath) : false)
+                ?: hash('sha256', $file->getClientOriginalName().time());
+        }
+
+        $asset = MediaAsset::create([
             'kind' => $isVideo ? 'video' : 'photo',
             'status' => 'library',
             'title' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
             'caption' => '',
             'credit_line' => 'UNB',
-            'mime' => $file->getMimeType(),
-            'size_bytes' => $file->getSize(),
-            'checksum' => hash_file('sha256', $file->getRealPath()) ?: hash('sha256', $file->getClientOriginalName().time()),
+            'mime' => $storedMime,
+            'size_bytes' => $sizeBytes,
+            'width' => $width,
+            'height' => $height,
+            'checksum' => $checksum,
             'storage_disk' => 'local',
             'original_path' => $path,
             'uploaded_by' => auth()->id(),
         ]);
+
+        if (! $isVideo) {
+            GenerateDerivatives::dispatch($asset->id);
+        }
+
+        return $asset;
     }
 
     public function reorderMedia(array $order): void

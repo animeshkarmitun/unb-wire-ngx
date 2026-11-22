@@ -109,7 +109,13 @@
                       Upload
                     </label>
                   </div>
-                  <div class="field-hint" style="margin-top:4px">Optional — can add later on Step 2</div>
+                  <div class="field-hint" style="margin-top:4px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+                    <span>Optional — converts to WebP automatically</span>
+                    <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--ink-2)">
+                      <input type="checkbox" wire:model.live="keepOriginalFormat" style="accent-color:var(--red)">
+                      Keep original format
+                    </label>
+                  </div>
                 @endif
               </div>
             </div>

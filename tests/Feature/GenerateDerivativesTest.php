@@ -74,13 +74,17 @@ class GenerateDerivativesTest extends TestCase
         (new GenerateDerivatives($asset->id))->handle();
 
         $d = $asset->fresh()->derivatives;
-        foreach (['thumb', 'small', 'medium', 'large'] as $variant) {
+        foreach (['webp', 'thumb', 'small', 'medium', 'large'] as $variant) {
             $this->assertArrayHasKey($variant, $d);
             $this->assertTrue(Storage::disk('s3')->exists($d[$variant]['path']));
             $info = getimagesize(Storage::disk('s3')->path($d[$variant]['path']));
             $this->assertSame(IMAGETYPE_WEBP, $info[2], "{$variant} must be WebP");
         }
 
+        $this->assertSame(1200, $d['webp']['width'], 'webp variant keeps 1:1 full resolution');
+        $this->assertSame(800, $d['webp']['height']);
+        $this->assertGreaterThan(0, $d['webp']['size_bytes']);
+        $this->assertStringEndsWith('/full.webp', $d['webp']['path']);
         $this->assertSame(400, $d['thumb']['width']);
         $this->assertSame(267, $d['thumb']['height']);
         $this->assertSame(1200, $d['large']['width'], 'no upscaling past the source width');
