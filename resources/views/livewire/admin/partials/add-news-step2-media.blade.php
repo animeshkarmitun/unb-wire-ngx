@@ -36,7 +36,13 @@
               Choose from photo archive
             </button>
           </div>
-          <div class="field-hint warn" id="fileHint">Recommended size: 1200 × 630 px · JPG or PNG, max 50 MB</div>
+          <div class="field-hint warn" id="fileHint" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <span>Recommended size: 1200 × 630 px · JPG or PNG, max 50 MB (auto-converted to WebP)</span>
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--ink-2);font-weight:500">
+              <input type="checkbox" wire:model.live="keepOriginalFormat" style="accent-color:var(--red)">
+              Keep original image format
+            </label>
+          </div>
 
           <div class="field" style="margin-top:16px">
             <label class="field-label">Image caption</label>

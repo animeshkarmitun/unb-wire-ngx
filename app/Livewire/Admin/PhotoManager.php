@@ -654,7 +654,7 @@ class PhotoManager extends Component
 
         $gradientIndex = 1;
         foreach ($this->uploads as $file) {
-            $path = $file->store('media/uploads', 'public');
+            $path = $file->store('media/uploads', 'local');
             $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
             $cleanTitle = ucwords(str_replace(['-', '_'], ' ', $filename));
 
@@ -675,7 +675,7 @@ class PhotoManager extends Component
                 'width' => $width,
                 'height' => $height,
                 'checksum' => hash_file('sha256', $file->getRealPath()),
-                'storage_disk' => 'public',
+                'storage_disk' => 'local',
                 'original_path' => $path,
                 'derivatives' => [
                     'grad' => 'g'.(($gradientIndex % 8) + 1),

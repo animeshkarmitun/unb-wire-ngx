@@ -16,7 +16,7 @@ param(
     [int]$DelaySeconds = 20,
     [string]$CliPath = "opencode",
     [string]$Model = "opencode-go/glm-5.3-flash",
-    [string[]]$SkipIssues = @("COS-25", "COS-24", "COS-6")
+    [string[]]$SkipIssues = @("COS-25", "COS-24")
 )
 
 $ErrorActionPreference = 'Continue'

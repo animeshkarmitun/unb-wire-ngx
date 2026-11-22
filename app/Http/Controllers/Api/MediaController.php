@@ -121,7 +121,7 @@ class MediaController extends Controller
         $validated = $request->validate([
             'asset_ids' => ['required', 'array', 'min:1', 'max:50'],
             'asset_ids.*' => ['required'],
-            'variant' => ['nullable', 'string', 'in:original,large,medium,small,thumb'],
+            'variant' => ['nullable', 'string', 'in:original,webp,large,medium,small,thumb'],
             'async' => ['nullable', 'boolean'],
         ]);
 

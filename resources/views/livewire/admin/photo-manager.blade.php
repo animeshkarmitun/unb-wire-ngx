@@ -481,6 +481,26 @@ class="relative">
                     </div>
 
                     <div class="f-group">
+                        <label class="f-label">Stored formats</label>
+                        <div class="usage-box" style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <span><b>Original</b> ({{ strtoupper(pathinfo((string) $selected->original_path, PATHINFO_EXTENSION) ?: ($selected->mime ?: 'FILE')) }})</span>
+                                @if($selected->staffUrl('original'))
+                                    <a href="{{ $selected->staffUrl('original') }}" target="_blank" style="color:var(--blue);font-weight:600;text-decoration:none;">Open original ↗</a>
+                                @endif
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <span><b>WebP version</b> ({{ !empty($selected->derivatives['webp']) ? 'Ready' : ($selected->mime === 'image/webp' ? 'Native WebP' : 'Generating…') }})</span>
+                                @if(!empty($selected->derivatives['webp']) && $selected->staffUrl('webp'))
+                                    <a href="{{ $selected->staffUrl('webp') }}" target="_blank" style="color:var(--green);font-weight:600;text-decoration:none;">Open WebP ↗</a>
+                                @elseif($selected->mime === 'image/webp' && $selected->staffUrl('original'))
+                                    <a href="{{ $selected->staffUrl('original') }}" target="_blank" style="color:var(--green);font-weight:600;text-decoration:none;">Open WebP ↗</a>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="f-group">
                         <label class="f-label">Client usage</label>
                         <div class="usage-box">
                             <div class="usage-total">

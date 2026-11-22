@@ -11,6 +11,10 @@
 
       <div class="mm-filters">
         <input class="mm-search" type="text" id="mmSearch" placeholder="Search by caption, keyword, date…">
+        <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--ink-2);white-space:nowrap">
+          <input type="checkbox" wire:model.live="keepOriginalFormat" style="accent-color:var(--red)">
+          Keep original format
+        </label>
         <select class="select-input" id="mediaTypeFilter" style="width:130px; background-color:#fff">
           <option value="all">All media</option>
           <option value="photo">Photos</option>

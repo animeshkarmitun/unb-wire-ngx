@@ -56,8 +56,12 @@ class MediaFileController extends Controller
                 abort(404);
             }
 
+            $mime = str_ends_with(strtolower((string) $path), '.webp')
+                ? 'image/webp'
+                : ($a->mime ?: 'application/octet-stream');
+
             return response()->file($fs->path($path), [
-                'Content-Type' => $a->mime ?: 'application/octet-stream',
+                'Content-Type' => $mime,
                 'Content-Disposition' => 'inline; filename="'.basename($path).'"',
                 'Cache-Control' => 'private, max-age=300',
             ]);
